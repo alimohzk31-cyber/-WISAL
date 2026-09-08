@@ -1,0 +1,7 @@
+{
+  "name": "Saleen Social",
+  "description": "دليل خدمات ذكي داخل المدينة يتيح للمستخدمين الوصول إلى الخدمات بسهولة وإضافة خدمات جديدة.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

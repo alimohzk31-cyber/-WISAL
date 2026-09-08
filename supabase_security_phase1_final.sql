@@ -1,0 +1,570 @@
+-- ============================================================
+-- SALEEN SERVICE
+-- SERVICES + APPROVAL SYSTEM
+-- ANONYMOUS ADD -> PENDING -> ADMIN APPROVE / REJECT
+-- ============================================================
+--
+-- هذا الملف مخصص للنسخة الحالية من تطبيق Saleen Service.
+--
+-- النظام:
+-- الزائر يضيف خدمة
+--        ↓
+-- Supabase
+--        ↓
+-- status = pending
+--        ↓
+-- لوحة الإدارة
+--        ↓
+-- Approve / Reject
+--        ↓
+-- approved = تظهر للعامة
+-- rejected = تبقى مخفية
+--
+-- ملاحظات مهمة:
+-- 1. لا يوجد تسجيل دخول للمستخدمين.
+-- 2. لا نستخدم auth.uid() لإضافة الخدمات.
+-- 3. لا نلمس services.user_id.
+-- 4. لا نحذف أي بيانات.
+-- 5. owner_id يستخدم TEXT ومتوافق مع معرف الجهاز القديم.
+-- ============================================================
+
+
+-- ============================================================
+-- 1. SERVICES - COLUMNS
+-- ============================================================
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS slug text;
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS category_slug text;
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS profession text;
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS address text;
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS latitude double precision;
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS longitude double precision;
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS owner_id text;
+
+ALTER TABLE public.services
+ADD COLUMN IF NOT EXISTS rejection_reason text;
+
+
+-- ============================================================
+-- 2. IMPORTANT
+-- Convert owner_id to TEXT if the previous security SQL
+-- changed it to UUID.
+--
+-- user_id is NOT TOUCHED.
+-- ============================================================
+
+DO $$
+BEGIN
+
+    -- Remove the old UUID foreign key if it exists
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'services_owner_id_fkey'
+          AND conrelid = 'public.services'::regclass
+    ) THEN
+
+        ALTER TABLE public.services
+        DROP CONSTRAINT services_owner_id_fkey;
+
+    END IF;
+
+
+    -- Convert owner_id UUID -> TEXT
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'services'
+          AND column_name = 'owner_id'
+          AND udt_name = 'uuid'
+    ) THEN
+
+        ALTER TABLE public.services
+        ALTER COLUMN owner_id TYPE text
+        USING owner_id::text;
+
+    END IF;
+
+END
+$$;
+
+
+-- ============================================================
+-- 3. STATUS DEFAULT
+-- ============================================================
+
+ALTER TABLE public.services
+ALTER COLUMN status SET DEFAULT 'pending';
+
+
+-- ============================================================
+-- 4. BASIC STATUS VALIDATION
+-- ============================================================
+
+DO $$
+BEGIN
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'services_status_check'
+          AND conrelid = 'public.services'::regclass
+    ) THEN
+
+        ALTER TABLE public.services
+        ADD CONSTRAINT services_status_check
+        CHECK (
+            status IN ('pending', 'approved', 'rejected')
+        );
+
+    END IF;
+
+END
+$$;
+
+
+-- ============================================================
+-- 5. UNIQUE SLUG
+-- ============================================================
+
+DO $$
+BEGIN
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'services_slug_key'
+          AND conrelid = 'public.services'::regclass
+    ) THEN
+
+        ALTER TABLE public.services
+        ADD CONSTRAINT services_slug_key
+        UNIQUE (slug);
+
+    END IF;
+
+END
+$$;
+
+
+-- ============================================================
+-- 6. CATEGORIES
+-- ============================================================
+
+ALTER TABLE public.categories
+ADD COLUMN IF NOT EXISTS slug text;
+
+ALTER TABLE public.categories
+ADD COLUMN IF NOT EXISTS color text DEFAULT 'blue';
+
+ALTER TABLE public.categories
+ADD COLUMN IF NOT EXISTS image text;
+
+ALTER TABLE public.categories
+ADD COLUMN IF NOT EXISTS description text DEFAULT '';
+
+
+-- Fill missing category slugs
+UPDATE public.categories
+SET slug = id
+WHERE slug IS NULL;
+
+
+-- Unique category slug
+DO $$
+BEGIN
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'categories_slug_key'
+          AND conrelid = 'public.categories'::regclass
+    ) THEN
+
+        ALTER TABLE public.categories
+        ADD CONSTRAINT categories_slug_key
+        UNIQUE (slug);
+
+    END IF;
+
+END
+$$;
+
+
+-- ============================================================
+-- 7. SLIDER
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.slider_images (
+
+    id bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+
+    url text NOT NULL DEFAULT '',
+
+    title text NOT NULL DEFAULT '',
+
+    display_date text,
+
+    start_time text,
+
+    end_time text,
+
+    images text[] DEFAULT '{}',
+
+    is_active boolean DEFAULT true,
+
+    created_at timestamptz DEFAULT now(),
+
+    updated_at timestamptz DEFAULT now()
+
+);
+
+
+ALTER TABLE public.slider_images
+ADD COLUMN IF NOT EXISTS display_date text;
+
+ALTER TABLE public.slider_images
+ADD COLUMN IF NOT EXISTS start_time text;
+
+ALTER TABLE public.slider_images
+ADD COLUMN IF NOT EXISTS end_time text;
+
+ALTER TABLE public.slider_images
+ADD COLUMN IF NOT EXISTS images text[] DEFAULT '{}';
+
+ALTER TABLE public.slider_images
+ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
+
+ALTER TABLE public.slider_images
+ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+
+
+-- ============================================================
+-- 8. SERVICES RLS
+-- ============================================================
+
+ALTER TABLE public.services
+ENABLE ROW LEVEL SECURITY;
+
+
+-- Remove old policies
+DROP POLICY IF EXISTS "services_select_policy"
+ON public.services;
+
+DROP POLICY IF EXISTS "services_insert_policy"
+ON public.services;
+
+DROP POLICY IF EXISTS "services_update_policy"
+ON public.services;
+
+DROP POLICY IF EXISTS "services_delete_policy"
+ON public.services;
+
+
+-- ============================================================
+-- 9. PUBLIC READ
+--
+-- Anonymous visitors:
+-- ONLY approved services are visible.
+--
+-- Authenticated admin:
+-- Can read all services including pending/rejected.
+-- ============================================================
+
+CREATE POLICY "services_select_policy"
+ON public.services
+
+FOR SELECT
+
+USING (
+
+    status = 'approved'
+
+    OR
+
+    auth.role() = 'authenticated'
+
+);
+
+
+-- ============================================================
+-- 10. ADD SERVICE
+--
+-- Anonymous visitors are allowed to INSERT.
+--
+-- Every new service MUST be pending.
+-- owner_id must exist.
+-- ============================================================
+
+CREATE POLICY "services_insert_policy"
+ON public.services
+
+FOR INSERT
+
+WITH CHECK (
+
+    status = 'pending'
+
+    AND owner_id IS NOT NULL
+
+);
+
+
+-- ============================================================
+-- 11. UPDATE SERVICE
+--
+-- Admin panel uses authenticated Supabase session.
+--
+-- Anonymous users cannot update services.
+-- ============================================================
+
+CREATE POLICY "services_update_policy"
+ON public.services
+
+FOR UPDATE
+
+USING (
+
+    auth.role() = 'authenticated'
+
+)
+
+WITH CHECK (
+
+    auth.role() = 'authenticated'
+
+);
+
+
+-- ============================================================
+-- 12. DELETE SERVICE
+--
+-- Only authenticated admin-side sessions can delete.
+-- ============================================================
+
+CREATE POLICY "services_delete_policy"
+ON public.services
+
+FOR DELETE
+
+USING (
+
+    auth.role() = 'authenticated'
+
+);
+
+
+-- ============================================================
+-- 13. CATEGORIES RLS
+-- ============================================================
+
+ALTER TABLE public.categories
+ENABLE ROW LEVEL SECURITY;
+
+
+DROP POLICY IF EXISTS "categories_select_policy"
+ON public.categories;
+
+DROP POLICY IF EXISTS "categories_insert_policy"
+ON public.categories;
+
+DROP POLICY IF EXISTS "categories_update_policy"
+ON public.categories;
+
+DROP POLICY IF EXISTS "categories_delete_policy"
+ON public.categories;
+
+
+-- Public can read categories
+CREATE POLICY "categories_select_policy"
+ON public.categories
+
+FOR SELECT
+
+USING (true);
+
+
+-- Authenticated admin operations
+CREATE POLICY "categories_insert_policy"
+ON public.categories
+
+FOR INSERT
+
+WITH CHECK (
+    auth.role() = 'authenticated'
+);
+
+
+CREATE POLICY "categories_update_policy"
+ON public.categories
+
+FOR UPDATE
+
+USING (
+    auth.role() = 'authenticated'
+)
+
+WITH CHECK (
+    auth.role() = 'authenticated'
+);
+
+
+CREATE POLICY "categories_delete_policy"
+ON public.categories
+
+FOR DELETE
+
+USING (
+    auth.role() = 'authenticated'
+);
+
+
+-- ============================================================
+-- 14. SLIDER RLS
+-- ============================================================
+
+ALTER TABLE public.slider_images
+ENABLE ROW LEVEL SECURITY;
+
+
+DROP POLICY IF EXISTS "slider_images_select_policy"
+ON public.slider_images;
+
+DROP POLICY IF EXISTS "slider_images_insert_policy"
+ON public.slider_images;
+
+DROP POLICY IF EXISTS "slider_images_update_policy"
+ON public.slider_images;
+
+DROP POLICY IF EXISTS "slider_images_delete_policy"
+ON public.slider_images;
+
+
+-- Public can see active slider images
+CREATE POLICY "slider_images_select_policy"
+ON public.slider_images
+
+FOR SELECT
+
+USING (
+    is_active = true
+    OR
+    auth.role() = 'authenticated'
+);
+
+
+-- Admin-side authenticated operations
+CREATE POLICY "slider_images_insert_policy"
+ON public.slider_images
+
+FOR INSERT
+
+WITH CHECK (
+    auth.role() = 'authenticated'
+);
+
+
+CREATE POLICY "slider_images_update_policy"
+ON public.slider_images
+
+FOR UPDATE
+
+USING (
+    auth.role() = 'authenticated'
+)
+
+WITH CHECK (
+    auth.role() = 'authenticated'
+);
+
+
+CREATE POLICY "slider_images_delete_policy"
+ON public.slider_images
+
+FOR DELETE
+
+USING (
+    auth.role() = 'authenticated'
+);
+
+
+-- ============================================================
+-- 15. GRANTS
+-- ============================================================
+
+GRANT SELECT ON public.services TO anon;
+GRANT INSERT ON public.services TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.services
+TO authenticated;
+
+
+GRANT SELECT
+ON public.categories
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.categories
+TO authenticated;
+
+
+GRANT SELECT
+ON public.slider_images
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.slider_images
+TO authenticated;
+
+
+-- ============================================================
+-- 16. FINAL CHECK
+--
+-- This displays the important services columns.
+-- ============================================================
+
+SELECT
+    column_name,
+    data_type,
+    column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'services'
+ORDER BY ordinal_position;
+
+
+-- ============================================================
+-- 17. VERIFY owner_id AND user_id
+-- ============================================================
+
+SELECT
+    column_name,
+    data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'services'
+  AND column_name IN ('id', 'user_id', 'owner_id', 'status')
+ORDER BY ordinal_position;
+
+
+-- ============================================================
+-- END
+-- ============================================================

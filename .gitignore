@@ -1,0 +1,65 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Android build
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/keystore.properties
+android/keystore/
+*.keystore
+*.jks
+
+# Capacitor توقيع وإعدادات محلية
+capacitor.config.json
+
+# نسخ البناء (AAB/APK) — لا تُرفع إلى GitHub
+release/
+
+# Local experiments, caches and verification output
+/.task-backup/
+/.cleanup-work/
+/.cleanup-*.json
+/.cache/
+/.vite/
+/.vite-temp/
+/tmp-use*.txt
+/build-out.txt
+/build[0-9]*.txt
+/lint-out.txt
+/tsc-check.txt
+/tsc[0-9]*.txt
+/sweep[0-9]*.txt
+/tcat.txt
+/tdir.txt
+/_fetch_chunk.txt
+android/_gradle.txt
+*.tsbuildinfo
+*.tmp
+*.temp
+*.bak
+*~
+__pycache__/
+*.py[cod]
+Thumbs.db
+Desktop.ini
+
+# Native build caches and signing material
+android/**/.cxx/
+android/**/.externalNativeBuild/
+*.p12
+*.pfx
+*.key
+*.pem
+.npmrc
+android/app/google-services.json
+
+# Portable source package generated locally
+/wisal-upload.zip

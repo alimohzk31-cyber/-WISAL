@@ -3,10 +3,10 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass } from 'lucide-react';
 import { useServices } from '../context/ServicesContext';
-import { isValidServiceId, mapRowToService, Service } from '../hooks/useServices';
-import { supabase } from '../lib/supabase';
+import { isValidServiceId, Service } from '../hooks/useServices';
+import { serviceStatusLabel, serviceStatusBadgeClass } from '../types/models';
+import { adminApproveService, adminRejectService } from '../services/adminServiceActions';
 import { useAdminServiceLists } from '../hooks/useAdminServiceLists';
-import { measureAdminOperation } from '../lib/adminPerformance';
 import { useCategories } from '../hooks/useCategories';
 import { colorMap } from '../data/categories';
 import { resolveCategoryIcon, getIconColorStyles, FALLBACK_SERVICE_ICON } from '../data/serviceIcons';
@@ -144,19 +144,13 @@ export default function AdminDashboard() {
     setProcessingId(String(id));
 
     try {
-      console.log('[AdminDashboard] Approving service through admin_set_service_status for id =', id);
-      const { data, error } = await measureAdminOperation('admin.approve', () => supabase.rpc('admin_set_service_status', {
-        p_id: Number(id),
-        p_status: 'approved',
-        p_rejection_reason: null,
-      }));
-
-      if (error) throw error;
-      if (!data) throw new Error(`لم يتم تحديث أي صف للخدمة id=${id}.`);
+      // الموافقة تمر عبر طبقة الخدمات adminServiceActions (الاستدعاء الوحيد
+      // لـ admin_set_service_status في التطبيق) ويعيد الصف المؤكد من الخادم.
+      const updated = await adminApproveService(id);
 
       // Apply only the row confirmed by the server. This removes it immediately
       // from pending and prepends it to browse using its new reviewed_at value.
-      applyServiceUpdate(mapRowToService(data));
+      applyServiceUpdate(updated);
 
     } catch (error: any) {
       console.error('[AdminDashboard] Approve failed for id =', id, ':', {
@@ -168,8 +162,10 @@ export default function AdminDashboard() {
     }
   };
 
-  // REJECT: direct UPDATE against public.services using ONLY the real numeric id from Supabase.
-  // Never uses slug, never relies on local cache, never hides Supabase errors.
+  // REJECT: عبر طبقة الخدمات adminServiceActions — UPDATE ضد public.services
+  // باستخدام ONLY الـ id الرقمي الحقيقي من Supabase. لا slug، لا اعتماد على
+  // الكاش المحلي، ولا إخفاء لأخطاء Supabase (PGRST116 = صفر صفوف: معرّف خطأ
+  // أو رفض من صلاحيات RLS).
   const handleReject = async (service: Service) => {
     // Strict validation: refuse to run the UPDATE without the real numeric id
     if (!isValidServiceId(service.id)) {
@@ -188,44 +184,20 @@ export default function AdminDashboard() {
     setProcessingId(String(service.id));
 
     try {
-      // Diagnostic: print the exact statement that will run
       console.log("[AdminDashboard] Rejecting service: UPDATE public.services SET status='rejected' WHERE id =", service.id);
 
-      const { data, error } = await measureAdminOperation('admin.reject', () => supabase.rpc('admin_set_service_status', {
-        p_id: Number(service.id),
-        p_status: 'rejected',
-        p_rejection_reason: null,
-      }));
-
-      if (error) {
-        // NEVER hide Supabase errors (PGRST116 = UPDATE matched 0 rows: wrong id or permissions/RLS refusal)
-        console.error(`[AdminDashboard] Reject failed for service.id = ${JSON.stringify(service.id)}:`, {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-        });
-        alert(`فشلت عملية الرفض: ${error.message || 'خطأ غير معروف'}${error.code ? ` (${error.code})` : ''}`);
-        return;
-      }
-
-      if (!data) {
-        const msg = `فشلت عملية الرفض: لم يتم تحديث أي صف في public.services بالمعرّف id=${JSON.stringify(service.id)}.`;
-        console.error('[AdminDashboard]', msg);
-        alert(msg);
-        return;
-      }
+      const updated = await adminRejectService(service.id);
 
       console.log('[AdminDashboard] Reject succeeded:', {
         id: service.id,
-        status: (data as any).status,
+        status: updated.status,
       });
 
-      applyServiceUpdate(mapRowToService(data));
+      applyServiceUpdate(updated);
 
     } catch (e: any) {
       console.error(`[AdminDashboard] Reject failed for service.id = ${JSON.stringify(service.id)}:`, e);
-      alert(`فشلت عملية الرفض: ${e?.message || 'خطأ غير معروف'}`);
+      alert(`فشلت عملية الرفض: ${e?.message || 'خطأ غير معروف'}${e?.code ? ` (${e.code})` : ''}`);
     } finally {
       setProcessingId(null);
     }
@@ -313,11 +285,8 @@ export default function AdminDashboard() {
     setEditingService(service);
   };
 
-  const serviceStatusLabel = (status?: Service['status']) => {
-    if (status === 'pending') return 'بانتظار المراجعة';
-    if (status === 'rejected') return 'مرفوضة';
-    return 'معتمدة';
-  };
+  // serviceStatusLabel و serviceStatusBadgeClass مُوحَّدتان من types/models
+  // (المصدر الوحيد لتسميات الحالات وأصناف شاراتها في التطبيق كله).
 
   return (
     <div className="flex flex-col md:flex-row gap-4 md:gap-5 min-h-[80vh] relative" dir="rtl">
@@ -695,7 +664,7 @@ export default function AdminDashboard() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <h4 className="truncate font-bold text-[var(--text-primary)]">{service.name}</h4>
-                          <span className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold ${service.status === 'rejected' ? 'bg-red-500/10 text-red-500' : service.status === 'pending' ? 'bg-amber-500/10 text-amber-600' : 'bg-[var(--accent-soft)] text-[var(--accent-primary)]'}`}>{serviceStatusLabel(service.status)}</span>
+                          <span className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold ${serviceStatusBadgeClass(service.status)}`}>{serviceStatusLabel(service.status)}</span>
                         </div>
                         {service.profession && <p className="mt-1 truncate text-xs text-[var(--text-secondary)]">{service.profession}</p>}
                         {service.location && <p className="mt-1 flex items-center gap-1 truncate text-xs text-[var(--text-muted)]"><MapPin className="h-3 w-3" />{service.location}</p>}

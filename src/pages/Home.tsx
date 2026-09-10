@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { browserStorage } from '../lib/browserStorage';
-import ServiceLoadStatus from '../components/ServiceLoadStatus';
-import { Search, Compass, LayoutGrid, Mic, MicOff } from 'lucide-react';
+import { Search, Compass, LayoutGrid, Mic, MicOff, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { colorMapRedWhite } from '../data/categories';
 import { useCategories } from '../hooks/useCategories';
@@ -14,9 +12,10 @@ import { useSlider, getSlideDuration } from '../hooks/useSlider';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
 import { useImageFallback } from '../components/SafeImage';
-import { SLIDE_POSITION_CLASSES, SLIDE_TEXT_ALIGN } from '../components/SliderManager';
+import { SLIDE_POSITION_CLASSES, SLIDE_TEXT_ALIGN } from '../data/slideStyles';
 import SocialFeed from '../components/SocialFeed';
 import AddServiceModal from '../components/AddServiceModal';
+import ErrorState from '../components/ui/ErrorState';
 import { buildDirectorySearchIndex, searchDirectory, getDirectDirectoryMatch } from '../lib/directorySearch';
 import { categoryUrl, directoryEntryState, getHomeView } from '../lib/directoryNavigation';
 
@@ -57,9 +56,9 @@ export default function Home() {
   const { theme } = useTheme();
   const primaryColor = getPrimaryColor(theme);
   const { categories } = useCategories();
-  const { publicServices } = useServices();
+  const { publicServices, loading: servicesLoading, error: servicesError, refreshServices } = useServices();
   const { sections, bySection, searchServices } = useCategoryDirectory(categories, publicServices);
-  const { ads: sliderAds, loading: sliderLoading, hasCachedData, error: sliderError, refreshAds } = useSlider();
+  const { ads: sliderAds, loading: sliderLoading, hasCachedData } = useSlider();
   const { t } = useLanguage();
 
   // The main menu reuses the existing services search field for both search
@@ -124,7 +123,7 @@ export default function Home() {
   // المرات في الثانية) وهذا يسبب تقطيعاً أثناء السكرول على الهاتف.
   useEffect(() => {
     const scrollKey = `homeScrollPos:${activeView}`;
-    const savedPosition = browserStorage.get(scrollKey, true);
+    const savedPosition = sessionStorage.getItem(scrollKey);
     let restoreTimer: ReturnType<typeof setTimeout> | undefined;
     if (savedPosition) {
       // Small delay to ensure content is rendered
@@ -133,7 +132,7 @@ export default function Home() {
           top: parseInt(savedPosition),
           behavior: 'instant'
         });
-        browserStorage.remove(scrollKey, true);
+        sessionStorage.removeItem(scrollKey);
       }, 100);
     }
 
@@ -150,7 +149,7 @@ export default function Home() {
     // Only save if we are not at the very top (to avoid saving 0 when navigating away)
     const persistPosition = () => {
       if (latestY > 0) {
-        browserStorage.set(scrollKey, latestY.toString(), true);
+        sessionStorage.setItem(scrollKey, latestY.toString());
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -270,8 +269,6 @@ export default function Home() {
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500 relative">
-      <ServiceLoadStatus />
-      {sliderError && <div role="alert" className="p-3 text-center"><p>{sliderError}</p><button type="button" disabled={sliderLoading} onClick={() => void refreshAds()} className="underline">إعادة المحاولة</button></div>}
       {/* Ambient Background Lights — ثابتة بدون حركة JS (كانت تسبب لاقاً حاداً
           على الهاتف: 3 عناصر بـ blur ضخم تُعاد رسمها كل إطار بلا نهاية). الشكل
           البصري (توهج محيطي) محفوظ لكن بتكلفة رسم واحدة فقط. */}
@@ -457,10 +454,16 @@ export default function Home() {
       </form>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
         <p aria-live="polite" aria-atomic="true" className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 font-bold">
-          الأقسام: {sections.length.toLocaleString('ar-IQ')} <span className="mx-2" aria-hidden="true">|</span> الخدمات: {publicServices.length.toLocaleString('ar-IQ')}
+          الأقسام: {sections.length.toLocaleString('ar-IQ')} <span className="mx-2" aria-hidden="true">|</span>
+          {servicesLoading && publicServices.length === 0 && !servicesError
+            ? <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ تحميل الخدمات…</span>
+            : <>الخدمات: {publicServices.length.toLocaleString('ar-IQ')}</>}
         </p>
         <p id="directory-search-help">ابحث عن قسم أو تخصص، ثم اضغط بحث.</p>
       </div>
+      {servicesError && publicServices.length === 0 && (
+        <ErrorState onRetry={() => { void refreshServices(); }} />
+      )}
       {searchQuery.trim() && (searchResults.length > 0 ? (
         <ul className="max-h-64 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2" aria-label="اقتراحات الأقسام">
           {searchResults.slice(0, 8).map(result => (

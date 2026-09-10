@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { categories } from '../src/data/categories';
 import { buildCategoryDirectory, directorySections, normalizeCategoryKey } from '../src/data/categoryDirectory';
-import { smartCategorySearch } from '../src/lib/smartSearch';
+import { buildDirectorySearchIndex, searchDirectory } from '../src/lib/directorySearch';
 
 test('all current local categories belong to the directory without extra duplicate roots', () => {
   const directory = buildCategoryDirectory(categories);
@@ -81,11 +81,14 @@ test('overlapping professions have exactly one display destination', () => {
 
 test('search finds parent sections by specialty and keeps administrative queries blocked', () => {
   const { sections } = buildCategoryDirectory(categories);
+  // محرك البحث الحالي للتطبيق (directorySearch) — نفس المنطق الذي يستخدمه
+  // البحث الذكي والبحث في الصفحة الرئيسية.
+  const index = buildDirectorySearchIndex(sections);
   for (const [query, expected] of [['أسنان', 'doctors'], ['باطنية', 'doctors'], ['تبديل زيوت', 'cars'], ['دروس خصوصية', 'education'], ['إنفرترات', 'solar-energy'], ['بيطري', 'pet-care'], ['DVR', 'surveillance'], ['صباغ', 'painting-decor']]) {
-    const result = smartCategorySearch(sections, [], query);
-    assert.ok(result.some(item => item.slug === expected), `${query}: ${result.map(item => item.slug)}`);
-    assert.equal(new Set(result.map(item => item.slug)).size, result.length);
+    const result = searchDirectory(index, query);
+    assert.ok(result.some(item => item.section.slug === expected), `${query}: ${result.map(item => item.section.slug)}`);
+    assert.equal(new Set(result.map(item => item.section.slug)).size, result.length);
   }
-  assert.deepEqual(smartCategorySearch(sections, [], 'admin'), []);
-  assert.deepEqual(smartCategorySearch(sections, [], 'الموافقات'), []);
+  assert.deepEqual(searchDirectory(index, 'admin'), []);
+  assert.deepEqual(searchDirectory(index, 'الموافقات'), []);
 });

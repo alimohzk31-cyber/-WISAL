@@ -1,12 +1,13 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
-import { useModalScrollLock } from '../hooks/useModalScrollLock';
-import ServiceVideo from './ServiceVideo';
+import React, { useLayoutEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Phone, MapPin, Navigation, Briefcase, Clock, ExternalLink, Hourglass, XCircle } from 'lucide-react';
 import { Service } from '../hooks/useServices';
+import { serviceStatusOverlayClass } from '../types/models';
 import { useLanguage } from '../context/LanguageContext';
 import { getServiceIcon } from '../data/serviceIcons';
 import SafeImage from './SafeImage';
+import ServiceStatusBadge from './ServiceStatusBadge';
+import { useServiceVisits } from '../hooks/useServiceVisits';
 
 interface ServiceDetailModalProps {
   service: Service;
@@ -21,13 +22,8 @@ interface ServiceDetailModalProps {
 
 export default function ServiceDetailModal({ service, onClose, theme, colors }: ServiceDetailModalProps) {
   const { t } = useLanguage();
+  const visits = useServiceVisits(service);
   const contentRef = useRef<HTMLDivElement>(null);
-  useModalScrollLock();
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [service.id, service.slug]);
@@ -62,6 +58,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
           {/* Close Button */}
           <button
             onClick={onClose}
+            aria-label="الرجوع إلى القسم"
             className="absolute top-4 right-4 z-10 p-2 rounded-full backdrop-blur-md transition-colors bg-[var(--accent-soft)] hover:bg-[var(--accent-light)] text-[var(--text-primary)]"
           >
             <X className="w-5 h-5" />
@@ -72,25 +69,14 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
             <SafeImage
               src={service.image}
               alt={service.name}
-              className={`w-full h-full object-cover ${service.status === 'pending' ? 'opacity-70 saturate-50' : ''} ${service.status === 'rejected' ? 'opacity-50 saturate-0' : ''}`}
+              className={`w-full h-full object-cover ${serviceStatusOverlayClass(service.status)}`}
             />
             <div className={`absolute inset-0 bg-gradient-to-t ${
               'from-black/40'
             } to-transparent`} />
-            
-            {/* Status Badge Overlay */}
-            {service.status === 'pending' && (
-              <div className="absolute top-4 left-4 z-10 bg-yellow-500/90 text-white text-xs md:text-sm font-bold px-3 py-1.5 rounded-xl backdrop-blur-sm flex items-center gap-1.5 shadow-lg">
-                <Hourglass className="w-4 h-4" />
-                ⏳ بانتظار موافقة الإدارة
-              </div>
-            )}
-            {service.status === 'rejected' && (
-              <div className="absolute top-4 left-4 z-10 bg-red-500/90 text-white text-xs md:text-sm font-bold px-3 py-1.5 rounded-xl backdrop-blur-sm flex items-center gap-1.5 shadow-lg">
-                <XCircle className="w-4 h-4" />
-                مرفوضة
-              </div>
-            )}
+
+            {/* Status Badge Overlay — مكوّن موحد ServiceStatusBadge */}
+            <ServiceStatusBadge status={service.status ?? 'approved'} variant="detail" />
 
             <div className="absolute bottom-6 left-6 right-6">
               {/* أيقونة نوع الخدمة — من النظام المركزي serviceIcons (نفس الأيقونة في كل التطبيق) */}
@@ -116,7 +102,6 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
 
           {/* Details */}
           <div className="p-6 space-y-6">
-            {service.video && <ServiceVideo key={service.video} src={service.video} />}
             {/* Status Messages */}
             {service.status === 'pending' && (
               <div className={`flex items-center gap-3 p-4 rounded-2xl border border-yellow-500/30 bg-yellow-50`}>
@@ -202,7 +187,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
                   </a>
                 )}
 
-                {Number.isFinite(service.latitude) && Number.isFinite(service.longitude) && (
+                {service.latitude && service.longitude && (
                   <div className="grid grid-cols-2 gap-3">
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`}
@@ -226,6 +211,10 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
                 )}
               </div>
             )}
+            <p className="pt-4 border-t border-[var(--border)] text-sm font-medium text-[var(--text-primary)]" aria-label="عدد زيارات الخدمة" aria-live="polite">
+              <span aria-hidden="true">👁 </span>
+              {visits === undefined ? 'عدد الزيارات غير متاح' : <><bdi>{new Intl.NumberFormat('en-US').format(visits)}</bdi> {visits >= 3 && visits <= 10 ? 'زيارات' : 'زيارة'}</>}
+            </p>
           </div>
         </motion.div>
     </div>

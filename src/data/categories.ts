@@ -10,12 +10,16 @@ import {
   Utensils, Coffee, Pizza, Cake,
   PlugZap, Wrench as PlumberWrench, Sparkles as Broom, Hammer,
   Landmark, Building2, Siren, Fuel, Mail,
-  HardHat, Code, Palette, Home
+  HardHat, Code, Palette, Home, Factory, PanelsTopLeft, DoorOpen, SprayCan
 } from 'lucide-react';
+import type { Section } from '../types/models';
 
 export type NeonColor = 'green' | 'blue' | 'purple' | 'pink' | 'orange';
 
-export interface Category {
+// Category تمتد Section (المصدر المركزي) — نفس الشكل السابق + إمكانية
+// تضمين keywords و fields (إعدادات نموذج إضافة خدمة) داخل بيانات القسم نفسه،
+// بحيث تُضاف القسم الجديد من هذا الملف فقط.
+export interface Category extends Section {
   slug: string;
   name: string;
   groupId: string;
@@ -112,6 +116,28 @@ export const categories: Category[] = [
   { slug: 'software', name: 'شركات برمجة', groupId: 'business', icon: Code, color: 'blue' },
   { slug: 'design', name: 'شركات تصميم', groupId: 'business', icon: Palette, color: 'blue' },
   { slug: 'real-estate', name: 'مكاتب عقارات', groupId: 'business', icon: Home, color: 'blue' },
+
+  // Reuse the directory's existing slugs; database IDs are resolved by useCategories.
+  {
+    slug: 'steel', name: 'الحديد والصلب', groupId: 'business', icon: Factory, color: 'blue',
+    keywords: ['حديد', 'صلب', 'حديد تسليح', 'ستيل', 'فولاذ', 'steel', 'iron'],
+    fields: { nameLabel: 'اسم المحل / الشركة', namePlaceholder: 'مثال: محل الحديد والصلب', profession: 'تجارة الحديد والصلب', specialties: ['حديد تسليح', 'صفائح حديد', 'أنابيب حديد', 'فولاذ وستيل'] },
+  },
+  {
+    slug: 'aluminum-glass', name: 'الألمنيوم', groupId: 'business', icon: PanelsTopLeft, color: 'blue',
+    keywords: ['ألمنيوم', 'المنيوم', 'ألمنيون', 'الومنيوم', 'شبابيك ألمنيوم', 'aluminum', 'aluminium'],
+    fields: { nameLabel: 'اسم الورشة / المحل', namePlaceholder: 'مثال: ورشة الألمنيوم', profession: 'أعمال ألمنيوم', specialties: ['أعمال ألمنيوم', 'واجهات زجاجية', 'أبواب ألمنيوم', 'مطابخ ألمنيوم'] },
+  },
+  {
+    slug: 'pvc', name: 'PVC', groupId: 'business', icon: DoorOpen, color: 'blue',
+    keywords: ['بي في سي', 'بيفي سي', 'بيفيسي', 'يو بي في سي', 'upvc', 'أبواب PVC', 'شبابيك PVC'],
+    fields: { nameLabel: 'اسم الورشة / المحل', namePlaceholder: 'مثال: ورشة PVC', profession: 'أعمال PVC', specialties: ['أبواب PVC', 'شبابيك PVC', 'أبواب UPVC', 'شبابيك UPVC'] },
+  },
+  {
+    slug: 'perfumes-cosmetics', name: 'كوزمتك ومستحضرات التجميل', groupId: 'shopping', icon: SprayCan, color: 'pink',
+    keywords: ['كوزمتك', 'كوزمتكس', 'كوزماتك', 'مستحضرات التجميل', 'مكياج', 'ميك اب', 'ميك أب', 'cosmetics', 'makeup'],
+    fields: { nameLabel: 'اسم المحل', namePlaceholder: 'مثال: محل مستحضرات التجميل', profession: 'مستحضرات تجميل', specialties: ['مكياج', 'مستحضرات عناية بالبشرة', 'عناية بالشعر', 'عطور'] },
+  },
 ];
 
 /* Unified theme-aware palette — follows the active theme accent via CSS variables

@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Briefcase, Clock3, MapPin, MessageCircle, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { useServices } from '../context/ServicesContext';
@@ -7,7 +7,8 @@ import { useFeedInteractions } from '../hooks/useFeedInteractions';
 import { getServiceIcon } from '../data/serviceIcons';
 import SafeImage from './SafeImage';
 import PostInteractions from './PostInteractions';
-import { categoryUrl, directoryEntryState } from '../lib/directoryNavigation';
+import { openServiceDetails } from '../lib/directoryNavigation';
+import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
 
 interface SocialFeedProps {
   onAddService: () => void;
@@ -15,12 +16,16 @@ interface SocialFeedProps {
 
 export default function SocialFeed({ onAddService }: SocialFeedProps) {
   const location = useLocation();
-  const { publicServices, loading, error } = useServices();
+  const navigate = useNavigate();
+  const { publicServices } = useServices();
   const { categories } = useCategories();
+  const { locateService } = useCategoryDirectory(categories, publicServices);
 
   // التصفح الاجتماعي يعرض الخدمات المعتمدة للجميع، بالإضافة إلى الخدمات التي
   // أضافها هذا الجهاز وما زالت قيد المراجعة (تظهر له فوراً بعد الإضافة
   // دون تحديث الصفحة، مع شارة «قيد المراجعة» — لا تُرى للأجهزة الأخرى).
+  // ملاحظة أداء/صحة: نسخة قبل الفرز (spread) — الفرز مكانياً (mutate) كان
+  // يعيد ترتيب مصفوفة publicServices المشتركة مع باقي الصفحات ويُبطل الكاش.
   const feedItems = useMemo(() => {
     return [...publicServices]
       .sort((a, b) => b.createdAt - a.createdAt);
@@ -36,7 +41,7 @@ export default function SocialFeed({ onAddService }: SocialFeedProps) {
     deleteComment,
   } = useFeedInteractions(feedItems.map((s) => s.id).filter((id) => id !== undefined));
 
-  const formatDate = (timestamp: number) => !Number.isFinite(timestamp) || timestamp <= 0 ? '' : new Intl.DateTimeFormat('ar-IQ', {
+  const formatDate = (timestamp: number) => new Intl.DateTimeFormat('ar-IQ', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -44,7 +49,7 @@ export default function SocialFeed({ onAddService }: SocialFeedProps) {
 
   return (
     <section className="relative z-10 mx-auto max-w-2xl space-y-5" aria-label="التصفح">
-      {feedItems.length === 0 && !loading && !error ? (
+      {feedItems.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--card)] px-6 py-16 text-center">
           <MessageCircle className="mx-auto mb-4 h-10 w-10 text-[var(--text-muted)]" />
           <h2 className="text-lg font-bold text-[var(--text-primary)]">لا توجد منشورات للعرض حاليًا</h2>
@@ -103,9 +108,9 @@ export default function SocialFeed({ onAddService }: SocialFeedProps) {
                   <p className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"><MapPin className="h-4 w-4 text-[var(--accent-primary)]" />{service.location}</p>
                 )}
                 {service.experience && <p className="line-clamp-2 text-sm leading-6 text-[var(--text-muted)]">{service.experience}</p>}
-                <Link to={categoryUrl(service.categorySlug)} state={directoryEntryState(location)} className="inline-flex rounded-xl bg-[var(--accent-soft)] px-4 py-2 text-sm font-bold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-light)]">
-                  عرض الخدمة
-                </Link>
+                <button type="button" disabled={!Number.isSafeInteger(Number(service.id)) || Number(service.id) <= 0} onClick={() => openServiceDetails(navigate, location, service, locateService(service))} className="inline-flex rounded-xl bg-[var(--accent-soft)] px-4 py-2 text-sm font-bold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-light)]">
+                  معاينة الخدمة
+                </button>
               </div>
             </article>
           );

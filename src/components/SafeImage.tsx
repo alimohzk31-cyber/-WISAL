@@ -33,7 +33,6 @@ export const FALLBACK_IMAGE =
  * السلايدر) تُعاد التعيين تلقائياً لتُحاول الصورة الجديدة.
  */
 export function useImageFallback(originalSrc: string, fallbackSrc: string = FALLBACK_IMAGE) {
-  originalSrc = typeof originalSrc === 'string' && originalSrc.trim() ? originalSrc : fallbackSrc;
   const [src, setSrc] = useState(originalSrc);
   const fallbackAppliedRef = useRef(false);
   const originalSrcRef = useRef(originalSrc);

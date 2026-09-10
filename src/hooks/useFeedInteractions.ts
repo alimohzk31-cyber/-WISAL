@@ -78,6 +78,49 @@ function buildSummary(rows: { reaction_type: ReactionType }[]): ReactionSummary 
   return { total: rows.length, byType, top };
 }
 
+// ---------------------------------------------------------------------------
+// كاش جلسة لنتائج التفاعلات والتعليقات — يمنع إعادة جلب نفس البيانات من
+// Supabase عند كل دخول/رجوع للتصفح الاجتماعي (كان يُطلق طلبي شبكة على الأقل
+// عند كل تثبيت لـ Home عبر useFeedInteractions الموجود داخل SocialFeed).
+//
+// المعايير:
+//  - TTL 90 ثانية: بعدها يُجلب التحديث في الخلفية وفي نفس لحظة التركيب.
+//  - مشاركة الطلب الجاري: لو رُكّبت عدة نسخ من Home/الخطاف في اللحظة نفسها
+//    يشتركن في طلب واحد بدل إطلاق طلبات مطابقة مكررة.
+//  - أي تفاعل/تعليق ناجح يُبطل الكاش (feedCache = null) حتى لا تعود البيانات
+//    القديمة فوق التحديث المتفائل عند التركيب التالي.
+// ---------------------------------------------------------------------------
+const FEED_CACHE_TTL = 90 * 1000;
+
+interface FeedCacheSnapshot {
+  idsKey: string;
+  at: number;
+  summaries: Record<string, ReactionSummary>;
+  myReactions: Record<string, ReactionType | null>;
+  commentsByService: Record<string, PostComment[]>;
+  unavailable: boolean;
+}
+
+let feedCache: FeedCacheSnapshot | null = null;
+let feedRequest: { idsKey: string; promise: Promise<void> } | null = null;
+
+/** يُبطل كاش الجلسة بعد أي عملية كتابة ناجحة (تفاعل/تعليق/حذف). */
+function invalidateFeedCache() {
+  feedCache = null;
+}
+
+function applyFeedCacheSnapshot(snapshot: FeedCacheSnapshot, setters: {
+  setSummaries: (value: Record<string, ReactionSummary>) => void;
+  setMyReactions: (value: Record<string, ReactionType | null>) => void;
+  setCommentsByService: (value: Record<string, PostComment[]>) => void;
+  setReactionsUnavailable: (value: boolean) => void;
+}) {
+  setters.setSummaries(snapshot.summaries);
+  setters.setMyReactions(snapshot.myReactions);
+  setters.setCommentsByService(snapshot.commentsByService);
+  setters.setReactionsUnavailable(snapshot.unavailable);
+}
+
 export function useFeedInteractions(serviceIds: (string | number)[]) {
   const [summaries, setSummaries] = useState<Record<string, ReactionSummary>>({});
   const [myReactions, setMyReactions] = useState<Record<string, ReactionType | null>>({});
@@ -95,64 +138,102 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
       return;
     }
 
-    try {
-      const [reactionsRes, commentsRes] = await Promise.all([
-        supabase
-          .from('service_reactions')
-          .select('service_id, owner_id, reaction_type')
-          .in('service_id', ids),
-        supabase
-          .from('service_comments')
-          .select('*')
-          .in('service_id', ids)
-          .order('created_at', { ascending: true })
-          .limit(1000),
-      ]);
+    // كاش جلسة سليم: نعيد البيانات فوراً دون أي شبكة في حدود TTL
+    if (feedCache && feedCache.idsKey === idsKey && Date.now() - feedCache.at < FEED_CACHE_TTL) {
+      applyFeedCacheSnapshot(feedCache, { setSummaries, setMyReactions, setCommentsByService, setReactionsUnavailable });
+      return;
+    }
 
-      if (reactionsRes.error) {
-        logError('load(reactions)', reactionsRes.error);
-        // 42P01 / PGRST205: الجداول غير موجودة بعد (لم يُنفَّذ supabase_feed_interactions.sql)
-        if (reactionsRes.error.code === '42P01' || reactionsRes.error.code === 'PGRST205') {
-          setReactionsUnavailable(true);
-          return;
+    // طلب جارٍ مطابق (تركيب مزدوج في اللحظة نفسها): ننتظر نفس النتيجة فقط
+    if (feedRequest && feedRequest.idsKey === idsKey) {
+      await feedRequest.promise;
+      if (feedCache && feedCache.idsKey === idsKey) {
+        applyFeedCacheSnapshot(feedCache, { setSummaries, setMyReactions, setCommentsByService, setReactionsUnavailable });
+      }
+      return;
+    }
+
+    const promise = (async () => {
+      try {
+        const [reactionsRes, commentsRes] = await Promise.all([
+          supabase
+            .from('service_reactions')
+            .select('service_id, owner_id, reaction_type')
+            .in('service_id', ids),
+          supabase
+            .from('service_comments')
+            .select('*')
+            .in('service_id', ids)
+            .order('created_at', { ascending: true })
+            .limit(1000),
+        ]);
+
+        if (reactionsRes.error) {
+          logError('load(reactions)', reactionsRes.error);
+          // 42P01 / PGRST205: الجداول غير موجودة بعد (لم يُنفَّذ supabase_feed_interactions.sql)
+          if (reactionsRes.error.code === '42P01' || reactionsRes.error.code === 'PGRST205') {
+            feedCache = {
+              idsKey, at: Date.now(),
+              summaries: {}, myReactions: {}, commentsByService: {}, unavailable: true,
+            };
+            setReactionsUnavailable(true);
+            return;
+          }
+          throw reactionsRes.error;
         }
-        throw reactionsRes.error;
-      }
-      if (commentsRes.error) {
-        logError('load(comments)', commentsRes.error);
-        throw commentsRes.error;
-      }
+        if (commentsRes.error) {
+          logError('load(comments)', commentsRes.error);
+          throw commentsRes.error;
+        }
 
-      const ownerId = getOwnerId();
-      const reactionRows = (reactionsRes.data || []) as { service_id: number; owner_id: string; reaction_type: ReactionType }[];
-      const commentRows = (commentsRes.data || []) as PostComment[];
+        const ownerId = getOwnerId();
+        const reactionRows = (reactionsRes.data || []) as { service_id: number; owner_id: string; reaction_type: ReactionType }[];
+        const commentRows = (commentsRes.data || []) as PostComment[];
 
-      const nextSummaries: Record<string, ReactionSummary> = {};
-      const nextMine: Record<string, ReactionType | null> = {};
-      for (const id of ids) nextMine[id] = null;
+        const nextSummaries: Record<string, ReactionSummary> = {};
+        const nextMine: Record<string, ReactionType | null> = {};
+        for (const id of ids) nextMine[id] = null;
 
-      const grouped: Record<string, { reaction_type: ReactionType }[]> = {};
-      for (const row of reactionRows) {
-        const key = String(row.service_id);
-        (grouped[key] ||= []).push(row);
-        if (row.owner_id === ownerId) nextMine[key] = row.reaction_type;
+        const grouped: Record<string, { reaction_type: ReactionType }[]> = {};
+        for (const row of reactionRows) {
+          const key = String(row.service_id);
+          (grouped[key] ||= []).push(row);
+          if (row.owner_id === ownerId) nextMine[key] = row.reaction_type;
+        }
+        for (const [key, rows] of Object.entries(grouped)) {
+          nextSummaries[key] = buildSummary(rows);
+        }
+
+        const nextComments: Record<string, PostComment[]> = {};
+        for (const row of commentRows) {
+          const key = String(row.service_id);
+          (nextComments[key] ||= []).push(row);
+        }
+
+        feedCache = {
+          idsKey,
+          at: Date.now(),
+          summaries: nextSummaries,
+          myReactions: nextMine,
+          commentsByService: nextComments,
+          unavailable: false,
+        };
+        setSummaries(nextSummaries);
+        setMyReactions(nextMine);
+        setCommentsByService(nextComments);
+        setReactionsUnavailable(false);
+      } catch (error) {
+        logError('load', error);
       }
-      for (const [key, rows] of Object.entries(grouped)) {
-        nextSummaries[key] = buildSummary(rows);
-      }
-
-      const nextComments: Record<string, PostComment[]> = {};
-      for (const row of commentRows) {
-        const key = String(row.service_id);
-        (nextComments[key] ||= []).push(row);
-      }
-
-      setSummaries(nextSummaries);
-      setMyReactions(nextMine);
-      setCommentsByService(nextComments);
-      setReactionsUnavailable(false);
-    } catch (error) {
-      logError('load', error);
+    })();
+    feedRequest = { idsKey, promise };
+    try {
+      await promise;
+    } finally {
+      if (feedRequest?.promise === promise) feedRequest = null;
+    }
+    if (feedCache && feedCache.idsKey === idsKey) {
+      applyFeedCacheSnapshot(feedCache, { setSummaries, setMyReactions, setCommentsByService, setReactionsUnavailable });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsKey]);
@@ -209,6 +290,8 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
           .insert({ service_id: Number(serviceId), owner_id: ownerId, reaction_type: type });
         if (error) throw error;
       }
+      // نجحت الكتابة: أبطل كاش الجلسة حتى لا يعود فوق التحديث المتفائل
+      invalidateFeedCache();
     } catch (error) {
       logError('toggleReaction', error);
       // التراجع عن التحديث المتفائل وإعادة الجلب للحالة الصحيحة من القاعدة
@@ -244,6 +327,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
       ...prev,
       [key]: [...(prev[key] || []), row],
     }));
+    invalidateFeedCache();
     return row;
   }, []);
 
@@ -264,6 +348,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
       ...prev,
       [key]: (prev[key] || []).filter((c) => c.id !== comment.id),
     }));
+    invalidateFeedCache();
   }, []);
 
   return {

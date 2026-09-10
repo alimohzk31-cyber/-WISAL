@@ -4,30 +4,51 @@ import { categories as staticCategories } from '../data/categories';
 import { offlineStore, OFFLINE_KEYS } from '../lib/offlineStore';
 import { getCategoryIcon } from '../data/categoryIcons';
 import { resolveCategoryIcon } from '../data/serviceIcons';
-import { withTimeout } from '../lib/withTimeout';
+import { mergeCategoriesSafely, canAddCategory } from '../lib/categoryValidation';
+import type { Section } from '../types/models';
 
 
-export interface CustomCategory {
-  slug: string;
-  name: string;
+// CustomCategory تمتد Section (المصدر المركزي للأنواع): نفس الشكل السابق،
+// مع دعم keywords/fields المضمّنة إن أُضيفت لقسم من قاعدة البيانات.
+export interface CustomCategory extends Section {
   icon: string;
   color: string;
-  image?: string;
-  isCustom?: boolean;
 }
 
 const localCategoriesKey = 'saleen_custom_categories_v1';
-const categoryRecords = (value: unknown): any[] => Array.isArray(value)
-  ? value.filter(item => item && typeof item === 'object' && item.slug != null)
-  : [];
 
 // ==============================
 // Session-level cache لمنع إعادة جلب التصنيفات من الشبكة عند كل زيارة/تركيب
 // (مثل الانتقال بين الصفحات). يمنع الطلب المكرر ويُسرّع التنقل.
 // ==============================
-const CATEGORIES_CACHE_TTL = 45 * 1000;
+const CATEGORIES_CACHE_TTL = 300 * 1000; // 5 دقائق — الأقسام تتغير نادراً، والتحديث القسري متاح من لوحة الإدارة
 let sessionCategoriesCache: any[] | null = null;
 let sessionCategoriesCacheAt = 0;
+
+// طلب شبكة مشترك على مستوى الوحدة: عند أول تحميل تُركَّب عدة مكوّنات تستدعي
+// useCategories في نفس اللحظة (الرئيسية، SocialFeed، نافذة البحث الذكي...)،
+// وبدون مشاركة الطلب يطلق كل منها طلب Supabase مطابقاً (طلبات مكررة).
+// null = لا يوجد طلب جارٍ.
+let categoriesNetworkRequest: Promise<any[] | null> | null = null;
+
+// تنسيق صف قاعدة البيانات إلى كائن قسم موحّد (مُستخرج من fetchCustomCategories
+// ليمكن مشاركة نتيجة الطلب المشترك بين كل نسخ الخطاف).
+const formatCategoryRow = (d: any) => ({
+  // slug column added by migration; fall back to id for pre-migration DBs
+  slug: d.slug ?? d.id,
+  // The REAL primary key of the row in public.categories - used as
+  // services.category_id so we never depend on the slug/name alone.
+  dbId: d.id,
+  name: d.name_ar ?? d.name ?? d.id,
+  // Store the icon NAME as a string so the object can be written to
+  // IndexedDB/localStorage (components cannot be cloned/serialized).
+  icon: d.icon ?? 'Folder',
+  // color column added by migration; fall back to 'blue'
+  color: d.color ?? 'blue',
+  // image column added by migration; may be null/undefined
+  image: d.image ?? undefined,
+  isCustom: true
+});
 
 const readLocalCustomCategories = () => {
   if (typeof window === 'undefined') return [];
@@ -36,7 +57,7 @@ const readLocalCustomCategories = () => {
     const raw = localStorage.getItem(localCategoriesKey);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return categoryRecords(parsed).map(c => ({ ...c, isCustom: true }));
+    return Array.isArray(parsed) ? parsed.map(c => ({ ...c, isCustom: true })) : [];
   } catch (error) {
     console.warn('Failed to read local custom categories:', error);
     return [];
@@ -74,12 +95,10 @@ const hydrateIconComponent = (item: any): any => {
 
 export function useCategories() {
   const [customCategories, setCustomCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
-      const cached = categoryRecords(await offlineStore.getItem(OFFLINE_KEYS.CATEGORIES));
+      const cached = await offlineStore.getItem<any[]>(OFFLINE_KEYS.CATEGORIES);
       const localCached = readLocalCustomCategories();
       const merged = [...(cached || []), ...localCached].reduce((acc: any[], current: any) => {
         const existing = acc.find((item: any) => item.slug === current.slug);
@@ -94,56 +113,78 @@ export function useCategories() {
       await fetchCustomCategories();
     };
 
-    void init().catch(error => console.warn('تعذرت قراءة الأقسام المحلية:', error));
+    init();
   }, []);
+
+  const applyFetchedCategories = (formatted: any[]) => {
+    // بدلاً من استبدال القائمة بالكامل (setCustomCategories(formatted))
+    // ندمج الأقسام الجديدة مع القديمة لمنع اختفاء أقسام موجودة مؤقتاً
+    // من الكاش إذا كانت نتيجة Supabase ناقصة لأي سبب
+    setCustomCategories(prev => mergeCategoriesSafely(prev, formatted));
+    // نحدث الكاش الجلسة بنفس الطريقة الآمنة
+    sessionCategoriesCache = mergeCategoriesSafely(sessionCategoriesCache ?? [], formatted);
+    sessionCategoriesCacheAt = Date.now();
+  };
+
+  const mergeLocalCategoriesFallback = () => {
+    const localFallback = readLocalCustomCategories();
+    if (localFallback.length > 0) {
+      // دمج بدلاً من استبدال لمنع فقدان أقسام حديثة أضيفت قبل الخطأ
+      setCustomCategories(prev => mergeCategoriesSafely(prev, localFallback));
+    }
+  };
 
   const fetchCustomCategories = async (force = false) => {
     // إذا كانت بيانات حديثة موجودة في ذاكرة الجلسة وغير مجبرين على التحديث،
     // نستخدمها فوراً دون الاتصال بالشبكة (يمنع الطلب المكرر عند التنقل).
     if (!force && sessionCategoriesCache !== null && Date.now() - sessionCategoriesCacheAt < CATEGORIES_CACHE_TTL) {
-      setCustomCategories(sessionCategoriesCache);
-      setLoading(false);
+      // دمج بدلاً من استبدال لمنع فقدان أقسام أضيفت بعد تخزين الكاش
+      setCustomCategories(prev => mergeCategoriesSafely(prev, sessionCategoriesCache!));
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
-      const { data, error } = await withTimeout(supabase.from('categories').select('*'));
-      if (error && error.code !== '42P01') throw error;
-      if (data) {
-        const formatted = (Array.isArray(data) ? data : []).filter(d => d && typeof d === 'object').map(d => ({
-          // slug column added by migration; fall back to id for pre-migration DBs
-          slug: d.slug ?? d.id,
-          // The REAL primary key of the row in public.categories - used as
-          // services.category_id so we never depend on the slug/name alone.
-          dbId: d.id,
-          name: d.name_ar ?? d.name ?? d.id,
-          // Store the icon NAME as a string so the object can be written to
-          // IndexedDB/localStorage (components cannot be cloned/serialized).
-          icon: d.icon ?? 'Folder',
-          // color column added by migration; fall back to 'blue'
-          color: d.color ?? 'blue',
-          // image column added by migration; may be null/undefined
-          image: d.image ?? undefined,
-          isCustom: true
-        }));
-        setCustomCategories(formatted);
-        sessionCategoriesCache = formatted;
-        sessionCategoriesCacheAt = Date.now();
-        await offlineStore.setItem(OFFLINE_KEYS.CATEGORIES, formatted);
-        writeLocalCustomCategories(formatted);
-      }
-    } catch (e) {
-      const localFallback = readLocalCustomCategories();
-      console.error('Error fetching custom categories:', e);
-      setError('تعذر تحميل الأقسام. تحقق من الاتصال وأعد المحاولة.');
-      if (localFallback.length > 0) {
-        setCustomCategories(localFallback);
-      }
-    } finally {
-      setLoading(false);
+    // -------------------------------------------------------------------
+    // منع السباق وتكرار الطلبات: الطلب الجاري يُشارَك على مستوى الوحدة، ثم
+    // يدمج كل مكوّن النتيجة في حالته المحلية (حالة كل مكوّن مستقلة لأن
+    // الخطاف غير موحّد عبر Context) فتظهر الأقسام عند أول من يطلبها،
+    // وباقي النسخ فور اكتمال نفس الطلب — بدون أي طلب شبكة إضافي.
+    // -------------------------------------------------------------------
+    if (!force && categoriesNetworkRequest) {
+      const shared = await categoriesNetworkRequest;
+      if (shared === null) mergeLocalCategoriesFallback();
+      else if (shared.length > 0) applyFetchedCategories(shared);
+      return;
     }
+
+    const request = (categoriesNetworkRequest = (async () => {
+      try {
+        const { data, error } = await supabase.from('categories').select('*');
+        if (error && error.code !== '42P01') throw error;
+        const formatted = (data || []).map(formatCategoryRow);
+        if (formatted.length === 0) {
+          // نتيجة فارغة (جدول مفقود 42P01/قاعدة فارغة): لا تُطبَّق ولا تُحفظ
+          // كناتج نهائي حتى لا تمسح الأقسام المخزنة محلياً
+          // (ممنوع حفظ نتيجة مؤقتة فارغة كأنها النتيجة النهائية).
+          return [];
+        }
+        applyFetchedCategories(formatted);
+        try {
+          await offlineStore.setItem(OFFLINE_KEYS.CATEGORIES, sessionCategoriesCache);
+          writeLocalCustomCategories(sessionCategoriesCache!);
+        } catch (cacheError) {
+          console.warn('Failed to persist categories cache:', cacheError);
+        }
+        return formatted;
+      } catch (e) {
+        console.error('Error fetching custom categories:', e);
+        return null;
+      } finally {
+        categoriesNetworkRequest = null;
+      }
+    })());
+
+    const result = await request;
+    if (result === null) mergeLocalCategoriesFallback();
   };
 
   const addCategory = async (cat: Omit<CustomCategory, 'slug'> & { slug: string }) => {
@@ -156,6 +197,27 @@ export function useCategories() {
         image: cat.image || '',
         isCustom: true
       };
+
+      // تحقق من التكرار قبل الإضافة - لا نضيف قسم موجود بالفعل
+      let currentCategories: any[] = [];
+      setCustomCategories(prev => {
+        currentCategories = prev;
+        return prev;
+      });
+      // قراءة الحالة الحالية مباشرة من الكاش أيضاً
+      const cachedCategories = await offlineStore.getItem<any[]>(OFFLINE_KEYS.CATEGORIES) || [];
+      const localCategories = readLocalCustomCategories();
+      const allExisting = mergeCategoriesSafely(
+        mergeCategoriesSafely(cachedCategories, localCategories),
+        currentCategories
+      );
+      const validation = canAddCategory(allExisting, newCat);
+      if (!validation.canAdd) {
+        console.warn(`[addCategory] منع إضافة قسم مكرر: ${validation.reason}`);
+        // نرجع القسم الموجود بدلاً من إنشاء واحد جديد
+        const existing = allExisting.find(c => c.slug === newCat.slug);
+        return existing ? { ...existing, isCustom: true } : newCat;
+      }
 
       try {
         // Build insert payload: always include columns that exist in DB
@@ -185,13 +247,14 @@ export function useCategories() {
             isCustom: true
           };
           setCustomCategories(prev => {
-            const next = [...prev, dbCat];
+            // دمج آمن بدلاً من إضافة مباشرة - يمنع التكرار
+            const next = mergeCategoriesSafely(prev, [dbCat]);
             writeLocalCustomCategories(next);
             return next;
           });
 
           const cached = await offlineStore.getItem<any[]>(OFFLINE_KEYS.CATEGORIES) || [];
-          const nextCache = [...cached, dbCat];
+          const nextCache = mergeCategoriesSafely(cached, [dbCat]);
           await offlineStore.setItem(OFFLINE_KEYS.CATEGORIES, nextCache);
           writeLocalCustomCategories(nextCache);
 
@@ -201,13 +264,13 @@ export function useCategories() {
         console.warn('Failed to sync with Supabase, saving locally:', dbError);
 
         setCustomCategories(prev => {
-          const next = [...prev, newCat];
+          const next = mergeCategoriesSafely(prev, [newCat]);
           writeLocalCustomCategories(next);
           return next;
         });
 
         const cached = await offlineStore.getItem<any[]>(OFFLINE_KEYS.CATEGORIES) || [];
-        const nextCache = [...cached, newCat];
+        const nextCache = mergeCategoriesSafely(cached, [newCat]);
         await offlineStore.setItem(OFFLINE_KEYS.CATEGORIES, nextCache);
         writeLocalCustomCategories(nextCache);
 
@@ -305,15 +368,24 @@ export function useCategories() {
   const uniqueCategories = useMemo(() => {
     // Database-backed categories come first so a static entry cannot hide the
     // real categories.id (dbId) required by services.category_id.
+    // نمنع التكرار بالـ slug وبالـ dbId معاً للحماية الكاملة
     return [...customCategories, ...staticCategories].reduce((acc: any[], current: any) => {
-      const x = acc.find((item: any) => item.slug === current.slug);
+      const x = acc.find((item: any) =>
+        item.slug === current.slug ||
+        (current.dbId != null && item.dbId != null && String(item.dbId) === String(current.dbId))
+      );
       if (!x) {
         return acc.concat([current]);
       } else {
+        // إذا وجد تطابق بالـ slug لكن الجديد يحتوي dbId حقيقي، نحدّث القديم
+        if (current.dbId != null && x.dbId == null) {
+          const idx = acc.indexOf(x);
+          acc[idx] = { ...x, dbId: current.dbId };
+        }
         return acc;
       }
     }, [] as any[]).map(hydrateIconComponent);
   }, [customCategories]);
 
-  return { categories: uniqueCategories, loading, error, refreshCategories: () => fetchCustomCategories(true), addCategory, deleteCategory, editCategory };
+  return { categories: uniqueCategories, addCategory, deleteCategory, editCategory };
 }

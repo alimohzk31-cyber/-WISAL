@@ -48,7 +48,7 @@ createRoot(document.getElementById('root')).render(<AuthProvider><HashRouter><Ro
 const bundle = await build({stdin:{contents:entry,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,format:'iife',platform:'browser',define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'isolated-auth',setup(b){b.onResolve({filter:/\/lib\/supabase$/},()=>({path:'audit-auth',namespace:'audit'}));b.onLoad({filter:/.*/,namespace:'audit'},()=>({contents:mock,loader:'js'}));}}]});
 // Assert the real application nests its admin page under the tested boundary.
 const app=await readFile('src/App.tsx','utf8');
-assert.match(app,/<Route element=\{<AdminRoute\s*\/>\}>\s*<Route path="admin" element=\{<Suspense[\s\S]*?<AdminDashboard\s*\/><\/Suspense>\}\s*\/>\s*<\/Route>/);
+assert.match(app,/<Route element=\{<AdminRoute\s*\/>\}>\s*<Route path="admin" element=\{<AdminDashboard\s*\/>\}\s*\/>\s*<\/Route>/);
 let config={};
 const server=createServer((req,res)=>{
  res.setHeader('Cache-Control','no-store');

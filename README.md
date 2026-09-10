@@ -1,7 +1,4 @@
-# 
-وصال | WISAL
-
-
+# Saleen Social (سالين سوشيال)
 
 دليل خدمات ذكي داخل المدينة يتيح للمستخدمين الوصول إلى الخدمات بسهولة وإضافة خدمات جديدة.
 
@@ -16,24 +13,26 @@
 ## البناء والتشغيل
 المشروع مبني بـ **React + Vite**. البناء العادي ينتج مجلد `dist` مع ملفات JavaScript وCSS منفصلة للاستضافة. أما `npm run release` فيستخدم وضع `standalone` لدمج JavaScript وCSS داخل الإندكس، وينسخ الصور والصفحات العامة بجانبه ليدعم الفتح المباشر.
 
-لفتح الملف مباشرة، شغّل `npm run release` ثم افتح `index.html` من جذر المشروع. احتفظ بالصور المنسوخة بجانبه. تحميل بيانات الخدمات من Supabase يحتاج اتصالاً بالإنترنت.
+للتطوير شغّل `npm run dev` ثم افتح `http://localhost:3000/index.html`. ملف `index.html` في الجذر هو نقطة دخول Vite ويربط `src/main.tsx`؛ يحتاج خادم Vite ولا يعمل بالنقر المزدوج عبر `file://`.
 
-للتشغيل عبر خادم محلي، شغّل `npm run build` ثم `npm start` وافتح `http://localhost:3000`. بعد استخدام `dev` أو `build`، أعد تشغيل `npm run release` إذا أردت فتح الإندكس مباشرة مجدداً.
+لفتح نسخة مدمجة مباشرة، شغّل `npm run release` ثم افتح `release/standalone/index.html`. احتفظ بالصور والصفحات المنسوخة بجانبه. تحميل بيانات الخدمات من Supabase يحتاج اتصالاً بالإنترنت.
+
+للتشغيل عبر خادم الإنتاج المحلي، شغّل `npm run build` ثم `npm start` وافتح `http://localhost:3000`.
 
 | الأمر | الوظيفة |
 |---|---|
-| `npm run dev` | خادم تطوير (يُعيد `index.source.html` تلقائياً قبل التشغيل) |
-| `npm run build` | بناء الإنتاج إلى `dist/index.html` (يستعيد `index.source.html` أولاً عبر خطاف `prebuild`) |
-| `npm run release` | بناء نسخة مدمجة ثم نسخ الإندكس والصور والصفحات العامة إلى جذر المشروع |
+| `npm run dev` | خادم تطوير؛ يتحقق من `index.html` بدون استبداله |
+| `npm run build` | بناء الإنتاج من `index.html` إلى `dist/index.html` |
+| `npm run release` | بناء نسخة مدمجة ثم نسخ الإندكس والصور والصفحات العامة إلى `release/standalone` |
 | `npm start` | تشغيل محتويات `dist` على `http://localhost:3000` بعد البناء |
 | `npm run lint` | فحص TypeScript (`tsc --noEmit`) |
 | `npm run deploy` | نشر مجلد `dist` عبر GitHub Pages (`gh-pages`) |
 
 ### لماذا ملفان؟ (`index.html` و `index.source.html`)
-- `index.source.html` — **نقطة الدخول المصدري** التي يقرأها Vite عند البناء (تشير إلى `/src/main.tsx`).
-- `index.html` في الجذر — **ملف الإنتاج النهائي** بعد تنفيذ `npm run release` (نسخة `single-file` جاهزة للاستضافة الفورية من الجذر).
+- `index.html` في الجذر — **نقطة الدخول المصدري المعتمدة لـVite**، وفيها `div#root` وربط `/src/main.tsx`. تعديلات نقطة الدخول تُجرى هنا.
+- `index.source.html` — نسخة مرجعية محفوظة؛ لا تُنسخ تلقائياً فوق `index.html` ولا يعتمد عليها التشغيل أو البناء.
 
-لهذا السبب خطافا `prebuild` / `predev` يستعيدان الملف المصدري تلقائياً قبل أي بناء، وسكربت `scripts/sync-index.mjs` ينسخ الناتج للجذر عند الإصدار — فلا يتعطل البناء بعد كل نشر.
+خطافا `prebuild` / `predev` يتحققان من وجود عناصر التشغيل فقط، ويتوقفان برسالة واضحة إذا كان المدخل غير صالح، دون استبدال محتواه. سكربت `scripts/sync-index.mjs` يحفظ الإصدار المدمج خارج مدخل المصدر، داخل `release/standalone`.
 
 > **ملاحظة**: عند النشر عبر GitHub Actions (`deploy.yml`)، يُرفَع مجلد `dist` مباشرة، لذلك لا حاجة لمزامنة الجذر.
 

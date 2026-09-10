@@ -16,7 +16,7 @@ interface PostInteractionsProps {
   comments: PostComment[];
   onToggleReaction: (type: ReactionType) => void;
   onAddComment: (content: string) => Promise<void>;
-  onDeleteComment: (comment: PostComment) => void | Promise<void>;
+  onDeleteComment: (comment: PostComment) => void;
 }
 
 function formatCommentTime(value?: string | null): string {
@@ -61,17 +61,6 @@ export default function PostInteractions({
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const deletingRef = useRef(new Set<number>());
-  const [deletingIds, setDeletingIds] = useState(new Set<number>());
-  const handleDelete = async (comment: PostComment) => {
-    if (deletingRef.current.has(comment.id)) return;
-    deletingRef.current.add(comment.id);
-    setDeletingIds(new Set(deletingRef.current));
-    setError('');
-    try { await onDeleteComment(comment); }
-    catch (error: any) { setError(error?.message || 'تعذر حذف التعليق. حاول مرة أخرى.'); }
-    finally { deletingRef.current.delete(comment.id); setDeletingIds(new Set(deletingRef.current)); }
-  };
   const commentsRef = useRef<HTMLDivElement>(null);
   const myOwnerIdKey = 'أنت';
 
@@ -246,8 +235,7 @@ export default function PostInteractions({
                             type="button"
                             aria-label="حذف تعليقي"
                             title="حذف تعليقي"
-                            disabled={deletingIds.has(comment.id)}
-                            onClick={() => void handleDelete(comment)}
+                            onClick={() => onDeleteComment(comment)}
                             className="ms-auto text-[var(--text-muted)] transition-colors hover:text-red-500"
                           >
                             <Trash2 className="h-3.5 w-3.5" />

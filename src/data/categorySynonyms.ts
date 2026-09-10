@@ -17,6 +17,7 @@ export const RAW_CATEGORY_SYNONYMS: Record<string, string[]> = {
   lawyer: ['محامي', 'قانون', 'قضية', 'دعوى', 'محكمة', 'عدل'],
   'legal-consult': ['استشارة', 'قانوني', 'نصيحة'],
   'car-repair': ['سيارة', 'ميكانيك', 'سمكرة', 'بويا', 'تشييك', 'ميكانيكي', 'صيانه'],
+  'bike-sales': ['دراجة', 'دراجات', 'موتوسيكل', 'نارية', 'هوائية', 'سكوتر'],
   airlines: ['طيران', 'طيارة', 'تذاكر'],
   'travel-agency': ['سفر', 'حج', 'عمرة', 'تأشيرة', 'فيزا', 'جمرك'],
   insurance: ['تأمين', 'تعويض'],
@@ -54,3 +55,16 @@ export const RAW_CATEGORY_SYNONYMS: Record<string, string[]> = {
   design: ['تصميم', 'مصمم', 'شعار', 'لوقو'],
   'real-estate': ['عقار', 'عقارات', 'كراء', 'سكن', 'بيع', 'شراء'],
 };
+
+// ---------------------------------------------------------------------------
+// الدمج المركزي: كلمات البحث للقسم = المرادفات القديمة أعلاه + keywords
+// المضمّنة في بيانات القسم نفسه (data/categories.ts → Category.keywords).
+// بهذا يكفي لإضافة قسم جديد قابل للبحث: مُدخل واحد في data/categories.ts
+// (name + keywords + fields) دون تعديل أي ملف آخر.
+// ---------------------------------------------------------------------------
+import { categories } from './categories';
+
+export function getCategorySynonyms(slug: string): string[] {
+  const embedded = categories.find((c) => c.slug === slug)?.keywords ?? [];
+  return [...(RAW_CATEGORY_SYNONYMS[slug] ?? []), ...embedded];
+}

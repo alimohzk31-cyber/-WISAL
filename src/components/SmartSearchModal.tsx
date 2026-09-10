@@ -7,7 +7,6 @@ import { directoryEntryState } from '../lib/directoryNavigation';
 import { useServices } from '../context/ServicesContext';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
-import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 interface SmartSearchModalProps {
   open: boolean;
@@ -20,7 +19,6 @@ interface SmartSearchModalProps {
  * الاستعلامات الإدارية محجوبة في طبقة المنطق نفسها (isBlockedAdminQuery).
  */
 export default function SmartSearchModal({ open, onClose }: SmartSearchModalProps) {
-  useModalScrollLock(open);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();

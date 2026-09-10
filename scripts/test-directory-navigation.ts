@@ -1,9 +1,48 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createMemoryRouter } from 'react-router-dom';
-import { categoryUrl, directoryBackAction, directoryEntryState, getHomeView, readCategoryUrl } from '../src/lib/directoryNavigation';
+import { categoryUrl, directoryBackAction, directoryEntryState, getHomeView, readCategoryUrl, openServiceDetails } from '../src/lib/directoryNavigation';
+import type { Service } from '../src/hooks/useServices';
 
 const makeRouter = (entry: string) => createMemoryRouter([{ path: '*' }], { initialEntries: [entry] });
+
+const service = { id: 1250, slug: 'existing-service-slug', categoryId: '37', categorySlug: 'car-repair' } as Service;
+
+test('browse preview opens the real service id; Back visits its category then the browse source', async () => {
+  const router = makeRouter('/?view=browse');
+  openServiceDetails(router.navigate, router.state.location, service, { sectionSlug: 'cars', childSlug: 'car-repair' });
+  assert.equal(router.state.location.pathname, '/service/1250');
+  assert.equal(router.state.location.state.categoryId, '37');
+  assert.equal(router.state.location.state.categorySlug, 'car-repair');
+  await router.navigate(-1);
+  assert.equal(router.state.location.pathname + router.state.location.search, categoryUrl('cars', 'car-repair'));
+  await router.navigate(-1);
+  assert.equal(router.state.location.pathname + router.state.location.search, '/?view=browse');
+  await router.navigate(1);
+  await router.navigate(1);
+  assert.equal(router.state.location.pathname, '/service/1250');
+  router.dispose();
+});
+
+test('opening details from its category does not duplicate the category history entry', async () => {
+  const router = makeRouter('/?view=services');
+  await router.navigate(categoryUrl('cars'), { state: directoryEntryState(router.state.location) });
+  openServiceDetails(router.navigate, router.state.location, service, { sectionSlug: 'cars' });
+  await router.navigate(-1);
+  assert.equal(router.state.location.pathname, categoryUrl('cars'));
+  await router.navigate(-1);
+  assert.equal(router.state.location.pathname + router.state.location.search, '/?view=services');
+  router.dispose();
+});
+
+test('a missing primary key cannot fall back to a slug or open the category', () => {
+  const router = makeRouter('/?view=browse');
+  for (const id of [undefined, '', 0, 'existing-service-slug', 1.5]) {
+    openServiceDetails(router.navigate, router.state.location, { ...service, id });
+    assert.equal(router.state.location.pathname + router.state.location.search, '/?view=browse');
+  }
+  router.dispose();
+});
 
 test('services → main → child → main → services follows real history, including Forward', async () => {
   const router = makeRouter('/?view=services&q=سيارات');

@@ -1,16 +1,16 @@
 import {
   Stethoscope, Hospital, Pill, TestTube, Sparkles, HeartPulse, GraduationCap,
-  Car, HardHat, Wrench, Zap, Snowflake, Smartphone, Utensils, House,
+  Bike, Car, HardHat, Wrench, Zap, Snowflake, Smartphone, Utensils, House,
   Sun, Monitor, Camera, Building2, Plane, Truck, Sofa, PanelsTopLeft,
   Paintbrush, Droplets, PartyPopper, Flower2, Scissors, BookOpen, Video,
   Calculator, Briefcase, PawPrint, ShieldCheck, Bus, Scale, Wifi,
   Dumbbell, ShoppingCart, Landmark, Code, FolderOpen, Gem, Refrigerator,
   BrickWall, DoorOpen, ArrowUpDown, Gamepad2, SprayCan, Footprints, Printer,
-  Megaphone, Network, Grid2X2, Trees, Construction, FileText, Factory,
+  Megaphone, Network, Grid2X2, Trees, Construction, FileText, Factory, Shirt,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Service } from '../hooks/useServices';
-import { RAW_CATEGORY_SYNONYMS } from './categorySynonyms';
+import { getCategorySynonyms } from './categorySynonyms';
 import { getCategoryFieldConfig } from './categoryFields';
 import { resolveCategoryIcon } from './serviceIcons';
 
@@ -20,6 +20,8 @@ export interface DirectorySection extends DirectoryChild {
   icon: LucideIcon;
   color: 'blue';
   children: DirectoryChild[];
+  defaultChildSlug?: string;
+  hideAll?: boolean;
 }
 export interface SourceCategory {
   slug: string; name: string; dbId?: string | number; groupId?: string;
@@ -60,13 +62,33 @@ export const directorySections: DirectorySection[] = [
     child('skills-training', 'تطوير مهارات'), child('technical-training', 'دورات تقنية'),
   ]),
   section('cars', 'السيارات', Car, ['سيارات', 'car'], [
-    child('car-sales', 'بيع وشراء', 'بيع وشراء سيارات', 'معارض سيارات', 'car-dealer'),
     child('car-repair', 'صيانة وورش', 'ورش سيارات', 'صيانة سيارات', 'ورشة سيارات'),
     child('car-mechanic', 'ميكانيك', 'ميكانيكي', 'ميكانيك سيارات'), child('car-electric', 'كهرباء سيارات'),
     child('oil-change', 'تبديل زيوت', 'تبديل زيت'), child('car-tires', 'إطارات', 'إطارات سيارات', 'بنجرجي'),
     child('spare-parts', 'قطع غيار', 'قطع غيار سيارات'), child('car-wash', 'غسيل وتلميع', 'غسيل سيارات', 'تلميع سيارات'),
     child('car-accessories', 'كماليات', 'كماليات سيارات'), child('car-filters', 'فلاتر سيارات'), child('car-glass', 'زجاج سيارات'), child('car-rental', 'تأجير سيارات'),
   ]),
+  {
+    ...section('car-sales', 'بيع وشراء السيارات', Car, ['بيع وشراء', 'بيع وشراء سيارات', 'معارض سيارات', 'معرض سيارات', 'car-dealer'], [
+      child('car-korean', 'كوري', 'كورية', 'كوريا', 'korean'),
+      child('car-japanese', 'ياباني', 'يابانية', 'اليابان', 'japanese'),
+      child('car-chinese', 'صيني', 'صينية', 'الصين', 'chinese'),
+      child('car-iranian', 'إيراني', 'إيرانية', 'إيران', 'iranian'),
+      child('car-american', 'أمريكي', 'أمريكية', 'أمريكا', 'american'),
+    ]),
+    defaultChildSlug: 'car-korean', hideAll: true,
+  },
+  // قسم بيع وشراء الدراجات — يتبع نفس نمط car-sales (أنواع داخل الأطفال).
+  {
+    ...section('bike-sales', 'بيع وشراء الدراجات', Bike, ['بيع وشراء دراجات', 'معارض دراجات', 'معرض دراجات', 'دراجات', 'bike-dealer'], [
+      child('bike-motorcycle', 'دراجات نارية', 'موتوسيكل', 'موتوسيكلات', 'موتور'),
+      child('bike-bicycle', 'دراجات هوائية', 'هوائية', 'دراجة هوائية'),
+      child('bike-scooter', 'سكوترات', 'سكوتر', 'دراجات كهربائية', 'سكوتر كهربائي'),
+      child('bike-parts', 'قطع غيار دراجات', 'قطع دراجات'),
+      child('bike-accessories', 'إكسسوارات دراجات', 'خوذ', 'خوذة'),
+    ]),
+    defaultChildSlug: 'bike-motorcycle', hideAll: true,
+  },
   section('construction', 'البناء والإنشاءات', HardHat, ['شركات مقاولات', 'بناء', 'مقاولات', 'بناء البيوت'], [
     child('building', 'بناء', 'بناء منازل', 'بناء بيوت'), child('contracting', 'مقاولات', 'مقاول'), child('renovation', 'ترميم', 'ترميم منازل'),
   ]),
@@ -210,19 +232,26 @@ export const directorySections: DirectorySection[] = [
   section('industrial-services', 'الخدمات الصناعية', Factory, ['صناعة', 'خدمات صناعية'], [
     child('machines', 'مكائن', 'ماكينات'), child('industrial-maintenance', 'صيانة معدات صناعية'), child('industrial-parts', 'قطع صناعية'), child('production-workshops', 'ورش إنتاج'), child('factory-supplies', 'تجهيزات مصانع'),
   ]),
+  section('steel', 'الحديد والصلب', Factory, ['حديد', 'صلب', 'حديد تسليح', 'فولاذ', 'ستيل', 'iron'], []),
+  section('pvc', 'PVC', DoorOpen, ['بي في سي', 'بيفيسي', 'upvc', 'يو بي في سي'], []),
+  section('clothes', 'محلات الملابس', Shirt, ['clothing', 'ملابس', 'محلات ملابس', 'أزياء', 'هدوم', 'بوتيك'], [
+    child('womens-clothes', 'ملابس نسائية', 'نسائي', 'نسائية', 'فساتين', 'عبايات', 'womens clothing'),
+    child('kids-clothes', 'ملابس أطفال', 'أطفال', 'اطفال', 'ملابس مواليد', 'kids clothing'),
+    child('mens-clothes', 'ملابس رجالية', 'رجالي', 'رجالية', 'ملابس رجال', 'mens clothing'),
+  ]),
 ];
 
 // Keep neighboring fields together even when new local sections are added.
 const sectionOrder = [
   'doctors', 'hospitals', 'pharmacies', 'laboratories', 'rehabilitation', 'pet-care',
   'education', 'employment', 'legal', 'accounting-finance', 'office-services',
-  'cars', 'transport', 'shipping-delivery', 'travel-tourism', 'real-estate',
-  'construction', 'building-materials', 'plumbing', 'electrical', 'cooling', 'solar-energy',
-  'home-services', 'home-appliances', 'furniture', 'doors-windows', 'aluminum-glass',
+  'cars', 'car-sales', 'bike-sales', 'transport', 'shipping-delivery', 'travel-tourism', 'real-estate',
+  'construction', 'building-materials', 'steel', 'plumbing', 'electrical', 'cooling', 'solar-energy',
+  'home-services', 'home-appliances', 'furniture', 'doors-windows', 'pvc', 'aluminum-glass',
   'painting-decor', 'marble-ceramics', 'elevators', 'water-treatment', 'gardening',
   'equipment-rental', 'industrial-services', 'computers', 'mobile-electronics',
   'communications', 'network-services', 'digital-services', 'surveillance', 'security-safety',
-  'food', 'shopping', 'jewelry', 'shoes-bags', 'tailoring', 'beauty-care', 'perfumes-cosmetics',
+  'food', 'shopping', 'clothes', 'jewelry', 'shoes-bags', 'tailoring', 'beauty-care', 'perfumes-cosmetics',
   'books-stationery', 'printing-services', 'marketing', 'media-production',
   'events', 'flowers-gifts', 'sports', 'games-hobbies', 'public',
 ];
@@ -242,11 +271,16 @@ for (const item of directorySections) {
   for (const sub of item.children) slugPlacements.set(sub.slug, { sectionSlug: item.slug, childSlug: sub.slug });
 }
 const displayTransfers: Record<string, string[]> = {
+  'building-materials': ['steel'], 'doors-windows': ['pvc'], shopping: ['clothes'],
+  cars: ['car-sales'],
   doctors: ['pet-care'], 'home-services': ['cooling'], construction: ['painting-decor'],
   surveillance: ['security-safety'], 'aluminum-glass': ['doors-windows'],
   'books-stationery': ['printing-services'], 'digital-services': ['marketing'],
   'mobile-electronics': ['computers', 'home-appliances'],
 };
+// Promoted entry points keep their original slugs and legacy parent URLs.
+// A root takes priority over its old child definition, regardless of ordering.
+for (const item of directorySections) slugPlacements.set(item.slug, { sectionSlug: item.slug });
 // Parent aliases have priority over generic child labels such as بيع or صيانة.
 for (const item of directorySections) for (const key of keys(item)) placements.set(key, { sectionSlug: item.slug });
 for (const item of directorySections) for (const sub of item.children) {
@@ -265,7 +299,9 @@ export function resolveDirectoryCategory(category: Pick<SourceCategory, 'slug' |
 }
 
 export function buildCategoryDirectory(categories: SourceCategory[]) {
-  const sections: DisplaySection[] = directorySections.map(item => ({ ...item, children: [...item.children], sources: [], searchText: '' }));
+  const sections: DisplaySection[] = directorySections.map(item => ({ ...item,
+    children: item.children.filter(sub => slugPlacements.get(sub.slug)?.sectionSlug === item.slug),
+    sources: [], searchText: '' }));
   const bySource = new Map<string, CategoryPlacement>();
   const unknownNames = new Map<string, CategoryPlacement>();
   for (const source of categories) {
@@ -288,7 +324,7 @@ export function buildCategoryDirectory(categories: SourceCategory[]) {
     item.searchText = [item.name, ...item.aliases, ...item.children.flatMap(sub => [sub.name, sub.slug, ...sub.aliases]),
       ...item.sources.flatMap(source => {
         const config = getCategoryFieldConfig(source.slug);
-        return [source.name, ...(RAW_CATEGORY_SYNONYMS[source.slug] ?? []), config.profession, ...config.specialties];
+        return [source.name, ...getCategorySynonyms(source.slug), config.profession, ...config.specialties];
       })].join(' ');
   }
   const locateCategory = (slug: string): CategoryPlacement | undefined => bySource.get(slug) ?? slugPlacements.get(slug) ?? placements.get(normalizeCategoryKey(slug));
@@ -300,19 +336,22 @@ export function buildCategoryDirectory(categories: SourceCategory[]) {
     if (subSlug && subSlug !== 'all') {
       if (parent?.children.some(child => child.slug === subSlug)) return { sectionSlug: base.sectionSlug, childSlug: subSlug };
       const moved = locateCategory(subSlug);
-      if (moved && displayTransfers[base.sectionSlug]?.includes(moved.sectionSlug)) return moved;
+      if (moved && displayTransfers[base.sectionSlug]?.includes(moved.sectionSlug)) return resolveRoute(moved.sectionSlug, moved.childSlug);
     }
-    return { sectionSlug: base.sectionSlug };
+    return { sectionSlug: base.sectionSlug, ...(parent?.defaultChildSlug ? { childSlug: parent.defaultChildSlug } : {}) };
   };
   const locateService = (service: Pick<Service, 'categorySlug' | 'categoryId' | 'subCategory' | 'profession'>): CategoryPlacement | undefined => {
     let base = locateCategory(service.categorySlug) ?? (service.categoryId != null ? bySource.get(`id:${service.categoryId}`) : undefined);
     if (!base) return undefined;
-    const permitted = [base.sectionSlug, ...(displayTransfers[base.sectionSlug] ?? [])];
     // Existing car services may already have been folded into car-repair by
     // the service hook. Recover the original display specialization only.
     const explicit = service.subCategory ? locateCategory(service.subCategory) : undefined;
-    if (explicit && permitted.includes(explicit.sectionSlug)) base = explicit;
     const profession = normalizeCategoryKey(service.profession ?? '');
+    const permitted = [base.sectionSlug, ...(displayTransfers[base.sectionSlug] ?? []).filter(slug =>
+      // A repair shop specializing in Japanese cars remains a repair shop.
+      slug !== 'car-sales' || explicit?.sectionSlug === slug || keys(sections.find(item => item.slug === slug)!).includes(profession)
+    )];
+    if (explicit && permitted.includes(explicit.sectionSlug)) base = explicit;
     if (profession && (!base.childSlug || base.childSlug === 'car-repair' || base.childSlug === 'appliance-repair')) {
       for (const item of sections.filter(item => permitted.includes(item.slug))) {
         const sub = item.children.find(candidate => keys(candidate).includes(profession));

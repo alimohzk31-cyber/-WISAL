@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
-import { withTimeout } from '../lib/withTimeout';
 
 export type AdPeriod = 'am' | 'pm';
 export type AdStatus = 'active' | 'upcoming' | 'expired' | 'disabled';
@@ -177,7 +176,7 @@ let designColumnsSupported: boolean | null = null;
 // (التنقل بين الصفحات/الرجوع). بيانات السلايدر وصفية صغيرة ولا تُعدَّل كثيراً،
 // لذا جلب البريد فقط مرة كل فترة قصيرة — مع بقاء التحديث اليدوي (refresh) فورياً.
 // ==============================
-const SESSION_CACHE_TTL = 45 * 1000; // 45 ثانية
+const SESSION_CACHE_TTL = 300 * 1000; // 5 دقائق — السلايدر يتغير نادراً (refreshAds يجبر التحديث)
 let sessionAdsCache: SliderAd[] | null = null;
 let sessionAdsCacheAt = 0;
 
@@ -550,7 +549,6 @@ export async function uploadSliderImageWithProgress(
 export function useSlider() {
   const [ads, setAds] = useState<SliderAd[]>(() => sessionAdsCache ?? readLocalAds());
   const [loading, setLoading] = useState(sessionAdsCache === null);
-  const [error, setError] = useState<string | null>(null);
   // هل توجد بيانات فورية (من الجلسة أو localStorage) حتى نعرضها قبل انتهاء fetch؟
   const [hasCachedData, setHasCachedData] = useState<boolean>(sessionAdsCache !== null || hasLocalAds());
 
@@ -567,17 +565,16 @@ export function useSlider() {
     try {
       // لا نحجب الواجهة عند وجود بيانات سابقة: نُسندها ونُحدّثها في الخلفية فقط.
       setLoading(sessionAdsCache === null);
-      setError(null);
-      const { data, error } = await withTimeout(supabase
+      const { data, error } = await supabase
         .from('slider_images')
         .select('*')
         // الترتيب المحفوظ في Supabase أولاً (sort_order تصاعدي)، ثم الأقدم أولاً
         .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: true }));
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      const normalized = (Array.isArray(data) ? data : []).filter(row => row && typeof row === 'object').map(normalizeAd);
+      const normalized = (data ?? []).map(normalizeAd);
       sessionAdsCache = normalized;
       sessionAdsCacheAt = Date.now();
       setAds(normalized);
@@ -586,7 +583,6 @@ export function useSlider() {
       return normalized;
     } catch (error) {
       console.error('Error fetching slider ads from Supabase:', error);
-      setError('تعذر تحميل الإعلانات. تحقق من الاتصال وأعد المحاولة.');
       const cached = readLocalAds();
       sessionAdsCache = cached;
       sessionAdsCacheAt = Date.now();
@@ -820,7 +816,6 @@ export function useSlider() {
     ads,
     images: ads, // Alias for backward compatibility
     loading,
-    error,
     hasCachedData,
     addAd,
     updateAd,

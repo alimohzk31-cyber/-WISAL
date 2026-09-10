@@ -1,32 +1,31 @@
 /**
  * prepare-source.mjs
  * ------------------
- * يردّ ملف الدخول المصدري إلى مكانه في الجذر قبل أي بناء.
- *
- * لماذا هذا ضروري؟
- *   جذر index.html يُستخدم مرتين:
- *   1) كنقطة دخول المصدر لـ Vite (يشير إلى /src/main.tsx)
- *   2) كملف الإنتاج النهائي single-file (بعد npm run release) ليدعم
- *      الفتح المباشر أو الاستضافة من الجذر (GitHub Pages / أي مضيف ثابت).
- *
- * هذا السكربت يعمل تلقائياً قبل `npm run build` (خطاف prebuild) و
- * `npm run dev` (خطاف predev) ليضمن أن البناء يقرأ المصدر دائماً.
- *
- * يتصل به في الطرف المُقابل سكربت `sync-index.mjs` الذي ينسخ
- * ناتج البناء من dist/index.html إلى الجذر بعد الإصدار.
+ * يتحقق من نقطة دخول Vite قبل التشغيل والبناء، بدون تعديلها.
+ * index.html هو المصدر المعتمد؛ index.source.html نسخة مرجعية فقط.
  */
-import { copyFileSync, existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const source = resolve(root, 'index.source.html');
 const target = resolve(root, 'index.html');
 
-if (!existsSync(source)) {
-  console.error('[prepare-source] الملف المصدر index.source.html غير موجود!');
+if (!existsSync(target)) {
+  console.error('[prepare-source] نقطة دخول Vite غير موجودة: index.html. لم يتم استبدال أي ملف.');
   process.exit(1);
 }
 
-copyFileSync(source, target);
-console.log('[prepare-source] index.html استُعيد من index.source.html ✅');
+const html = readFileSync(target, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+const hasRoot = /<div\b[^>]*\bid\s*=\s*(["'])root\1[^>]*>/i.test(html);
+const hasEntry = [...html.matchAll(/<script\b[^>]*>/gi)].some(([tag]) =>
+  /\btype\s*=\s*(["'])module\1/i.test(tag) &&
+  /\bsrc\s*=\s*(["'])(?:\.\/|\/)?src\/main\.tsx\1/i.test(tag)
+);
+
+if (!hasRoot || !hasEntry || !existsSync(resolve(root, 'src', 'main.tsx'))) {
+  console.error('[prepare-source] يجب أن يحتوي index.html على div#root و script type="module" مرتبط بـ /src/main.tsx الموجود. لم يتم استبدال أي ملف.');
+  process.exit(1);
+}
+
+console.log('[prepare-source] index.html هو مدخل Vite، وربط src/main.tsx سليم ✅');

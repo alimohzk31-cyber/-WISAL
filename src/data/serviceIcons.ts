@@ -7,7 +7,7 @@ import {
   Scale, Landmark, GraduationCap, BookOpen, Hotel, Home, Truck, Package,
   Plane, Dumbbell, Trophy, Waves, TreePine, Shirt, Monitor, Sparkles,
   CircleDollarSign, Baby, PawPrint, Cake, Gamepad2, HardHat, HeartPulse,
-  Moon, Palette, Wifi,
+  Moon, Palette, Wifi, Factory, PanelsTopLeft, DoorOpen, SprayCan,
 } from 'lucide-react';
 
 // =============================================================================
@@ -67,6 +67,11 @@ interface ServiceIconEntry {
 }
 
 const SERVICE_ICON_ENTRIES: ServiceIconEntry[] = [
+  { icon: Factory, color: 'blue', aliases: ['steel', 'الحديد والصلب', 'حديد تسليح', 'فولاذ'] },
+  { icon: PanelsTopLeft, color: 'blue', aliases: ['aluminum-glass', 'aluminum', 'aluminium', 'الألمنيوم', 'الألمنيوم والزجاج'] },
+  { icon: DoorOpen, color: 'blue', aliases: ['pvc', 'upvc', 'بي في سي', 'بيفيسي'] },
+  { icon: SprayCan, color: 'pink', aliases: ['perfumes-cosmetics', 'كوزمتك', 'كوزمتك ومستحضرات التجميل'] },
+  { icon: Shirt, color: 'pink', aliases: ['clothing', 'womens-clothes', 'kids-clothes', 'mens-clothes', 'محلات الملابس'] },
   // ------------------------- الصحة -------------------------
   { icon: Hospital, color: 'red', aliases: ['hospital', 'hospitals', 'مستشفى', 'مستشفيات', 'المستشفى'] },
   { icon: Pill, color: 'green', aliases: ['pharmacy', 'pharmacies', 'drugstore', 'صيدلية', 'صيدليه', 'صيدليات', 'الصيدلية', 'ادوية', 'أدوية'] },

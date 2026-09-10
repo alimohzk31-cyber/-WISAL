@@ -1,4 +1,5 @@
-import type { Location } from 'react-router-dom';
+import type { Location, NavigateFunction } from 'react-router-dom';
+import type { Service } from '../hooks/useServices';
 
 type DirectoryLocation = Pick<Location, 'pathname' | 'search' | 'state'>;
 export interface DirectoryNavigationState {
@@ -14,6 +15,33 @@ export function getHomeView(search: string): 'browse' | 'services' {
 export function categoryUrl(sectionSlug: string, childSlug?: string): string {
   const path = `/category/${encodeURIComponent(sectionSlug)}`;
   return childSlug ? `${path}?${new URLSearchParams({ sub: childSlug })}` : path;
+}
+
+export interface ServiceNavigationState extends DirectoryNavigationState {
+  categoryId: Service['categoryId'];
+  categorySlug: string;
+  serviceCategoryUrl: string;
+}
+
+export function openServiceDetails(
+  navigate: NavigateFunction, location: DirectoryLocation,
+  service: Service, placement?: { sectionSlug: string; childSlug?: string },
+): void {
+  if (!Number.isSafeInteger(Number(service.id)) || Number(service.id) <= 0) return;
+  const parentUrl = categoryUrl(placement?.sectionSlug ?? service.categorySlug, placement?.childSlug);
+  const state = directoryEntryState(location);
+  // Both navigations run in the same click: only details render. The inserted
+  // category entry makes browser/device Back work without intercepting popstate.
+  if (`${location.pathname}${location.search}` !== parentUrl) {
+    navigate(parentUrl, { state });
+  }
+  navigate(`/service/${encodeURIComponent(String(service.id))}`, {
+    state: {
+      ...state, directoryPrevious: parentUrl,
+      categoryId: service.categoryId, categorySlug: service.categorySlug,
+      serviceCategoryUrl: parentUrl,
+    } satisfies ServiceNavigationState,
+  });
 }
 
 export function readCategoryUrl(url?: string): { slug: string; childSlug?: string } | undefined {

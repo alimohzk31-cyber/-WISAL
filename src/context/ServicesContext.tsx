@@ -5,7 +5,8 @@ interface ServicesContextType {
   services: Service[];
   publicServices: Service[];
   loading: boolean;
-  error: string | null;
+  // خطأ جلب الخدمات الأخير (null = لا يوجد). يُعرض مع زر إعادة المحاولة.
+  error: Error | null;
   addService: (serviceData: Omit<Service, 'createdAt'>) => Promise<Service | undefined>;
   editService: (identifier: string | number, updatedData: Partial<Service>) => Promise<void>;
   applyServiceUpdate: (service: Service) => void;

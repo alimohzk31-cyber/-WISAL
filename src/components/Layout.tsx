@@ -278,13 +278,19 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8 pb-24 min-h-[calc(100vh-200px)]">
-        <AnimatePresence mode="wait">
+        {/* انتقال فوري وسلس بين الصفحات:
+            - كان `mode="wait"` يؤخر تركيب الصفحة الجديدة حتى اكتمال حركة خروج
+              الصفحة القديمة كاملة (إحساس بأن التطبيق «معلّق» عند كل تنقّل).
+            - الآن تُركّب الصفحة الجديدة فوراً (الوضع الافتراضي sync)، وتتحرك
+              القديمة للخارج بجانبها، بمدة أقصر (0.18s بدل 0.3s).
+            - Suspense يظهر فقط عند أول جلب chunk فعلية، وليس عند كل تنقّل. */}
+        <AnimatePresence>
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
           >
             <Outlet context={{ primaryColor, theme }} />
           </motion.div>

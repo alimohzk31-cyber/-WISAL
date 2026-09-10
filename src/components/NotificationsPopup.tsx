@@ -2,7 +2,6 @@
 import { Clock, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { AdminNotification } from '../lib/notifications';
-import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 interface Props {
   onClose: () => void;
@@ -15,13 +14,14 @@ interface Props {
 }
 
 export default function NotificationsPopup({ onClose, notifications, loading, error, readIds, markRead, refresh }: Props) {
-  useModalScrollLock();
   const dialogRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -35,6 +35,7 @@ export default function NotificationsPopup({ onClose, notifications, loading, er
     };
     document.addEventListener('keydown', handleKey);
     return () => {
+      document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', handleKey);
       if (previousFocus?.isConnected) previousFocus.focus();
       else document.querySelector<HTMLButtonElement>('[aria-controls="main-menu"]')?.focus();

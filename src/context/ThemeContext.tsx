@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { browserStorage } from '../lib/browserStorage';
 
 // 'dark' is kept in the union ONLY for type-compatibility with many existing
 // component checks (`theme === dark`). It is never selectable, never saved
@@ -33,7 +32,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 function getInitialTheme(): Theme {
   if (typeof window !== 'undefined') {
-    const stored = browserStorage.get(STORAGE_KEY);
+    const stored = window.localStorage.getItem(STORAGE_KEY);
     if (SELECTABLE_THEMES.includes(stored as Theme)) return stored as Theme;
   }
   return 'light';
@@ -44,7 +43,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Persist the choice so it survives a refresh.
-    browserStorage.set(STORAGE_KEY, theme);
+    window.localStorage.setItem(STORAGE_KEY, theme);
     const root = window.document.documentElement;
     // Dark mode is disabled — the 'dark' class is never added.
     root.classList.remove('dark');

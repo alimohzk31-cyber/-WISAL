@@ -6,6 +6,7 @@
 // جميع الأسماء هنا تُستورد تصريحياً فتتم شجرة-القص (tree-shaking) تماماً.
 // ============================================================
 import {
+  Factory, PanelsTopLeft, DoorOpen, SprayCan,
   Activity, Anchor, Aperture, Archive, Award, Book, Bookmark, Briefcase, Camera, Cast,
   Cloud, Coffee, Compass, Crosshair, Database, Droplet, Droplets, Feather, Flag, Folder,
   FolderOpen, Gift, Globe, Headphones, Heart, Home, Image as ImageIcon, Key, Layers,
@@ -24,6 +25,7 @@ import {
 
 /** أسماء الأيقونات القابلة للاختيار في نافذة "إضافة قسم". */
 export const CATEGORY_ICON_NAMES = [
+  'Factory', 'PanelsTopLeft', 'DoorOpen', 'SprayCan',
   'Activity', 'Anchor', 'Aperture', 'Archive', 'Award', 'Book', 'Bookmark', 'Briefcase', 'Camera', 'Cast',
   'Cloud', 'Coffee', 'Compass', 'Crosshair', 'Database', 'Droplet', 'Feather', 'Flag', 'Folder', 'Gift',
   'Globe', 'Headphones', 'Heart', 'Home', 'Image', 'Key', 'Layers', 'Layout', 'LifeBuoy', 'Link',
@@ -43,6 +45,7 @@ export const CATEGORY_ICON_NAMES = [
 
 /** خريطة اسم ← مكوّن أيقونة (لتحويل أيقونات قاعدة البيانات النصية إلى مكوّنات عند العرض). */
 export const CATEGORY_ICON_MAP: Record<string, any> = {
+  Factory, PanelsTopLeft, DoorOpen, SprayCan,
   Activity, Anchor, Aperture, Archive, Award, Book, Bookmark, Briefcase, Camera, Cast,
   Cloud, Coffee, Compass, Crosshair, Database, Droplet, Droplets, Feather, Flag, Folder,
   FolderOpen, Gift, Globe, Headphones, Heart, Home, Image: ImageIcon, Key, Layers,

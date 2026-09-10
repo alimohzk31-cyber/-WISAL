@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { X, Upload, MapPin, Phone, Type, LayoutGrid, Briefcase, Clock, Navigation } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import { useServices } from '../context/ServicesContext';
@@ -22,7 +22,6 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
   const { t } = useLanguage();
   const [isLocating, setIsLocating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const savingRef = useRef(false);
   const [formData, setFormData] = useState({
     name: service.name,
     profession: service.profession || '',
@@ -68,14 +67,7 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
       return;
     }
 
-    if (savingRef.current) return;
-    const categoryChanged = formData.categorySlug !== service.categorySlug;
-    const selectedCategory = categories.find(cat => cat.slug === formData.categorySlug);
-    if (categoryChanged && selectedCategory?.dbId == null) {
-      alert('تعذر تحميل معرّف القسم المختار. أعد المحاولة بعد اكتمال تحميل الأقسام.');
-      return;
-    }
-    savingRef.current = true;
+    if (isSaving) return; // prevent double-submit while the UPDATE is running
     setIsSaving(true);
 
     try {
@@ -85,7 +77,7 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
       // category_id currently stored in the database is sent back - never a default.
       await editService(service.id, {
         ...formData,
-        categoryId: categoryChanged ? selectedCategory.dbId : service.categoryId ?? undefined,
+        categoryId: service.categoryId ?? undefined,
         latitude,
         longitude
       });
@@ -96,7 +88,6 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
       console.error('Failed to update service:', error);
       alert(error?.message || 'تعذر حفظ التعديلات. يرجى المحاولة مرة أخرى.');
     } finally {
-      savingRef.current = false;
       setIsSaving(false);
     }
   };
@@ -105,8 +96,7 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
     <ServiceModalShell
       title={t('edit_service')}
       icon={<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-blue-400"><Type className="h-4 w-4" /></div>}
-      onClose={() => { if (!savingRef.current) onClose(); }}
-      busy={isSaving}
+      onClose={onClose}
     >
         <form onSubmit={handleSubmit} className="min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-5 space-y-4 sm:space-y-5">
           {/* Category */}
@@ -214,8 +204,7 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
           <div className={`sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex shrink-0 gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-3 sm:-mx-5 sm:-mb-5 sm:gap-3 sm:p-4`}>
             <button
               type="button"
-              onClick={() => { if (!savingRef.current) onClose(); }}
-              disabled={isSaving}
+              onClick={onClose}
               className={`flex-1 font-bold py-3.5 rounded-xl transition-all bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:bg-[var(--accent-light)]`}
             >
               {t('cancel')}

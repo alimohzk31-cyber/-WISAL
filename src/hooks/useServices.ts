@@ -3,38 +3,13 @@ import { supabase } from '../lib/supabase';
 import { offlineStore, OFFLINE_KEYS } from '../lib/offlineStore';
 import { measureAdminOperation } from '../lib/adminPerformance';
 import { notifyServiceChange } from '../lib/serviceChanges';
-import { browserStorage } from '../lib/browserStorage';
-import { withTimeout } from '../lib/withTimeout';
-
-export interface Service {
-  id?: string | number;
-  slug: string;
-  name: string;
-  profession?: string;
-  experience?: string;
-  phone?: string;
-  location: string;
-  latitude?: number;
-  longitude?: number;
-  image: string;
-  video?: string;
-  categorySlug: string;
-  // The REAL primary key of the section row in public.categories (services.category_id FK).
-  // Kept alongside categorySlug so we never depend on the name/slug alone.
-  categoryId?: string | number | null;
-  subCategory?: string;
-  createdAt: number;
-  status?: 'pending' | 'approved' | 'rejected' | 'archived' | 'deleted';
-  // Last modification time from services.updated_at (exists in DB - no new columns)
-  updatedAt?: number;
-  // Time of the admin decision from services.reviewed_at. For approved rows this
-  // is the approval time and is the authoritative browse ordering key.
-  reviewedAt?: number;
-  rejectionReason?: string;
-  isOffline?: boolean;
-  ownerId?: string;
-  userId?: number | null;
-}
+// ------------------------------------------------------------------
+// Service مُعرَّف مركزياً في types/models (المصدر الوحيد للأنواع).
+// هذه إعادة تصدير للتوافق مع كل الاستيرادات الحالية من hooks/useServices.
+// ------------------------------------------------------------------
+import type { Service } from '../types/models';
+export type { Service };
+export type { ServiceStatus, serviceStatusLabel, serviceStatusBadgeClass } from '../types/models';
 
 // Actual columns in public.services (verified against the live database):
 // id (integer PK), title, description, price, image_url, category_id (FK -> categories.id),
@@ -51,14 +26,12 @@ const carSubSlugs = [
 ];
 
 // Generate a unique owner ID for this device/browser
-let memoryOwnerId: string | undefined;
 export function getOwnerId(): string {
-  let ownerId = browserStorage.get('saleen_owner_id') || memoryOwnerId;
+  let ownerId = localStorage.getItem('saleen_owner_id');
   if (!ownerId) {
     ownerId = `owner_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-    browserStorage.set('saleen_owner_id', ownerId);
+    localStorage.setItem('saleen_owner_id', ownerId);
   }
-  memoryOwnerId = ownerId;
   return ownerId;
 }
 
@@ -71,7 +44,7 @@ export function isValidServiceId(id: unknown): id is string | number {
 }
 
 // Log full Supabase error details (never silent)
-function logSupabaseError(context: string, error: any) {
+export function logSupabaseError(context: string, error: any) {
   console.error(`[Supabase:${context}]`, {
     message: error?.message,
     code: error?.code,
@@ -97,14 +70,14 @@ async function ensureCategoriesCache(): Promise<void> {
 
 async function loadCategoriesCache(): Promise<void> {
   try {
-    const { data, error } = await withTimeout(measureAdminOperation('categories.lookup', () => supabase.from('categories').select('id, slug')));
+    const { data, error } = await measureAdminOperation('categories.lookup', () => supabase.from('categories').select('id, slug'));
     if (error) {
       logSupabaseError('ensureCategoriesCache', error);
       return;
     }
     catIdToSlug = new Map();
     catSlugToId = new Map();
-    for (const row of (Array.isArray(data) ? data : []).filter(row => row && typeof row === 'object')) {
+    for (const row of data || []) {
       const id = row.id !== undefined && row.id !== null ? String(row.id) : null;
       const slug = row.slug !== undefined && row.slug !== null ? String(row.slug) : null;
       if (id && slug) {
@@ -123,12 +96,6 @@ function getSlugForCategoryId(categoryId: string | number | null | undefined): s
 }
 
 export function mapRowToService(item: any): Service {
-  item = item && typeof item === 'object' ? item : {};
-  const text = (value: unknown) => typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '';
-  const timestamp = (value: unknown) => {
-    const parsed = typeof value === 'string' || typeof value === 'number' ? new Date(value).getTime() : NaN;
-    return Number.isFinite(parsed) ? parsed : undefined;
-  };
   // Resolve the UI-facing category slug WITHOUT inventing a fallback while the
   // service has a real category_id:
   //   1) explicit category_slug column
@@ -149,19 +116,20 @@ export function mapRowToService(item: any): Service {
     categorySlug: isCarSub ? 'car-repair' : rawCategory,
     categoryId: rawCategoryId,
     subCategory: isCarSub ? rawCategory : undefined,
-    name: text(item.title ?? item.name),
-    profession: text(item.profession) || undefined,
-    experience: text(item.description ?? item.experience) || undefined,
-    location: text(item.address ?? item.location),
+    name: item.title ?? item.name ?? '',
+    profession: item.profession ?? undefined,
+    experience: item.description ?? item.experience ?? undefined,
+    location: item.address ?? item.location ?? '',
     latitude: item.latitude ?? item.lat ?? undefined,
     longitude: item.longitude ?? item.lng ?? undefined,
-    phone: text(item.phone) || undefined,
-    image: text(item.image_url ?? item.image),
-    video: text(item.video_url ?? item.video) || undefined,
-    createdAt: timestamp(item.created_at) ?? 0,
+    phone: item.phone ?? undefined,
+    image: item.image_url ?? item.image ?? '',
+    video: item.video_url ?? item.video ?? undefined,
+    views: item.views == null ? undefined : Number(item.views),
+    createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
     // "آخر تحديث" for the archive view - read-only from the existing updated_at column
-    updatedAt: timestamp(item.updated_at),
-    reviewedAt: timestamp(item.reviewed_at),
+    updatedAt: item.updated_at ? new Date(item.updated_at).getTime() : undefined,
+    reviewedAt: item.reviewed_at ? new Date(item.reviewed_at).getTime() : undefined,
     // fail-closed: أي صف بلا status يُعتبر pending (لا يظهر للعامة أبداً
     // حتى يوافق المدير) - لا يجوز افتراض 'approved' أبداً.
     status: item.status ?? 'pending',
@@ -179,7 +147,7 @@ let ownerIdColumnSupported: boolean | null = null;
 async function checkOwnerIdColumn(): Promise<boolean> {
   if (ownerIdColumnSupported !== null) return ownerIdColumnSupported;
   try {
-    const { error } = await withTimeout(supabase.from('services').select('owner_id').limit(1));
+    const { error } = await supabase.from('services').select('owner_id').limit(1);
     ownerIdColumnSupported = !error;
     if (error) {
       console.warn(
@@ -313,20 +281,18 @@ async function buildInsertPayload(serviceData: Omit<Service, 'createdAt'>): Prom
   return payload;
 }
 
-function cachedServices(value: unknown): Service[] {
-  return Array.isArray(value) ? value.filter(s => s && typeof s === 'object' && typeof s.slug === 'string' && typeof s.name === 'string') : [];
-}
-
 export function useServices() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // خطأ جلب الخدمات (يُعرض للمستخدم مع زر إعادة المحاولة بدل واجهة فارغة صامتة
+  // عندما يفشل طلب Supabase في أول زيارة - سبب "الخدمات لا تظهر حتى التحديث").
+  const [error, setError] = useState<Error | null>(null);
   const servicesRevision = useRef(0);
   const fetchRequest = useRef<Promise<void> | null>(null);
   const cacheQueue = useRef<Promise<unknown>>(Promise.resolve());
   const persistServices = useCallback((update: (cached: Service[]) => Service[]) => {
     cacheQueue.current = cacheQueue.current.then(() => measureAdminOperation('services.cache', async () => {
-      const cached = cachedServices(await offlineStore.getItem(OFFLINE_KEYS.SERVICES));
+      const cached = await offlineStore.getItem<Service[]>(OFFLINE_KEYS.SERVICES) || [];
       await offlineStore.setItem(OFFLINE_KEYS.SERVICES, update(cached));
     })).catch(error => console.warn('[Services] Cache write failed:', error));
     return cacheQueue.current;
@@ -342,8 +308,6 @@ export function useServices() {
 
   const fetchServices = useCallback((): Promise<void> => {
     if (fetchRequest.current) return fetchRequest.current;
-    setLoading(true);
-    setError(null);
     const version = servicesRevision.current;
     const request = (async () => {
     // يُفحص داخل كل مرحلة: إذا عدّل المستخدم قائمة الخدمات أثناء الجلب
@@ -385,7 +349,7 @@ export function useServices() {
       };
 
       // الصفحة الأولى: تُعرض فورًا ولا ينتظر المستخدم بقية طلبات الشبكة.
-      const { data: firstPage, error: firstError } = await withTimeout(measureAdminOperation('services.approved', () => fetchApprovedPage(0)));
+      const { data: firstPage, error: firstError } = await measureAdminOperation('services.approved', () => fetchApprovedPage(0));
 
       if (firstError) {
         logSupabaseError('fetchServices(approved)', firstError);
@@ -401,7 +365,7 @@ export function useServices() {
       try {
         const myOwnerId = getOwnerId();
         await cacheQueue.current;
-        const cachedBefore = cachedServices(await offlineStore.getItem(OFFLINE_KEYS.SERVICES));
+        const cachedBefore = await offlineStore.getItem<Service[]>(OFFLINE_KEYS.SERVICES) || [];
         const knownSlugs = new Set(approvedServices.map((s) => s.slug));
         const localPending = cachedBefore.filter(
           (s) => s.status === 'pending' && (s.ownerId ?? '') === myOwnerId && !knownSlugs.has(s.slug)
@@ -416,18 +380,20 @@ export function useServices() {
       // أول عرض هنا: الواجهة جاهزة قبل استعلامات المالك وباقي الصفحات.
       if (!renderState()) return;
       setLoading(false);
+      // نجح الجلب الأول: نلغي أي خطأ سابق (ينطبق عند إعادة المحاولة اليدوية).
+      setError(null);
 
       // Fetch this device's pending/rejected services (requires owner_id column)
       // تُجلب بعد أول عرض لأنها ليست شرطًا لظهور الواجهة.
       if (await checkOwnerIdColumn()) {
         const ownerId = getOwnerId();
 
-        const { data: pendingData, error: pendingError } = await withTimeout(measureAdminOperation('services.owner.pending', () => supabase
+        const { data: pendingData, error: pendingError } = await measureAdminOperation('services.owner.pending', () => supabase
           .from('services')
           .select('*')
           .eq('status', 'pending')
           .eq('owner_id', ownerId)
-          .order('created_at', { ascending: false })));
+          .order('created_at', { ascending: false }));
 
         if (pendingError) {
           logSupabaseError('fetchServices(pending)', pendingError);
@@ -435,12 +401,12 @@ export function useServices() {
           ownerPending.push(...(pendingData || []).map(mapRowToService));
         }
 
-        const { data: rejectedData, error: rejectedError } = await withTimeout(measureAdminOperation('services.owner.rejected', () => supabase
+        const { data: rejectedData, error: rejectedError } = await measureAdminOperation('services.owner.rejected', () => supabase
           .from('services')
           .select('*')
           .eq('status', 'rejected')
           .eq('owner_id', ownerId)
-          .order('created_at', { ascending: false })));
+          .order('created_at', { ascending: false }));
 
         if (rejectedError) {
           logSupabaseError('fetchServices(rejected)', rejectedError);
@@ -451,12 +417,11 @@ export function useServices() {
       }
 
       // بقية صفحات الخدمات المعتمدة: تحميل تدريجي في الخلفية.
-      for (let from = PAGE_SIZE; firstPage?.length === PAGE_SIZE; from += PAGE_SIZE) {
+      for (let from = PAGE_SIZE; ; from += PAGE_SIZE) {
         if (isStale()) return;
-        const { data: pageData, error: pageError } = await withTimeout(measureAdminOperation('services.approved.page', () => fetchApprovedPage(from)));
+        const { data: pageData, error: pageError } = await measureAdminOperation('services.approved.page', () => fetchApprovedPage(from));
         if (pageError) {
           logSupabaseError('fetchServices(approved.page)', pageError);
-          setError('تعذر تحميل بقية الخدمات. تحقق من الاتصال وأعد المحاولة.');
           break;
         }
         const rows = (pageData || []).map(mapRowToService);
@@ -472,8 +437,9 @@ export function useServices() {
       }
     } catch (error) {
       logSupabaseError('fetchServices', error);
-      if (!isStale()) setError('تعذر تحميل الخدمات. تحقق من اتصال الإنترنت وأعد المحاولة.');
-    } finally {
+      // نفشل الجلب الأول كسر واضح: نعرض حالة خطأ داخلية مع إمكانية إعادة
+      // المحاولة بدل الاكتفاء بواجهة فارغة صامتة يضطر المستخدم للتحديث لإصلاحها.
+      setError(error instanceof Error ? error : new Error(String(error ?? 'فشل تحميل الخدمات')));
       setLoading(false);
     }
     })();
@@ -497,7 +463,7 @@ export function useServices() {
 
   // Legacy offline queue drain (kept for rows queued by older versions).
   const syncPendingServices = useCallback(async () => {
-    const pending = cachedServices(await offlineStore.getItem(OFFLINE_KEYS.PENDING_SERVICES));
+    const pending = await offlineStore.getItem<Service[]>(OFFLINE_KEYS.PENDING_SERVICES) || [];
     if (pending.length === 0) return;
 
     console.log(`Syncing ${pending.length} locally-queued services...`);
@@ -524,7 +490,7 @@ export function useServices() {
 
   useEffect(() => {
     const init = async () => {
-      const cached = cachedServices(await offlineStore.getItem(OFFLINE_KEYS.SERVICES));
+      const cached = await offlineStore.getItem<Service[]>(OFFLINE_KEYS.SERVICES);
 
       // Show cached data immediately (offline support only),
       // then replace it with fresh data straight from Supabase.
@@ -536,12 +502,11 @@ export function useServices() {
       await syncPendingServices();
     };
 
-    void init().catch(error => console.warn('تعذرت مزامنة النسخة المحلية:', error));
+    init();
 
     const handleOnline = () => {
       console.log('Connection restored. Syncing...');
-      void fetchServices();
-      void syncPendingServices().catch(error => console.warn('تعذرت مزامنة النسخة المحلية:', error));
+      syncPendingServices();
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);

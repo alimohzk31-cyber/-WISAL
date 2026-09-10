@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SafeImage } from './SafeImage';
+import { useToast } from './ToastProvider';
 
 // ==============================
 // أنواع ومساعدو النموذج
@@ -42,12 +43,6 @@ interface SlideDraft {
   end_second: number; // 0-59
   images: string[];
   is_active: boolean;
-}
-
-interface ToastItem {
-  id: number;
-  type: 'success' | 'error';
-  message: string;
 }
 
 const FONT_OPTIONS = ['Cairo', 'Tahoma', 'Arial', 'Segoe UI', 'Georgia', 'Times New Roman'];
@@ -197,17 +192,11 @@ function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: n
 
 const inputCls = 'w-full rounded-xl border bg-[var(--bg-secondary)] border-[var(--border)] px-3.5 py-2.5 text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] transition-colors';
 
-// مكان النص على الصورة (أعلى/وسط/أسفل) ومحاذاة النص (يمين/وسط/يسار)
-export const SLIDE_POSITION_CLASSES: Record<string, string> = {
-  top: 'justify-start pt-5 md:pt-7',
-  middle: 'justify-center',
-  bottom: 'justify-end pb-8 md:pb-12'
-};
-export const SLIDE_TEXT_ALIGN: Record<string, 'right' | 'center' | 'left'> = {
-  right: 'right',
-  center: 'center',
-  left: 'left'
-};
+// مكان النص على الصورة (أعلى/وسط/أسفل) ومحاذاة النص (يمين/وسط/يسار).
+// المنشأ الحقيقي الآن src/data/slideStyles (ملف خفيف تشاركه الرئيسية أيضاً)
+// لتجنّب سحب هذا المكوّن الإداري الثقيل إلى تحميل الصفحة الرئيسية.
+import { SLIDE_POSITION_CLASSES, SLIDE_TEXT_ALIGN } from '../data/slideStyles';
+export { SLIDE_POSITION_CLASSES, SLIDE_TEXT_ALIGN };
 
 
 /** عرض الشريحة كما ستظهر فعلياً في الصفحة الرئيسية (نفس التنسيقات) */
@@ -283,19 +272,11 @@ export default function SliderManager() {
   const [deleteTarget, setDeleteTarget] = useState<SliderAd | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const pushToast = useToast();
   const [liveIndex, setLiveIndex] = useState(0);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragIndexRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const toastIdRef = useRef(0);
-
-  // Toast خفيف بدون أي مكتبة خارجية (يُنظَّف تلقائياً)
-  const pushToast = useCallback((type: ToastItem['type'], message: string) => {
-    const id = ++toastIdRef.current;
-    setToasts(prev => [...prev.slice(-2), { id, type, message }]);
-    window.setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 4000);
-  }, []);
 
   // تحديث حالات العرض (نشطة/منتهية) كل دقيقة — لا re-render كل ثانية
   const [, setTick] = useState(0);
@@ -1352,27 +1333,6 @@ export default function SliderManager() {
         )}
       </AnimatePresence>
 
-      {/* إشعارات Toast */}
-      <div className="fixed bottom-4 left-4 z-[60] space-y-2 pointer-events-none">
-        <AnimatePresence>
-          {toasts.map(toast => (
-            <motion.div
-              key={toast.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className={`pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border text-sm font-bold backdrop-blur-md bg-[var(--card)] ${
-                toast.type === 'success'
-                  ? 'border-emerald-500/40 text-emerald-500'
-                  : 'border-red-500/40 text-red-500'
-              }`}
-            >
-              {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-              {toast.message}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
     </div>
   );
 }

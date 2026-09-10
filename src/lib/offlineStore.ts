@@ -1,5 +1,4 @@
 import localforage from 'localforage';
-import { withTimeout } from './withTimeout';
 
 // Configure localforage
 localforage.config({
@@ -20,11 +19,7 @@ export const offlineStore = {
   },
 
   async getItem<T>(key: string): Promise<T | null> {
-    try { return await withTimeout(localforage.getItem<T>(key), 3000); }
-    catch (error) {
-      console.warn('تعذرت قراءة النسخة المحلية:', error);
-      return null;
-    }
+    return await localforage.getItem<T>(key);
   },
 
   async removeItem(key: string): Promise<void> {

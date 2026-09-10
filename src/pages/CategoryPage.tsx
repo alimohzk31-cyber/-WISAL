@@ -9,10 +9,13 @@ import { Service } from '../hooks/useServices';
 import AddServiceModal from '../components/AddServiceModal';
 import ServiceDetailModal from '../components/ServiceDetailModal';
 import SafeImage from '../components/SafeImage';
-import ServiceLoadStatus from '../components/ServiceLoadStatus';
+import ServiceStatusBadge from '../components/ServiceStatusBadge';
+import EmptyState from '../components/ui/EmptyState';
+import LoadingState from '../components/ui/LoadingState';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../context/LanguageContext';
-import { categoryUrl, directoryEntryState, getDirectoryNavigationState, directoryBackAction, readCategoryUrl } from '../lib/directoryNavigation';
+import { serviceStatusOverlayClass } from '../types/models';
+import { categoryUrl, directoryEntryState, getDirectoryNavigationState, directoryBackAction, readCategoryUrl, openServiceDetails } from '../lib/directoryNavigation';
 
 // ---------------------------------------------------------------------------
 // تحميل تدريجي (Progressive Rendering) لبطاقات الخدمات داخل القسم:
@@ -96,10 +99,10 @@ function ServicesGrid({ services, locateService, renderCard, pageSize }: {
 
 export default function CategoryPage() {
   const { id } = useParams<{ id: string }>();
-  const { categories, loading: categoriesLoading, error: categoriesError, refreshCategories } = useCategories();
+  const { categories } = useCategories();
   const { t } = useLanguage();
   
-  const { publicServices } = useServices();
+  const { publicServices, loading: servicesLoading } = useServices();
   const { sections, locateCategory, locateService, bySection, resolveRoute } = useCategoryDirectory(categories, publicServices);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -118,21 +121,17 @@ export default function CategoryPage() {
   }, [location.key]);
 
   if (!category) {
-    return <div className="text-center py-20 space-y-4">
-      <p role={categoriesError ? 'alert' : 'status'}>{categoriesLoading ? 'جارٍ تحميل القسم...' : categoriesError || 'القسم غير موجود'}</p>
-      {categoriesError && <button type="button" disabled={categoriesLoading} onClick={() => void refreshCategories()} className="underline">إعادة المحاولة</button>}
-      <button type="button" onClick={() => navigate('/?view=services', { replace: true })} className="block mx-auto underline">العودة للأقسام</button>
-    </div>;
+    return <div className="text-center py-20 text-xl font-bold">القسم غير موجود</div>;
   }
 
-  const subCategories = [{ slug: 'all', name: 'الكل' }, ...category.children];
+  const subCategories = category.hideAll ? category.children : [{ slug: 'all', name: 'الكل' }, ...category.children];
   const activeChild = category.children.find(child => child.slug === activeSubCategory);
   const navigationState = getDirectoryNavigationState(location.state);
   const previousRoute = readCategoryUrl(navigationState.directoryPrevious);
   const previousPlacement = previousRoute && resolveRoute(previousRoute.slug, previousRoute.childSlug);
   const goBack = () => {
     const action = directoryBackAction({
-      state: location.state, parentUrl: categoryUrl(category.slug), isChild: Boolean(activeChild),
+      state: location.state, parentUrl: categoryUrl(category.slug), isChild: Boolean(activeChild) && !category.hideAll,
       previousIsParent: previousPlacement?.sectionSlug === category.slug && !previousPlacement.childSlug,
       hasHistory: Number(window.history.state?.idx) > 0,
     });
@@ -157,7 +156,8 @@ export default function CategoryPage() {
     activeSubCategory === 'all' || locateService(service)?.childSlug === activeSubCategory
   );
   const joinCategory = category.sources.find(source => source.dbId != null && locateCategory(source.slug)?.childSlug === activeSubCategory)
-    ?? category.sources.find(source => source.dbId != null);
+    ?? category.sources.find(source => source.dbId != null && (!activeChild ||
+      locateService({ categorySlug: source.slug, categoryId: source.dbId, profession: activeChild.name })?.childSlug === activeChild.slug));
   // The directory resolves icons locally, including legacy custom categories.
   const Icon = category.icon;
   // Buttons/functional elements keep the theme accent palette (unchanged).
@@ -167,10 +167,9 @@ export default function CategoryPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 relative">
-      <ServiceLoadStatus />
       {/* Header */}
       <div className="flex flex-wrap items-center gap-4 border-b pb-6 relative border-[var(--border)]">
-        <button type="button" onClick={goBack} aria-label={activeChild ? 'الرجوع إلى القسم الرئيسي' : 'الرجوع إلى مصدر الدخول'} className="p-2 rounded-full transition-colors hover:bg-[var(--accent-soft)] text-[var(--text-primary)]">
+        <button type="button" onClick={goBack} aria-label={activeChild && !category.hideAll ? 'الرجوع إلى القسم الرئيسي' : 'الرجوع إلى مصدر الدخول'} className="p-2 rounded-full transition-colors hover:bg-[var(--accent-soft)] text-[var(--text-primary)]">
           <ArrowRight className="w-6 h-6" />
         </button>
         <div className="w-12 h-12 rounded-xl bg-white border-2 border-[#D90429] flex items-center justify-center">
@@ -214,14 +213,14 @@ export default function CategoryPage() {
       )}
 
       {/* Services List — عرض تدريجي: أول مجموعة فورًا ثم دفعات عند التمرير */}
-      {categoryServices.length === 0 ? (
-        <div className="text-center py-20 space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-[var(--bg-secondary)]">
-            {Icon && typeof Icon !== 'string' && <Icon className="w-10 h-10 text-[var(--text-muted)]" />}
-          </div>
-          <h3 className="text-xl font-bold text-[var(--text-primary)]">{t('no_services_yet')}</h3>
-          <p className="font-medium text-[var(--text-muted)]">{t('be_first')}</p>
-        </div>
+      {servicesLoading && publicServices.length === 0 ? (
+        <LoadingState label="جارٍ تحميل الخدمات…" />
+      ) : categoryServices.length === 0 ? (
+        <EmptyState
+          icon={Icon && typeof Icon !== 'string' ? Icon : undefined}
+          title={t('no_services_yet')}
+          subtitle={t('be_first')}
+        />
       ) : (
         <ServicesGrid
           services={categoryServices}
@@ -231,31 +230,20 @@ export default function CategoryPage() {
             <motion.div
               key={service.slug}
               layoutId={`service-${service.slug}`}
-              onClick={() => setSelectedService(service)}
-              className={`group relative border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 flex flex-col z-10 cursor-pointer bg-[var(--card)] border-[var(--border)] shadow-[var(--shadow)] ${service.status === 'pending' ? 'opacity-70 saturate-50' : ''} ${service.status === 'rejected' ? 'opacity-50 saturate-0' : ''}`}
+              onClick={() => Number.isSafeInteger(Number(service.id)) && Number(service.id) > 0
+                ? openServiceDetails(navigate, location, service, { sectionSlug: category.slug, childSlug: activeChild?.slug })
+                : setSelectedService(service)}
+              className={`group relative border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 flex flex-col z-10 cursor-pointer bg-[var(--card)] border-[var(--border)] shadow-[var(--shadow)] ${serviceStatusOverlayClass(service.status)}`}
             >
-              {/* Status Badges */}
+              {/* Status Badges — مكوّن موحد ServiceStatusBadge */}
               {service.isOffline && (
                 <div className="absolute top-2 left-2 z-20 bg-blue-500/90 text-white text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-sm animate-pulse">
                   أوفلاين
                 </div>
               )}
 
-              {/* Pending Status Badge */}
-              {service.status === 'pending' && (
-                <div className="absolute top-2 right-2 z-20 bg-yellow-500/90 text-white text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-sm flex items-center gap-1">
-                  <Hourglass className="w-3 h-3" />
-                  ⏳ بانتظار موافقة الإدارة
-                </div>
-              )}
-
-              {/* Rejected Status Badge */}
-              {service.status === 'rejected' && (
-                <div className="absolute top-2 right-2 z-20 bg-red-500/90 text-white text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-sm flex items-center gap-1">
-                  <XCircle className="w-3 h-3" />
-                  مرفوضة
-                </div>
-              )}
+              {/* Pending / Rejected Status Badge — مكوّن موحد */}
+              <ServiceStatusBadge status={service.status ?? 'approved'} variant="card" />
 
               {/* Simple Image Section */}
               <div className="aspect-square overflow-hidden relative">
@@ -307,7 +295,7 @@ export default function CategoryPage() {
                 )}
 
                 {/* Navigation Links (Compact) - Only for approved services */}
-                {Number.isFinite(service.latitude) && Number.isFinite(service.longitude) && service.status === 'approved' && (
+                {service.latitude && service.longitude && service.status === 'approved' && (
                   <div className="flex gap-1 mt-1">
                     <a 
                       href={`https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`}
@@ -335,7 +323,9 @@ export default function CategoryPage() {
 
       {isAddingService && (
         <AddServiceModal 
+          joinSection={{ slug: category.slug, name: activeChild ? `${category.name} (${activeChild.name})` : category.name, childSlug: activeChild?.slug }}
           initialCategorySlug={joinCategory?.slug ?? ''}
+          initialProfession={activeChild?.name}
           onClose={() => setIsAddingService(false)} 
         />
       )}

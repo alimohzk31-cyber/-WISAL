@@ -1,20 +1,19 @@
 import { categories } from './categories';
-
+import type { SectionFieldConfig } from '../types/models';
 /**
  * إعدادات حقول نموذج "إضافة خدمة" لكل قسم.
- * كل قسم له: تسمية حقل الاسم، مثال للاسم، المهنة الافتراضية، وقائمة التخصصات.
- * لإضافة قسم جديد مستقبلاً: أضف slug جديد هنا فقط (أو سيستخدم الإعداد العام أدناه).
+ * الشكل (SectionFieldConfig) مُعرَّف مركزياً في types/models — المصدر الوحيد
+ * للأنواع. CategoryFieldConfig هنا اسم بديل للتوافق مع الاستيرادات الحالية.
+ *
+ * طريقتان لتعريف إعدادات قسم:
+ *   1) القديمة: مفتاح في CATEGORY_FIELDS أدناه (الأقسام الموجودة).
+ *   2) المفضلة للأقسام الجديدة: تضمين `fields: { ... }` داخل بيانات القسم
+ *      نفسه في data/categories.ts — مكان واحد فقط.
+ * أولوية القراءة (في getCategoryFieldConfig): CATEGORY_FIELDS ثم fields
+ * المضمّنة ثم الإعداد العام.
  */
-export interface CategoryFieldConfig {
-  /** تسمية حقل الاسم (تختلف حسب القسم: صيدلية / عيادة / ورشة...) */
-  nameLabel: string;
-  /** مثال يظهر كـ placeholder لحقل الاسم */
-  namePlaceholder: string;
-  /** المهنة الافتراضية التي تُعبأ تلقائياً عند فتح النموذج من هذا القسم */
-  profession: string;
-  /** قائمة التخصصات المقترحة لهذا القسم (تظهر كقائمة اختيار) */
-  specialties: string[];
-}
+export type CategoryFieldConfig = SectionFieldConfig;
+export type { SectionFieldConfig };
 
 /** الإعداد العام لأي قسم لم يُعرَّف له إعداد خاص */
 export const GENERIC_FIELD_CONFIG: CategoryFieldConfig = {
@@ -30,6 +29,24 @@ export const CATEGORY_FIELDS: Record<string, CategoryFieldConfig> = {
     nameLabel: 'اسم الصيدلية',
     namePlaceholder: 'مثال: صيدلية الأمل',
     profession: 'صيدلي',
+    professionLabel: 'نوع خدمات الصيدلية',
+    experienceLabel: 'نبذة عن الصيدلية وخدماتها',
+    experiencePlaceholder: 'عرّف بالصيدلية والخدمات المتوفرة ومواعيد العمل.',
+    locationLabel: 'عنوان الصيدلية',
+    locationPlaceholder: 'المنطقة، الشارع، وأقرب نقطة دالة',
+    phoneLabel: 'رقم التواصل مع الصيدلية',
+    registration: {
+      phoneRequired: true,
+      images: { min: 1, max: 5 },
+      fields: [
+        { key: 'pharmacistName', label: 'اسم صاحب الصيدلية / الصيدلي', placeholder: 'الاسم الكامل', type: 'text', required: true },
+        { key: 'credential', label: 'شهادة أو كتاب ممارسة المهنة', placeholder: 'اسم الشهادة أو رقم الكتاب والجهة المانحة', type: 'text', required: true, attachment: true },
+        { key: 'governorate', label: 'المحافظة', placeholder: 'مثال: بغداد', type: 'text', required: true },
+        { key: 'area', label: 'المنطقة', placeholder: 'المنطقة، الشارع، وأقرب نقطة دالة', type: 'text', required: true },
+        { key: 'experienceYears', label: 'سنوات الخبرة', placeholder: 'مثال: 5', type: 'number', required: true, min: 0 },
+        { key: 'features', label: 'مميزات الصيدلية والخدمات التي تقدمها', placeholder: 'اذكر الخدمات المتوفرة ومواعيد العمل وما يميز صيدليتك.', type: 'textarea', required: true },
+      ],
+    },
     specialties: ['صيدلية عامة', 'صيدلية مجانية', 'مستلزمات طبية', 'مستحضرات تجميل طبية', 'صيدلية مراكز طبية'],
   },
   hospital: {
@@ -48,6 +65,10 @@ export const CATEGORY_FIELDS: Record<string, CategoryFieldConfig> = {
     nameLabel: 'اسم العيادة',
     namePlaceholder: 'مثال: عيادة الابتسامة لطب الأسنان',
     profession: 'طبيب أسنان',
+    professionLabel: 'تخصص طب الأسنان',
+    experienceLabel: 'الخبرات والخدمات الطبية',
+    experiencePlaceholder: 'اذكر خبراتك والخدمات التي تقدمها في العيادة ومواعيد استقبال المرضى.',
+    locationLabel: 'عنوان العيادة',
     specialties: [
       'تقويم الأسنان',
       'جراحة الفم والأسنان',
@@ -92,6 +113,23 @@ export const CATEGORY_FIELDS: Record<string, CategoryFieldConfig> = {
   },
 
   // ===== السيارات =====
+  'car-sales': {
+    nameLabel: 'اسم السيارة / الإعلان',
+    namePlaceholder: 'مثال: سيارة للبيع',
+    profession: 'كوري',
+    professionLabel: 'منشأ السيارة',
+    experienceLabel: 'تفاصيل السيارة والإعلان',
+    experiencePlaceholder: 'اذكر الموديل وسنة الصنع والحالة وأبرز تفاصيل العرض.',
+    allowCustomSpecialty: false,
+    specialties: ['كوري', 'ياباني', 'صيني', 'إيراني', 'أمريكي'],
+  },
+  'bike-sales': {
+    nameLabel: 'اسم الدراجة / الإعلان',
+    namePlaceholder: 'مثال: دراجة نارية للبيع',
+    profession: 'دراجات نارية',
+    professionLabel: 'نوع الدراجة',
+    specialties: ['دراجات نارية', 'دراجات هوائية', 'سكوترات', 'دراجات كهربائية', 'قطع غيار وإكسسوارات'],
+  },
   'car-repair': {
     nameLabel: 'اسم الورشة',
     namePlaceholder: 'مثال: ورشة الأمل لصيانة السيارات',
@@ -338,10 +376,17 @@ export const CATEGORY_FIELDS: Record<string, CategoryFieldConfig> = {
   },
 };
 
-/** يعيد إعداد الحقول للقسم المحدد، أو الإعداد العام إذا لم يُعرَّف له إعداد */
-export function getCategoryFieldConfig(categorySlug?: string): CategoryFieldConfig {
+/** يعيد إعداد الحقول للقسم المحدد: الخريطة القديمة ثم fields المضمّنة في بيانات القسم ثم الإعداد العام */
+// The live category uses clothing; keep its real slug and reuse the clothes form.
+CATEGORY_FIELDS.clothing = CATEGORY_FIELDS.clothes;
+
+export function getCategoryFieldConfig(categorySlug?: string, fields?: SectionFieldConfig): CategoryFieldConfig {
   if (!categorySlug) return GENERIC_FIELD_CONFIG;
-  return CATEGORY_FIELDS[categorySlug] ?? GENERIC_FIELD_CONFIG;
+  const legacy = CATEGORY_FIELDS[categorySlug];
+  if (legacy) return legacy;
+  // القسم الجديد يُضمِّن إعداده داخل بياناته في data/categories.ts (مكان واحد)
+  const embedded = fields ?? categories.find((c) => c.slug === categorySlug)?.fields;
+  return embedded ?? GENERIC_FIELD_CONFIG;
 }
 
 /** اسم القسم بالعربية (للعرض عند الحاجة) */

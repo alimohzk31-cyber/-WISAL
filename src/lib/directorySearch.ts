@@ -2,7 +2,7 @@ import type { DirectoryChild, DisplaySection } from '../data/categoryDirectory';
 import { normalizeCategoryKey, resolveDirectoryCategory } from '../data/categoryDirectory';
 import { directorySearchAliases } from '../data/directorySearchAliases';
 import { SMART_SEARCH_VOCABULARY, SMART_SEARCH_STOPWORDS } from '../data/smartSearchVocabulary';
-import { RAW_CATEGORY_SYNONYMS } from '../data/categorySynonyms';
+import { getCategorySynonyms } from '../data/categorySynonyms';
 import { getCategoryFieldConfig } from '../data/categoryFields';
 import type { Service } from '../hooks/useServices';
 import { categoryUrl } from './directoryNavigation';
@@ -66,7 +66,7 @@ export function buildDirectorySearchIndex(sections: DisplaySection[], services: 
       const target = placement?.childSlug ?? section.children.find(child => child.slug === source.slug)?.slug ?? section.slug;
       sourceTerms.set(target, [...(sourceTerms.get(target) ?? []), source.name]);
       const config = getCategoryFieldConfig(source.slug);
-      sourceKeywords.set(target, [...(sourceKeywords.get(target) ?? []), ...(RAW_CATEGORY_SYNONYMS[source.slug] ?? []), ...config.specialties]);
+      sourceKeywords.set(target, [...(sourceKeywords.get(target) ?? []), ...getCategorySynonyms(source.slug), ...config.specialties]);
     }
     return [undefined, ...section.children].filter(child => !child || !isPrivateDirectoryQuery(child.name)).map(child => {
       const item = child ?? section;

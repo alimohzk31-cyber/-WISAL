@@ -42,17 +42,15 @@ export function createClient(){return {
    throw Error('Unexpected RPC '+name);
   })().then(resolve,reject);}};return query;
  },
- from(table){let filters={},payload=null,columns='*',range=null;const q={
+ from(table){let filters={},payload=null,columns='*';const q={
   select(c){columns=c;return q;},eq(k,v){filters[k]=v;return q;},limit(){return q;},order(){return q;},
-  range(from,to){range=[from,to];return q;},
   insert(p){payload=p;return q;},
   then(resolve,reject){return (async()=>{
    record(table+(payload?'.insert':'.select'),filters);await delay(80);
    if(payload){if(a.failInsert)return {data:null,error:{message:'Synthetic INSERT failure'}};a.rows.push({...row(100+a.rows.length),...payload[0]});return {data:null,error:null};}
    if(table==='categories')return {data:[{id:'1',slug:'test'}],error:null};
    if(columns==='owner_id')return {data:[],error:null};
-   const rows=a.rows.filter(r=>Object.entries(filters).every(([k,v])=>r[k]===v));
-   return {data:structuredClone(range?rows.slice(range[0],range[1]+1):rows),error:null};
+   return {data:structuredClone(a.rows.filter(r=>Object.entries(filters).every(([k,v])=>r[k]===v))),error:null};
   })().then(resolve,reject);}
  };return q;},
  channel(){const ch={on(_e,_f,cb){callbacks.add(cb);ch.cb=cb;return ch;},subscribe(){return ch;}};return ch;},

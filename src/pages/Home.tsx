@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import { Search, Compass, LayoutGrid, Mic, MicOff, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { colorMapRedWhite } from '../data/categories';
@@ -17,7 +17,7 @@ import SocialFeed from '../components/SocialFeed';
 import AddServiceModal from '../components/AddServiceModal';
 import ErrorState from '../components/ui/ErrorState';
 import { buildDirectorySearchIndex, searchDirectory, getDirectDirectoryMatch } from '../lib/directorySearch';
-import { categoryUrl, directoryEntryState, getHomeView } from '../lib/directoryNavigation';
+import { categoryUrl, directoryEntryState, getHomeView, shouldResetHomeScrollOnLoad } from '../lib/directoryNavigation';
 
 type SpeechRecognitionInstance = {
   lang: string;
@@ -60,6 +60,22 @@ export default function Home() {
   const { sections, bySection, searchServices } = useCategoryDirectory(categories, publicServices);
   const { ads: sliderAds, loading: sliderLoading, hasCachedData } = useSlider();
   const { t } = useLanguage();
+  const resetScrollAfterRefresh = useRef(
+    typeof performance !== 'undefined' && shouldResetHomeScrollOnLoad(
+      location.pathname,
+      (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type,
+    )
+  );
+
+  // Refresh على واجهتي التصفح والخدمات الرئيسيتين يبدأ من الأعلى فقط.
+  // هذا المكوّن لا يُركّب داخل /category، لذلك لا يغيّر تمرير الأقسام.
+  useLayoutEffect(() => {
+    if (!resetScrollAfterRefresh.current) return;
+    resetScrollAfterRefresh.current = false;
+    sessionStorage.removeItem('homeScrollPos:browse');
+    sessionStorage.removeItem('homeScrollPos:services');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
 
   // The main menu reuses the existing services search field for both search
   // and filtering; no second search or filter system is created.

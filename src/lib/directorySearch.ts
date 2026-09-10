@@ -107,6 +107,21 @@ export function searchDirectory(index: DirectorySearchEntry[], query: string): D
   const normalized = normalizeDirectoryQuery(query);
   if (!normalized || isPrivateDirectoryQuery(query)) return [];
   const tokens = [...new Set(normalized.split(' '))];
+
+  // حرف واحد: مطابقة احتواء حرفية فقط داخل اسم القسم/الفرع أو مفرداته
+  // المباشرة (aliases, keywords, synonyms). لا نستخدم fuzzy أو سياق الأب هنا
+  // حتى لا تظهر نتائج بعيدة لمجرد تشابه تقريبي.
+  if ([...normalized].length === 1) {
+    return index.flatMap(entry => {
+      const itemName = normalizeDirectoryQuery(entry.child?.name ?? entry.section.name);
+      const directTerm = entry.terms.some(term => term.includes(normalized));
+      const keyword = entry.ownTokens.some(word => word.includes(normalized));
+      if (!directTerm && !keyword) return [];
+      const score = itemName.includes(normalized) ? 140 : directTerm ? 125 : 110;
+      return [{ ...entry, exact: false, fuzzy: false, score }];
+    }).sort((a, b) => b.score - a.score || Number(Boolean(a.child)) - Number(Boolean(b.child)) || a.label.localeCompare(b.label, 'ar'));
+  }
+
   const results = index.flatMap(entry => {
     const exact = entry.terms.includes(normalized);
     const own = tokens.filter(token => entry.ownTokens.includes(token));

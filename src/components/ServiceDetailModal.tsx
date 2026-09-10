@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Phone, MapPin, Navigation, Briefcase, Clock, ExternalLink, Hourglass, XCircle } from 'lucide-react';
+import { X, Phone, MapPin, Navigation, Briefcase, ExternalLink, Hourglass, XCircle } from 'lucide-react';
 import { Service } from '../hooks/useServices';
 import { serviceStatusOverlayClass } from '../types/models';
 import { useLanguage } from '../context/LanguageContext';
@@ -8,6 +8,7 @@ import { getServiceIcon } from '../data/serviceIcons';
 import SafeImage from './SafeImage';
 import ServiceStatusBadge from './ServiceStatusBadge';
 import { useServiceVisits } from '../hooks/useServiceVisits';
+import ServicePublicationTime from './ServicePublicationTime';
 
 interface ServiceDetailModalProps {
   service: Service;
@@ -102,6 +103,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
 
           {/* Details */}
           <div className="p-6 space-y-6">
+            <ServicePublicationTime service={service} className="text-sm font-medium text-[var(--text-muted)]" />
             {/* Status Messages */}
             {service.status === 'pending' && (
               <div className={`flex items-center gap-3 p-4 rounded-2xl border border-yellow-500/30 bg-yellow-50`}>

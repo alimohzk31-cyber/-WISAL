@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useParams, useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, MapPin, Phone, Clock, Briefcase, Navigation, UserPlus, XCircle, Hourglass } from 'lucide-react';
+import { ArrowRight, MapPin, Phone, Clock, Briefcase, Navigation, UserPlus, XCircle, Hourglass, Menu } from 'lucide-react';
 import { colorMap, colorMapRedWhite } from '../data/categories';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../context/LanguageContext';
 import { serviceStatusOverlayClass } from '../types/models';
 import { categoryUrl, directoryEntryState, getDirectoryNavigationState, directoryBackAction, readCategoryUrl, openServiceDetails } from '../lib/directoryNavigation';
+import ServicePublicationTime from '../components/ServicePublicationTime';
 
 // ---------------------------------------------------------------------------
 // تحميل تدريجي (Progressive Rendering) لبطاقات الخدمات داخل القسم:
@@ -111,27 +112,40 @@ export default function CategoryPage() {
   const category = sections.find(item => item.slug === routePlacement?.sectionSlug);
   const [isAddingService, setIsAddingService] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [isSubcategoryMenuOpen, setIsSubcategoryMenuOpen] = useState(false);
+  const subcategoryMenuRef = useRef<HTMLDivElement>(null);
   const activeSubCategory = routePlacement?.childSlug ?? 'all';
+  const hasExplicitSubCategory = searchParams.has('sub');
   const { primaryColor, theme } = useOutletContext<{ primaryColor: string, theme: string }>();
   
   // Modal details belong to the current directory entry only.
   useEffect(() => {
     setSelectedService(null);
     setIsAddingService(false);
+    setIsSubcategoryMenuOpen(false);
   }, [location.key]);
+
+  useEffect(() => {
+    if (!isSubcategoryMenuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!subcategoryMenuRef.current?.contains(event.target as Node)) setIsSubcategoryMenuOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
+  }, [isSubcategoryMenuOpen]);
 
   if (!category) {
     return <div className="text-center py-20 text-xl font-bold">القسم غير موجود</div>;
   }
 
-  const subCategories = category.hideAll ? category.children : [{ slug: 'all', name: 'الكل' }, ...category.children];
+  const subCategories = category.children;
   const activeChild = category.children.find(child => child.slug === activeSubCategory);
   const navigationState = getDirectoryNavigationState(location.state);
   const previousRoute = readCategoryUrl(navigationState.directoryPrevious);
   const previousPlacement = previousRoute && resolveRoute(previousRoute.slug, previousRoute.childSlug);
   const goBack = () => {
     const action = directoryBackAction({
-      state: location.state, parentUrl: categoryUrl(category.slug), isChild: Boolean(activeChild) && !category.hideAll,
+      state: location.state, parentUrl: categoryUrl(category.slug), isChild: Boolean(activeChild) && hasExplicitSubCategory && !category.hideAll,
       previousIsParent: previousPlacement?.sectionSlug === category.slug && !previousPlacement.childSlug,
       hasHistory: Number(window.history.state?.idx) > 0,
     });
@@ -139,12 +153,13 @@ export default function CategoryPage() {
     else navigate(action.to, { replace: action.replace, state: action.state });
   };
   const chooseSubCategory = (slug: string) => {
+    setIsSubcategoryMenuOpen(false);
     if (slug === activeSubCategory) return;
     if (slug === 'all') { goBack(); return; }
     navigate(categoryUrl(category.slug, slug), {
       // Switching between siblings preserves the real parent history entry.
-      replace: Boolean(activeChild),
-      state: activeChild ? navigationState : directoryEntryState(location),
+      replace: hasExplicitSubCategory,
+      state: hasExplicitSubCategory ? navigationState : directoryEntryState(location),
     });
   };
 
@@ -182,6 +197,57 @@ export default function CategoryPage() {
         <span className="px-3 py-1 rounded-full text-sm font-bold bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
           {categoryServices.filter(s => s.status === 'approved').length} {t('approved_services')}
         </span>
+
+        {category.children.length > 0 && (
+          <div className="relative" ref={subcategoryMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsSubcategoryMenuOpen(open => !open)}
+              aria-expanded={isSubcategoryMenuOpen}
+              aria-controls="subcategory-menu"
+              aria-label="عرض الأقسام الفرعية"
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--accent-soft)]"
+            >
+              <Menu className="h-5 w-5 text-[var(--accent-primary)]" aria-hidden="true" />
+              <span className="max-w-32 truncate">{activeChild?.name ?? 'كل الأقسام'}</span>
+            </button>
+
+            <AnimatePresence>
+              {isSubcategoryMenuOpen && (
+                <motion.div
+                  id="subcategory-menu"
+                  role="menu"
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.16 }}
+                  className="absolute right-0 top-full z-30 mt-2 max-h-[60vh] w-64 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
+                >
+                  {subCategories.map(sub => {
+                    const isActive = activeSubCategory === sub.slug;
+                    return (
+                      <button
+                        key={sub.slug}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isActive}
+                        onClick={() => chooseSubCategory(sub.slug)}
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-right text-sm font-bold transition-colors ${
+                          isActive
+                            ? `${colors.bg} text-[var(--accent-contrast)]`
+                            : 'text-[var(--text-primary)] hover:bg-[var(--accent-soft)]'
+                        }`}
+                      >
+                        <span>{sub.name}</span>
+                        {isActive && <span className="h-2 w-2 shrink-0 rounded-full bg-current" aria-hidden="true" />}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
         
         <button
           onClick={() => setIsAddingService(true)}
@@ -191,26 +257,6 @@ export default function CategoryPage() {
           {t('join_section')}
         </button>
       </div>
-
-      {/* All specialties are local display filters over the original services. */}
-      {category.children.length > 0 && (
-        <div className="flex flex-wrap gap-2 pb-2" role="group" aria-label="الأقسام الفرعية">
-          {subCategories.map(sub => (
-            <button
-              key={sub.slug}
-              aria-pressed={activeSubCategory === sub.slug}
-              onClick={() => chooseSubCategory(sub.slug)}
-              className={`px-4 py-2 rounded-full font-bold transition-all whitespace-nowrap border ${
-                activeSubCategory === sub.slug 
-                  ? `${colors.bg} text-[var(--accent-contrast)] border-transparent shadow-lg` 
-                  : `bg-[var(--surface)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]`
-              }`}
-            >
-              {sub.name}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Services List — عرض تدريجي: أول مجموعة فورًا ثم دفعات عند التمرير */}
       {servicesLoading && publicServices.length === 0 ? (
@@ -277,6 +323,7 @@ export default function CategoryPage() {
                     {service.profession}
                   </p>
                 )}
+                <ServicePublicationTime service={service} className="text-[9px] md:text-[10px] text-[var(--text-muted)]" />
 
                 {/* Pending Status Message */}
                 {service.status === 'pending' && (

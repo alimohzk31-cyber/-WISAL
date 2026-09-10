@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createMemoryRouter } from 'react-router-dom';
-import { categoryUrl, directoryBackAction, directoryEntryState, getHomeView, readCategoryUrl, openServiceDetails } from '../src/lib/directoryNavigation';
+import { categoryUrl, directoryBackAction, directoryEntryState, getHomeView, readCategoryUrl, openServiceDetails, shouldResetHomeScrollOnLoad } from '../src/lib/directoryNavigation';
 import type { Service } from '../src/hooks/useServices';
 
 const makeRouter = (entry: string) => createMemoryRouter([{ path: '*' }], { initialEntries: [entry] });
@@ -105,4 +105,11 @@ test('external entries have safe fallbacks and URL state preserves the existing 
   assert.ok('to' in unsafe);
   assert.equal(unsafe.to, '/?view=services');
   assert.deepEqual(readCategoryUrl(categoryUrl('cars', 'oil-change')), { slug: 'cars', childSlug: 'oil-change' });
+});
+
+test('refresh resets only both home views and never category routes', () => {
+  assert.equal(shouldResetHomeScrollOnLoad('/', 'reload'), true);
+  assert.equal(shouldResetHomeScrollOnLoad('/category/cars', 'reload'), false);
+  assert.equal(shouldResetHomeScrollOnLoad('/', 'navigate'), false);
+  assert.equal(shouldResetHomeScrollOnLoad('/', 'back_forward'), false);
 });

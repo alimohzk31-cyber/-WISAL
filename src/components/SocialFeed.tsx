@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, Clock3, MapPin, MessageCircle, Plus } from 'lucide-react';
+import { Briefcase, MapPin, MessageCircle, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { useServices } from '../context/ServicesContext';
 import { useCategories } from '../hooks/useCategories';
@@ -9,6 +9,8 @@ import SafeImage from './SafeImage';
 import PostInteractions from './PostInteractions';
 import { openServiceDetails } from '../lib/directoryNavigation';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
+import ServicePublicationTime from './ServicePublicationTime';
+import { getServicePublicationTimestamp } from '../lib/servicePublicationTime';
 
 interface SocialFeedProps {
   onAddService: () => void;
@@ -28,7 +30,7 @@ export default function SocialFeed({ onAddService }: SocialFeedProps) {
   // يعيد ترتيب مصفوفة publicServices المشتركة مع باقي الصفحات ويُبطل الكاش.
   const feedItems = useMemo(() => {
     return [...publicServices]
-      .sort((a, b) => b.createdAt - a.createdAt);
+      .sort((a, b) => getServicePublicationTimestamp(b) - getServicePublicationTimestamp(a));
   }, [publicServices]);
 
   // نظام التفاعلات والتعليقات (service_reactions / service_comments)
@@ -40,12 +42,6 @@ export default function SocialFeed({ onAddService }: SocialFeedProps) {
     addComment,
     deleteComment,
   } = useFeedInteractions(feedItems.map((s) => s.id).filter((id) => id !== undefined));
-
-  const formatDate = (timestamp: number) => new Intl.DateTimeFormat('ar-IQ', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(timestamp));
 
   return (
     <section className="relative z-10 mx-auto max-w-2xl space-y-5" aria-label="التصفح">
@@ -77,10 +73,7 @@ export default function SocialFeed({ onAddService }: SocialFeedProps) {
                     )}
                   </div>
                 </div>
-                <time className="flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)]">
-                  <Clock3 className="h-3.5 w-3.5" />
-                  {formatDate(service.createdAt)}
-                </time>
+                <ServicePublicationTime service={service} className="shrink-0 text-xs text-[var(--text-muted)]" />
               </div>
 
               {service.image && (

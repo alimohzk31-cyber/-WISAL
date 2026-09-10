@@ -10,8 +10,6 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Service } from '../hooks/useServices';
-import { getCategorySynonyms } from './categorySynonyms';
-import { getCategoryFieldConfig } from './categoryFields';
 import { resolveCategoryIcon } from './serviceIcons';
 
 // Presentation only. These identifiers are routes/filters, NEVER database IDs.
@@ -30,7 +28,6 @@ export interface SourceCategory {
 export interface CategoryPlacement { sectionSlug: string; childSlug?: string }
 export interface DisplaySection extends DirectorySection {
   sources: SourceCategory[];
-  searchText: string;
 }
 const child = (slug: string, name: string, ...aliases: string[]): DirectoryChild => ({ slug, name, aliases });
 const section = (slug: string, name: string, icon: LucideIcon, aliases: string[], children: DirectoryChild[]): DirectorySection =>
@@ -301,7 +298,7 @@ export function resolveDirectoryCategory(category: Pick<SourceCategory, 'slug' |
 export function buildCategoryDirectory(categories: SourceCategory[]) {
   const sections: DisplaySection[] = directorySections.map(item => ({ ...item,
     children: item.children.filter(sub => slugPlacements.get(sub.slug)?.sectionSlug === item.slug),
-    sources: [], searchText: '' }));
+    sources: [] }));
   const bySource = new Map<string, CategoryPlacement>();
   const unknownNames = new Map<string, CategoryPlacement>();
   for (const source of categories) {
@@ -313,19 +310,12 @@ export function buildCategoryDirectory(categories: SourceCategory[]) {
       const groupSlug = ({ legal: 'legal', cars: 'cars', education: 'education', sports: 'sports', food: 'food', home: 'home-services', public: 'public' } as Record<string, string>)[source.groupId ?? ''];
       placement = { sectionSlug: groupSlug ?? source.slug, ...(groupSlug ? { childSlug: source.slug } : {}) };
       if (groupSlug) sections.find(item => item.slug === groupSlug)!.children.push(child(source.slug, source.name));
-      else sections.push({ ...section(source.slug, source.name, resolveCategoryIcon(source).icon ?? FolderOpen, [], []), sources: [], searchText: '' });
+      else sections.push({ ...section(source.slug, source.name, resolveCategoryIcon(source).icon ?? FolderOpen, [], []), sources: [] });
       unknownNames.set(nameKey, placement);
     }
     bySource.set(String(source.slug), placement);
     if (source.dbId != null) bySource.set(`id:${source.dbId}`, placement);
     sections.find(item => item.slug === placement.sectionSlug)!.sources.push(source);
-  }
-  for (const item of sections) {
-    item.searchText = [item.name, ...item.aliases, ...item.children.flatMap(sub => [sub.name, sub.slug, ...sub.aliases]),
-      ...item.sources.flatMap(source => {
-        const config = getCategoryFieldConfig(source.slug);
-        return [source.name, ...getCategorySynonyms(source.slug), config.profession, ...config.specialties];
-      })].join(' ');
   }
   const locateCategory = (slug: string): CategoryPlacement | undefined => bySource.get(slug) ?? slugPlacements.get(slug) ?? placements.get(normalizeCategoryKey(slug));
   const resolveRoute = (slug: string, requestedChild?: string): CategoryPlacement | undefined => {
@@ -338,7 +328,8 @@ export function buildCategoryDirectory(categories: SourceCategory[]) {
       const moved = locateCategory(subSlug);
       if (moved && displayTransfers[base.sectionSlug]?.includes(moved.sectionSlug)) return resolveRoute(moved.sectionSlug, moved.childSlug);
     }
-    return { sectionSlug: base.sectionSlug, ...(parent?.defaultChildSlug ? { childSlug: parent.defaultChildSlug } : {}) };
+    const defaultChildSlug = parent?.defaultChildSlug ?? parent?.children[0]?.slug;
+    return { sectionSlug: base.sectionSlug, ...(defaultChildSlug ? { childSlug: defaultChildSlug } : {}) };
   };
   const locateService = (service: Pick<Service, 'categorySlug' | 'categoryId' | 'subCategory' | 'profession'>): CategoryPlacement | undefined => {
     let base = locateCategory(service.categorySlug) ?? (service.categoryId != null ? bySource.get(`id:${service.categoryId}`) : undefined);

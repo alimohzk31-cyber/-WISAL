@@ -116,7 +116,7 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
 
             {/* النتائج */}
             <div className="max-h-[45vh] overflow-y-auto px-3 pb-4 space-y-1.5">
-              {results.slice(0, 8).map(result => {
+              {results.map(result => {
                 const CategoryIcon = result.section.icon;
                 return (
                   <button

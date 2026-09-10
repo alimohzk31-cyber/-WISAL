@@ -44,6 +44,20 @@ test('ambiguous phrases offer choices; unrelated phrases have no match', () => {
   assert.deepEqual(searchDirectory(index, '  '), []);
 });
 
+test('single Arabic letters instantly match names, children and direct keywords without fuzzy noise', () => {
+  const cases: Array<[string, string]> = [
+    ['ن', 'transport'],
+    ['س', 'hospitals'],
+    ['ص', 'pharmacies'],
+  ];
+  for (const [letter, expectedSection] of cases) {
+    const results = searchDirectory(index, letter);
+    assert.ok(results.length > 0, `${letter}: لا نتائج`);
+    assert.ok(results.some(result => result.section.slug === expectedSection), `${letter}: ${expectedSection} مفقود`);
+    assert.ok(results.every(result => !result.fuzzy), `${letter}: يجب ألا تستخدم مطابقة تقريبية`);
+  }
+});
+
 test('every main section and specialty has a public destination in the search index', () => {
   for (const section of directory.sections) {
     assert.ok(index.some(entry => entry.url === categoryUrl(section.slug)), section.name);

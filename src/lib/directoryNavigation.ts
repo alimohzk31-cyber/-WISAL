@@ -12,6 +12,11 @@ export function getHomeView(search: string): 'browse' | 'services' {
   return params.get('view') === 'services' || params.get('tool') === 'search' ? 'services' : 'browse';
 }
 
+/** إعادة التمرير مطلوبة فقط عند Refresh لمسار الصفحة الرئيسية بواجهتيه. */
+export function shouldResetHomeScrollOnLoad(pathname: string, navigationType?: string): boolean {
+  return pathname === '/' && navigationType === 'reload';
+}
+
 export function categoryUrl(sectionSlug: string, childSlug?: string): string {
   const path = `/category/${encodeURIComponent(sectionSlug)}`;
   return childSlug ? `${path}?${new URLSearchParams({ sub: childSlug })}` : path;

@@ -20,7 +20,7 @@ const samples: Array<[string, string, string?]> = [
   ['عيادة بيطرية', 'pet-care', 'veterinary'], ['فحص دم', 'laboratories', 'medical-tests'],
   ['سونار', 'laboratories', 'imaging'], ['ممرض منزلي', 'hospitals'], ['قبول جامعي', 'education'],
   ['تسجيل مدرسة', 'education', 'school'], ['كورس', 'education', 'institute'], ['مدرس خصوصي', 'education', 'tutor'],
-  ['حضانة', 'sports', 'kids-area'], ['معرض سيارات', 'cars', 'car-sales'], ['سيارتي ما تشتغل', 'cars', 'car-mechanic'],
+  ['حضانة', 'sports', 'kids-area'], ['معرض سيارات', 'car-sales'], ['سيارتي ما تشتغل', 'cars', 'car-mechanic'],
   ['بطارية سيارة', 'cars', 'car-electric'], ['بنچر', 'cars', 'car-tires'], ['تبديل زيت', 'cars', 'oil-change'],
   ['قطع غيار سيارة', 'cars', 'spare-parts'], ['غسيل سيارات', 'cars', 'car-wash'], ['صبغ سيارة', 'cars', 'car-repair'],
   ['السبلت ما يبرد', 'cooling'], ['غسالتي خربت', 'home-services', 'appliance-repair'],
@@ -32,7 +32,7 @@ const samples: Array<[string, string, string?]> = [
   ['عزل سطوح', 'construction', 'renovation'], ['تنظيف بيت', 'home-services', 'cleaning'],
   ['نقل عفش', 'shipping-delivery'], ['بيت للبيع', 'real-estate'], ['مطعم', 'food'],
   ['كاهي', 'food', 'bakery'], ['كليجة', 'food', 'sweets'], ['سوبرماركت', 'shopping', 'supermarket'],
-  ['قصابة', 'food'], ['بائع خضار', 'shopping', 'supermarket'], ['هدوم', 'shopping', 'clothes'],
+  ['قصابة', 'food'], ['بائع خضار', 'shopping', 'supermarket'], ['هدوم', 'clothes'],
   ['درزن', 'tailoring'], ['قندرة', 'shoes-bags'], ['حلاق', 'beauty-care', 'salons'],
   ['كوافير', 'beauty-care', 'salons'], ['برفان', 'perfumes-cosmetics'], ['ذهب مستعمل', 'jewelry'],
   ['تصوير أعراس', 'media-production'], ['بنر', 'printing-services'], ['قاعة عرس', 'events', 'event-halls'],
@@ -91,5 +91,3 @@ test('unclear queries never open a random section', () => {
   assert.ok(ambiguous.length > 1);
   assert.equal(getDirectDirectoryMatch(ambiguous), undefined);
 });
-
-

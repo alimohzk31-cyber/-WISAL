@@ -57,11 +57,20 @@ test('moved specialties retain their old routes and service identifiers', () => 
     assert.deepEqual(directory.locateService(service), expected);
     assert.equal(service.categorySlug, oldSection);
   }
-  assert.deepEqual(directory.resolveRoute('car-repair'), { sectionSlug: 'cars' });
+  assert.deepEqual(directory.resolveRoute('car-repair'), { sectionSlug: 'cars', childSlug: 'car-repair' });
   assert.deepEqual(directory.resolveRoute('dentist'), { sectionSlug: 'doctors', childSlug: 'dentist' });
-  assert.deepEqual(directory.resolveRoute('cars', 'dentist'), { sectionSlug: 'cars' });
+  assert.deepEqual(directory.resolveRoute('cars', 'dentist'), { sectionSlug: 'cars', childSlug: 'car-repair' });
   assert.deepEqual(directory.locateCategory('solar-panels'), { sectionSlug: 'solar-energy', childSlug: 'solar-panels' });
   assert.deepEqual(directory.locateCategory('vocational-training'), { sectionSlug: 'education', childSlug: 'vocational-training' });
+});
+
+test('every section with children opens its first child and never synthesizes all', () => {
+  const directory = buildCategoryDirectory(categories);
+  for (const section of directory.sections.filter(item => item.children.length > 0)) {
+    const placement = directory.resolveRoute(section.slug);
+    assert.equal(placement?.childSlug, section.defaultChildSlug ?? section.children[0].slug, section.slug);
+    assert.ok(section.children.every(child => child.slug !== 'all' && child.name !== 'الكل'), section.slug);
+  }
 });
 
 test('overlapping professions have exactly one display destination', () => {

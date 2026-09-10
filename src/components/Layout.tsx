@@ -12,6 +12,7 @@ import { useStats } from '../hooks/useStats';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
+import HeaderClock from './HeaderClock';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Layout() {
@@ -168,8 +169,8 @@ export default function Layout() {
 
           {/* Center: App Logo */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-            <Link to="/" className="brand-shimmer-text text-sm md:text-lg font-black tracking-widest uppercase">
-              {t('app_name')}
+            <Link to="/" aria-label={t('app_name')}>
+              <HeaderClock />
             </Link>
           </div>
 

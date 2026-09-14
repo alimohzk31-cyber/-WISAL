@@ -37,7 +37,8 @@ export default defineConfig(({mode}) => {
       // يوازي المتصفح تحميلها، ويخزّنها مؤقتاً على حدة بين الزيارات.
       assetsInlineLimit: 4096,
       chunkSizeWarningLimit: 900,
-      reportCompressedSize: false,
+      reportCompressedSize: true,
+      manifest: true,
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass } from 'lucide-react';
+import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass, BriefcaseBusiness } from 'lucide-react';
 import { useServices } from '../context/ServicesContext';
 import { isValidServiceId, Service } from '../hooks/useServices';
 import { serviceStatusLabel, serviceStatusBadgeClass } from '../types/models';
@@ -15,6 +15,7 @@ import EditServiceModal from '../components/EditServiceModal';
 import AddServiceModal from '../components/AddServiceModal';
 import AddCategoryModal from '../components/AddCategoryModal';
 import SliderManager from '../components/SliderManager';
+import JobsAdminPanel from '../features/jobs/admin/JobsAdminPanel';
 import MessagesManager from '../components/MessagesManager';
 import NotificationsManager from '../components/NotificationsManager';
 
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
   const { stats } = useStats();
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'overview' | 'pending' | 'rejected' | 'slider' | 'services' | 'browse' | 'messages' | 'notifications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pending' | 'rejected' | 'slider' | 'services' | 'browse' | 'messages' | 'notifications' | 'jobs'>('overview');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   // Toggle إظهار/إخفاء أيقونات القائمة (UI فقط — لا يمس أي وظيفة)
   const [showIcons, setShowIcons] = useState<boolean>(() => localStorage.getItem('admin_show_icons') !== '0');
@@ -358,6 +359,10 @@ export default function AdminDashboard() {
             <span>الخدمات</span>
           </button>
 
+          <button onClick={() => { goToTab('jobs'); setSelectedCategory(null); }} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'jobs' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+            <BriefcaseBusiness className={navIconCls} /><span>الوظائف</span>
+          </button>
+
           <button
             onClick={() => { goToTab('browse'); setSelectedCategory(null); }}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'browse' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : `hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}`}
@@ -460,6 +465,9 @@ export default function AdminDashboard() {
             <button onClick={() => { goToTab('services'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
               <FolderOpen className={navIconCls} /> الخدمات
             </button>
+            <button onClick={() => { goToTab('jobs'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
+              <BriefcaseBusiness className={navIconCls} /> الوظائف
+            </button>
             <button onClick={() => { goToTab('browse'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
               <Compass className={navIconCls} /> التصفح
             </button>
@@ -495,7 +503,7 @@ export default function AdminDashboard() {
                   const cat = findCategoryForService(service);
                   return (
                     <div key={service.slug} className={`border rounded-2xl p-4 flex flex-col sm:flex-row gap-4 transition-colors bg-[var(--card)] border-[var(--border)] hover:border-[var(--border-strong)] shadow-sm`}>
-                      <img src={service.image} alt={service.name} className="w-full sm:w-32 h-32 rounded-xl object-cover shrink-0" />
+                      <img src={service.image} alt={service.name} loading="lazy" decoding="async" className="w-full sm:w-32 h-32 rounded-xl object-cover shrink-0" />
                       <div className="flex-1 space-y-2 min-w-0 py-1">
                         <div className="flex justify-between items-start">
                           <h3 className={`font-bold text-lg text-[var(--text-primary)]`}>{service.name}</h3>
@@ -571,7 +579,7 @@ export default function AdminDashboard() {
                   const cat = findCategoryForService(service);
                   return (
                     <div key={service.slug} className={`border rounded-2xl p-4 flex flex-col sm:flex-row gap-4 transition-colors bg-[var(--card)] border-[var(--border)] hover:border-[var(--border-strong)] shadow-sm`}>
-                      <img src={service.image} alt={service.name} className="w-full sm:w-32 h-32 rounded-xl object-cover shrink-0 opacity-60" />
+                      <img src={service.image} alt={service.name} loading="lazy" decoding="async" className="w-full sm:w-32 h-32 rounded-xl object-cover shrink-0 opacity-60" />
                       <div className="flex-1 space-y-2 min-w-0 py-1">
                         <div className="flex justify-between items-start">
                           <h3 className={`font-bold text-lg text-[var(--text-primary)]`}>{service.name}</h3>
@@ -633,6 +641,8 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'slider' ? (
           <SliderManager />
+        ) : activeTab === 'jobs' ? (
+          <div className="h-full overflow-y-auto p-6 lg:p-8"><JobsAdminPanel /></div>
         ) : activeTab === 'services' ? (
           <div className="h-full overflow-y-auto p-6 lg:p-8 space-y-7">
             <div className="flex items-center gap-3 border-b pb-4 border-[var(--border)]">
@@ -660,7 +670,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {categoryServices.map(service => (
                     <article key={String(service.id ?? service.slug)} className="flex gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm">
-                      {service.image && <img src={service.image} alt={service.name} className="h-20 w-20 shrink-0 rounded-xl object-cover" />}
+                      {service.image && <img src={service.image} alt={service.name} loading="lazy" decoding="async" className="h-20 w-20 shrink-0 rounded-xl object-cover" />}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <h4 className="truncate font-bold text-[var(--text-primary)]">{service.name}</h4>
@@ -706,7 +716,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {categoryServices.map(service => (
                     <article key={String(service.id ?? service.slug)} className="flex gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm">
-                      {service.image && <img src={service.image} alt={service.name} className="h-20 w-20 shrink-0 rounded-xl object-cover" />}
+                      {service.image && <img src={service.image} alt={service.name} loading="lazy" decoding="async" className="h-20 w-20 shrink-0 rounded-xl object-cover" />}
                       <div className="min-w-0 flex-1">
                         <h4 className="truncate font-bold text-[var(--text-primary)]">{service.name}</h4>
                         {service.experience && <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text-muted)]">{service.experience}</p>}
@@ -767,7 +777,7 @@ export default function AdminDashboard() {
                     onClick={() => setExpandedServiceSlug(prev => prev === service.slug ? null : service.slug)}
                   >
                     <div className="flex gap-4">
-                      <img src={service.image} alt={service.name} className="w-24 h-24 rounded-xl object-cover shrink-0" />
+                      <img src={service.image} alt={service.name} loading="lazy" decoding="async" className="w-24 h-24 rounded-xl object-cover shrink-0" />
                       <div className="flex-1 space-y-2 min-w-0 py-1">
                         <h3 className={`font-bold text-lg truncate text-[var(--text-primary)]`}>{service.name}</h3>
                         <div className={`text-sm space-y-1.5 text-[var(--text-secondary)]`}>

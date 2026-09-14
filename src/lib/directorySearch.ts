@@ -57,7 +57,26 @@ export interface DirectorySearchResult extends DirectorySearchEntry {
   fuzzy: boolean;
 }
 
-export function buildDirectorySearchIndex(sections: DisplaySection[], services: Service[] = []): DirectorySearchEntry[] {
+const EMPTY_SEARCH_SERVICES: Service[] = [];
+const searchIndexCache = new WeakMap<DisplaySection[], WeakMap<Service[], DirectorySearchEntry[]>>();
+
+export function buildDirectorySearchIndex(
+  sections: DisplaySection[],
+  services: Service[] = EMPTY_SEARCH_SERVICES,
+): DirectorySearchEntry[] {
+  let byServices = searchIndexCache.get(sections);
+  if (!byServices) {
+    byServices = new WeakMap();
+    searchIndexCache.set(sections, byServices);
+  }
+  const cached = byServices.get(services);
+  if (cached) return cached;
+  const index = createDirectorySearchIndex(sections, services);
+  byServices.set(services, index);
+  return index;
+}
+
+function createDirectorySearchIndex(sections: DisplaySection[], services: Service[]): DirectorySearchEntry[] {
   return sections.filter(section => !isPrivateDirectoryQuery(section.name) && !isPrivateDirectoryQuery(section.slug)).flatMap(section => {
     const sourceTerms = new Map<string, string[]>();
     const sourceKeywords = new Map<string, string[]>();

@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase';
+import { uploadServiceMediaFile } from '../lib/serviceMediaStorage';
+import { requireOnlineConnection } from '../lib/connectivity';
 
 // Message types accepted by the contact_messages table.
 export type ContactMessageType =
@@ -34,6 +36,7 @@ export async function sendContactMessage(input: {
   message: string;
   image_url?: string | null;
 }): Promise<void> {
+  requireOnlineConnection();
   const message = input.message.trim();
   if (!message) {
     throw new Error('يرجى كتابة نص الاقتراح.');
@@ -60,12 +63,7 @@ export async function sendContactMessage(input: {
 }
 
 export async function uploadContactMessageImage(file: File): Promise<string> {
-  const extension = file.name.split('.').pop() || 'jpg';
-  const fileName = `contact_${Date.now()}_${Math.random().toString(36).slice(2, 10)}.${extension}`;
-  const { error } = await supabase.storage.from('service-media').upload(fileName, file);
-  if (error) throw error;
-  const { data } = supabase.storage.from('service-media').getPublicUrl(fileName);
-  return data.publicUrl;
+  return (await uploadServiceMediaFile(file, 'contact', 'jpg')).publicUrl;
 }
 
 // Fetch all suggestions (newest first) for the admin panel.
@@ -89,6 +87,7 @@ export async function updateContactMessageStatus(
   id: number,
   status: ContactMessageStatus
 ): Promise<void> {
+  requireOnlineConnection();
   const { error } = await supabase.rpc('admin_set_contact_message_status', {
     p_id: id,
     p_status: status,
@@ -103,6 +102,7 @@ export async function updateContactMessageStatus(
 }
 
 export async function deleteContactMessage(id: number): Promise<void> {
+  requireOnlineConnection();
   const { data, error } = await supabase.rpc('admin_delete_contact_message', {
     p_id: id,
   });

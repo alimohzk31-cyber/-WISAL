@@ -1,11 +1,11 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Info, Heart, MessageSquareWarning, Menu, Search, Palette, Bell, PackageCheck } from 'lucide-react';
-import { useState, useEffect, useRef, useCallback } from 'react';
-import AdminLoginModal from './AdminLoginModal';
-import SuggestionsFeedModal from './SuggestionsFeedModal';
+import { Info, Heart, MessageSquareWarning, Menu, Search, Palette, Bell, PackageCheck, BriefcaseBusiness } from 'lucide-react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
+const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
+const SuggestionsFeedModal = lazy(() => import('./SuggestionsFeedModal'));
 import NotificationsPopup from './NotificationsPopup';
-import SmartSearchModal from './SmartSearchModal';
-import AppVersionModal from './AppVersionModal';
+const SmartSearchModal = lazy(() => import('./SmartSearchModal'));
+const AppVersionModal = lazy(() => import('./AppVersionModal'));
 import { APP_VERSION, checkForUpdate } from '../lib/appVersion';
 import { useNotifications } from '../hooks/useNotifications';
 import { useStats } from '../hooks/useStats';
@@ -104,9 +104,12 @@ export default function Layout() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { incrementVisits } = useStats();
+  const { incrementVisits } = useStats(false);
+  const lastVisitPath = useRef<string | null>(null);
 
   useEffect(() => {
+    if (lastVisitPath.current === location.pathname) return;
+    lastVisitPath.current = location.pathname;
     incrementVisits();
   }, [location.pathname]);
 
@@ -176,6 +179,10 @@ export default function Layout() {
 
           {/* Left: ☰ Main Menu — 5 items, Admin outside */}
           <div className="relative" ref={mainMenuRef}>
+            <Link to="/jobs" aria-label="البحث عن وظيفة" className="group absolute left-full top-1/2 ml-2 flex -translate-y-1/2 flex-col items-center text-[var(--accent-primary)]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm"><BriefcaseBusiness className="h-6 w-6" /></span>
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0] }} transition={{ duration: 5, repeat: Infinity, times: [0, .2, .75, 1] }} className="absolute top-full mt-1 whitespace-nowrap text-[9px] font-bold">البحث عن وظيفة</motion.span>
+            </Link>
             <button
               type="button"
               onClick={() => setShowMainMenu(value => !value)}
@@ -333,6 +340,7 @@ export default function Layout() {
       </footer>
 
       {/* Popups — triggered from ☰ menu (reusing existing components) */}
+      <Suspense fallback={null}>
 
       {showSuggestions && <SuggestionsFeedModal onClose={() => setShowSuggestions(false)} />}
       {showNotifications && <NotificationsPopup {...notifications} onClose={closeNotifications} />}
@@ -355,14 +363,15 @@ export default function Layout() {
       )}
 
       {/* نافذة البحث الذكي العائمة (صغيرة، لا تغطي الشاشة) */}
-      <SmartSearchModal open={showSmartSearch} onClose={() => setShowSmartSearch(false)} />
+      {showSmartSearch && <SmartSearchModal open onClose={() => setShowSmartSearch(false)} />}
       {/* نافذة إصدار التطبيق */}
-      <AppVersionModal
+      {showAppVersion && <AppVersionModal
         open={showAppVersion}
         onClose={() => setShowAppVersion(false)}
         hasUpdate={hasUpdate}
         onUpdateAccepted={() => setHasUpdate(false)}
-      />
+      />}
+      </Suspense>
     </div>
   );
 }

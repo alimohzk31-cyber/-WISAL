@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { createContext, createElement, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
+import { fetchCategoryRows, invalidateCategoryRows } from '../lib/categoryRows';
 import { supabase } from '../lib/supabase';
 import { categories as staticCategories } from '../data/categories';
 import { offlineStore, OFFLINE_KEYS } from '../lib/offlineStore';
@@ -6,6 +7,7 @@ import { getCategoryIcon } from '../data/categoryIcons';
 import { resolveCategoryIcon } from '../data/serviceIcons';
 import { mergeCategoriesSafely, canAddCategory } from '../lib/categoryValidation';
 import type { Section } from '../types/models';
+import { APP_ONLINE_EVENT } from '../lib/connectivity';
 
 
 // CustomCategory تمتد Section (المصدر المركزي للأنواع): نفس الشكل السابق،
@@ -24,6 +26,7 @@ const localCategoriesKey = 'saleen_custom_categories_v1';
 const CATEGORIES_CACHE_TTL = 300 * 1000; // 5 دقائق — الأقسام تتغير نادراً، والتحديث القسري متاح من لوحة الإدارة
 let sessionCategoriesCache: any[] | null = null;
 let sessionCategoriesCacheAt = 0;
+let categoriesRevision = 0;
 
 // طلب شبكة مشترك على مستوى الوحدة: عند أول تحميل تُركَّب عدة مكوّنات تستدعي
 // useCategories في نفس اللحظة (الرئيسية، SocialFeed، نافذة البحث الذكي...)،
@@ -64,7 +67,10 @@ const readLocalCustomCategories = () => {
   }
 };
 
-const writeLocalCustomCategories = (items: any[]) => {
+const writeLocalCustomCategories = (items: any[], changed = true) => {
+  sessionCategoriesCache = items;
+  sessionCategoriesCacheAt = Date.now();
+  if (changed) { categoriesRevision++; invalidateCategoryRows(); }
   if (typeof window === 'undefined') return;
 
   try {
@@ -93,12 +99,15 @@ const hydrateIconComponent = (item: any): any => {
   return { ...item, icon: getCategoryIcon(item.icon) };
 };
 
-export function useCategories() {
-  const [customCategories, setCustomCategories] = useState<any[]>([]);
+function useCategoriesState() {
+  const [customCategories, setCustomCategories] = useState<any[]>(() => sessionCategoriesCache ?? []);
 
   useEffect(() => {
+    let active = true;
     const init = async () => {
-      const cached = await offlineStore.getItem<any[]>(OFFLINE_KEYS.CATEGORIES);
+      if (sessionCategoriesCache) { await fetchCustomCategories(); return; }
+      const cached = await offlineStore.getItem<any[]>(OFFLINE_KEYS.CATEGORIES).catch(() => null);
+      if (!active) return;
       const localCached = readLocalCustomCategories();
       const merged = [...(cached || []), ...localCached].reduce((acc: any[], current: any) => {
         const existing = acc.find((item: any) => item.slug === current.slug);
@@ -114,6 +123,19 @@ export function useCategories() {
     };
 
     init();
+    const refreshVisible = () => { if (!document.hidden) void fetchCustomCategories(); };
+    const refreshOnline = () => { void fetchCustomCategories(true); };
+    window.addEventListener('focus', refreshVisible);
+    window.addEventListener('online', refreshOnline);
+    window.addEventListener(APP_ONLINE_EVENT, refreshOnline);
+    document.addEventListener('visibilitychange', refreshVisible);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refreshVisible);
+      window.removeEventListener('online', refreshOnline);
+      window.removeEventListener(APP_ONLINE_EVENT, refreshOnline);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
   }, []);
 
   const applyFetchedCategories = (formatted: any[]) => {
@@ -135,11 +157,14 @@ export function useCategories() {
   };
 
   const fetchCustomCategories = async (force = false) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      mergeLocalCategoriesFallback();
+      return;
+    }
     // إذا كانت بيانات حديثة موجودة في ذاكرة الجلسة وغير مجبرين على التحديث،
     // نستخدمها فوراً دون الاتصال بالشبكة (يمنع الطلب المكرر عند التنقل).
     if (!force && sessionCategoriesCache !== null && Date.now() - sessionCategoriesCacheAt < CATEGORIES_CACHE_TTL) {
       // دمج بدلاً من استبدال لمنع فقدان أقسام أضيفت بعد تخزين الكاش
-      setCustomCategories(prev => mergeCategoriesSafely(prev, sessionCategoriesCache!));
       return;
     }
 
@@ -149,17 +174,16 @@ export function useCategories() {
     // الخطاف غير موحّد عبر Context) فتظهر الأقسام عند أول من يطلبها،
     // وباقي النسخ فور اكتمال نفس الطلب — بدون أي طلب شبكة إضافي.
     // -------------------------------------------------------------------
-    if (!force && categoriesNetworkRequest) {
-      const shared = await categoriesNetworkRequest;
-      if (shared === null) mergeLocalCategoriesFallback();
-      else if (shared.length > 0) applyFetchedCategories(shared);
+    if (categoriesNetworkRequest) {
+      await categoriesNetworkRequest;
       return;
     }
 
     const request = (categoriesNetworkRequest = (async () => {
+      const revision = categoriesRevision;
       try {
-        const { data, error } = await supabase.from('categories').select('*');
-        if (error && error.code !== '42P01') throw error;
+        const data = await fetchCategoryRows(force);
+        if (revision !== categoriesRevision) return [];
         const formatted = (data || []).map(formatCategoryRow);
         if (formatted.length === 0) {
           // نتيجة فارغة (جدول مفقود 42P01/قاعدة فارغة): لا تُطبَّق ولا تُحفظ
@@ -170,7 +194,7 @@ export function useCategories() {
         applyFetchedCategories(formatted);
         try {
           await offlineStore.setItem(OFFLINE_KEYS.CATEGORIES, sessionCategoriesCache);
-          writeLocalCustomCategories(sessionCategoriesCache!);
+          writeLocalCustomCategories(sessionCategoriesCache!, false);
         } catch (cacheError) {
           console.warn('Failed to persist categories cache:', cacheError);
         }
@@ -388,4 +412,17 @@ export function useCategories() {
   }, [customCategories]);
 
   return { categories: uniqueCategories, addCategory, deleteCategory, editCategory };
+}
+
+const CategoriesContext = createContext<ReturnType<typeof useCategoriesState> | null>(null);
+
+export function CategoriesProvider({ children }: { children: ReactNode }) {
+  const value = useCategoriesState();
+  return createElement(CategoriesContext.Provider, { value }, children);
+}
+
+export function useCategories() {
+  const value = useContext(CategoriesContext);
+  if (!value) throw new Error('useCategories requires CategoriesProvider');
+  return value;
 }

@@ -7,7 +7,8 @@
  */
 
 /** الإصدار الحالي المثبَّت لدى المستخدم. */
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1';
+export const PREVIOUS_APP_VERSION = '1.0';
 
 /** وصف مصدر التحقق من التحديث (للعرض داخل نافذة الإصدار مستقبلًا). */
 export type UpdateCheckSource = 'none' | 'remote' | 'store';

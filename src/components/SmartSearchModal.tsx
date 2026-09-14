@@ -7,6 +7,7 @@ import { directoryEntryState } from '../lib/directoryNavigation';
 import { useServices } from '../context/ServicesContext';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 interface SmartSearchModalProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface SmartSearchModalProps {
  */
 export default function SmartSearchModal({ open, onClose }: SmartSearchModalProps) {
   const [query, setQuery] = useState('');
+  const settledQuery = useDebouncedValue(query);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,7 +33,8 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
   useEffect(() => {
     if (open) {
       setQuery('');
-      setTimeout(() => inputRef.current?.focus(), 60);
+      const timer = setTimeout(() => inputRef.current?.focus(), 60);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 
@@ -44,7 +47,11 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
   }, [open, onClose]);
 
   const searchIndex = useMemo(() => buildDirectorySearchIndex(sections, searchServices), [sections, searchServices]);
-  const results = useMemo(() => open ? searchDirectory(searchIndex, query) : [], [open, searchIndex, query]);
+  // البحث محلي بالكامل ويعمل بعد هدوء الكتابة؛ لا يُرسل أي طلب شبكة لكل حرف.
+  const results = useMemo(
+    () => open && settledQuery.trim() ? searchDirectory(searchIndex, settledQuery) : [],
+    [open, searchIndex, settledQuery],
+  );
 
   const trimmed = query.trim();
   // استعلام مكتوب لكن بلا نتائج (يشمل كلمات الإدارة المحجوبة)
@@ -95,7 +102,7 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
                   onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key !== 'Enter') return;
-                    const direct = getDirectDirectoryMatch(results);
+                    const direct = getDirectDirectoryMatch(searchDirectory(searchIndex, query));
                     if (direct) go(direct.url);
                   }}
                   placeholder="مثال: صيدلية، سباك، كهربائي، بناء بيوت..."

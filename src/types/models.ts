@@ -24,10 +24,16 @@ export interface Service {
   profession?: string;
   experience?: string;
   phone?: string;
+  whatsappPhone?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  tiktokUrl?: string;
   location: string;
   latitude?: number;
   longitude?: number;
   image: string;
+  /** صور إضافية إن كانت موجودة في مصدر القراءة؛ الصورة الرئيسية تبقى في image. */
+  images?: string[];
   video?: string;
   views?: number;
   categorySlug: string;
@@ -98,6 +104,10 @@ export interface ServiceRegistrationAttachment {
 export interface ServiceRegistrationDraft {
   name: string;
   phone: string;
+  whatsappPhone?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  tiktokUrl?: string;
   categorySlug: string;
   categoryId?: string | number;
   details: Record<string, string>;

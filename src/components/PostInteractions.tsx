@@ -8,6 +8,7 @@ import {
   type PostComment,
   commentAuthorName,
 } from '../hooks/useFeedInteractions';
+import { isOnlineConnection, OFFLINE_ACTION_MESSAGE } from '../lib/connectivity';
 
 interface PostInteractionsProps {
   serviceId: string | number;
@@ -64,6 +65,16 @@ export default function PostInteractions({
   const commentsRef = useRef<HTMLDivElement>(null);
   const myOwnerIdKey = 'أنت';
 
+  const tryToggleReaction = (type: ReactionType) => {
+    if (!isOnlineConnection()) {
+      setError(OFFLINE_ACTION_MESSAGE);
+      setCommentsOpen(true);
+      return;
+    }
+    setError('');
+    onToggleReaction(type);
+  };
+
   // ---------- فرق الضغطة الواحدة (Like) عن الضغط المطوّل (فتح Reactions) ----------
   const LONG_PRESS_MS = 450;
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -96,9 +107,9 @@ export default function PostInteractions({
       return;
     }
     if (myReaction) {
-      onToggleReaction(myReaction); // إلغاء التفاعل الحالي
+      tryToggleReaction(myReaction); // إلغاء التفاعل الحالي
     } else {
-      onToggleReaction('like'); // إعجاب مباشر
+      tryToggleReaction('like'); // إعجاب مباشر
     }
   };
 
@@ -139,7 +150,7 @@ export default function PostInteractions({
   return (
     <>
       {/* شريط التفاعل مباشرة أسفل صورة المنشور */}
-      <div className="flex items-center gap-2 border-t border-[var(--border)] px-4 py-2">
+      <div className="flex items-center gap-1.5 border-t border-[var(--border)] px-3 py-1.5 sm:px-4">
         {/* زر الإعجاب: ضغطة واحدة = Like، ضغط مطوّل = فتح قائمة التفاعلات */}
         <div className="relative">
           <button
@@ -175,7 +186,7 @@ export default function PostInteractions({
                     title={r.label}
                     aria-label={r.label}
                     onClick={() => {
-                      onToggleReaction(r.type);
+                      tryToggleReaction(r.type);
                       setPickerOpen(false);
                     }}
                     className="flex h-9 w-9 items-center justify-center rounded-full text-xl transition-transform duration-150 hover:scale-125 hover:bg-[var(--accent-soft)] active:scale-110"

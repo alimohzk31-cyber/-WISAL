@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createRequestCache } from '../lib/requestCache';
 import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
+import { offlineStore, OFFLINE_KEYS } from '../lib/offlineStore';
+import { APP_ONLINE_EVENT } from '../lib/connectivity';
+import { optimizeImageFile } from '../lib/imageOptimization';
+import { SERVICE_MEDIA_BUCKET, uploadServiceMediaFile } from '../lib/serviceMediaStorage';
 
 export type AdPeriod = 'am' | 'pm';
 export type AdStatus = 'active' | 'upcoming' | 'expired' | 'disabled';
@@ -179,6 +184,7 @@ let designColumnsSupported: boolean | null = null;
 const SESSION_CACHE_TTL = 300 * 1000; // 5 دقائق — السلايدر يتغير نادراً (refreshAds يجبر التحديث)
 let sessionAdsCache: SliderAd[] | null = null;
 let sessionAdsCacheAt = 0;
+const adsRead = createRequestCache<SliderAd[]>(SESSION_CACHE_TTL);
 
 export const defaultAds: SliderAd[] = [
   {
@@ -424,7 +430,7 @@ const readLocalAdsRaw = (): SliderAd[] | null => {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       return parsed.map(normalizeAd);
     }
   } catch (error) {
@@ -433,63 +439,33 @@ const readLocalAdsRaw = (): SliderAd[] | null => {
   return null;
 };
 
-/** هل توجد بيانات إعلانية حقيقية مخزنة محلياً (وليست مجرد defaultAds)؟ */
-const hasLocalAds = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  try {
-    const raw = localStorage.getItem(storageKey);
-    return !!raw && Array.isArray(JSON.parse(raw)) && JSON.parse(raw).length > 0;
-  } catch {
-    return false;
-  }
-};
-
 const readLocalAds = (): SliderAd[] => readLocalAdsRaw() ?? defaultAds;
 
 const writeLocalAds = (items: SliderAd[]) => {
+  sessionAdsCache = items;
+  sessionAdsCacheAt = Date.now();
+  adsRead.set(items);
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(storageKey, JSON.stringify(items));
   } catch (error) {
     console.warn('Failed to save local slider ads cache:', error);
   }
+  void offlineStore.setItem(OFFLINE_KEYS.SLIDER, items)
+    .catch(error => console.warn('Failed to save slider ads to IndexedDB:', error));
 };
 
 /**
  * Upload a slider image file to the project's existing Supabase Storage bucket
  * ("service-media", public) and return its public URL.
- * The original file is uploaded AS-IS: no canvas re-encoding, no quality loss,
- * no color changes. Supabase serves the original bytes.
+ * Large uploads are resized and encoded as WebP when that actually reduces
+ * bytes. Small/already-efficient images remain untouched.
  */
-const SLIDER_BUCKET = 'service-media';
+const SLIDER_BUCKET = SERVICE_MEDIA_BUCKET;
 
 export async function uploadSliderImage(file: File): Promise<string> {
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const path = `slider/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${ext}`;
-
-  const { error } = await supabase.storage
-    .from(SLIDER_BUCKET)
-    .upload(path, file, {
-      cacheControl: '31536000',
-      contentType: file.type || 'image/jpeg',
-      upsert: false,
-    });
-
-  if (error) {
-    console.error('[useSlider] uploadSliderImage failed:', {
-      message: (error as any)?.message, code: (error as any)?.code, bucket: SLIDER_BUCKET, path,
-    });
-    throw error;
-  }
-
-  const { data: urlData } = supabase.storage
-    .from(SLIDER_BUCKET)
-    .getPublicUrl(path);
-
-  if (!urlData?.publicUrl) {
-    throw new Error('فشل الحصول على رابط الصورة العامة بعد الرفع إلى التخزين.');
-  }
-  return urlData.publicUrl;
+  const uploadFile = await optimizeImageFile(file, 1600, 1000, 0.8);
+  return (await uploadServiceMediaFile(uploadFile, 'slider', 'jpg')).publicUrl;
 }
 
 /**
@@ -501,7 +477,8 @@ export async function uploadSliderImageWithProgress(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<string> {
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const uploadFile = await optimizeImageFile(file, 1600, 1000, 0.8);
+  const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const path = `slider/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${ext}`;
 
   try {
@@ -511,7 +488,7 @@ export async function uploadSliderImageWithProgress(
       xhr.setRequestHeader('apikey', supabaseAnonKey);
       xhr.setRequestHeader('authorization', `Bearer ${supabaseAnonKey}`);
       xhr.setRequestHeader('cache-control', '31536000');
-      xhr.setRequestHeader('content-type', file.type || 'image/jpeg');
+      xhr.setRequestHeader('content-type', uploadFile.type || 'image/jpeg');
       xhr.setRequestHeader('x-upsert', 'false');
 
       xhr.upload.onprogress = (e) => {
@@ -534,25 +511,33 @@ export async function uploadSliderImageWithProgress(
       };
       xhr.onerror = () => reject(new Error('تعذر الاتصال بخادم التخزين.'));
       xhr.onabort = () => reject(new Error('تم إلغاء رفع الصورة.'));
-      xhr.send(file);
+      xhr.send(uploadFile);
     });
     return publicUrl;
   } catch (xhrError) {
     console.warn('[useSlider] XHR upload failed, falling back to supabase-js upload:', xhrError);
     // خطة بديلة: نفس مسار الرفع المستخدم سابقاً (بدون تقدم تفصيلي)
-    const url = await uploadSliderImage(file);
+    const url = await uploadSliderImage(uploadFile);
     onProgress?.(100);
     return url;
   }
 }
 
 export function useSlider() {
-  const [ads, setAds] = useState<SliderAd[]>(() => sessionAdsCache ?? readLocalAds());
-  const [loading, setLoading] = useState(sessionAdsCache === null);
+  const [initial] = useState(() => {
+    const cached = sessionAdsCache ?? readLocalAdsRaw();
+    return { ads: cached ?? defaultAds, hasCache: cached !== null };
+  });
+  const [ads, setAds] = useState<SliderAd[]>(initial.ads);
+  const [loading, setLoading] = useState(!initial.hasCache);
   // هل توجد بيانات فورية (من الجلسة أو localStorage) حتى نعرضها قبل انتهاء fetch؟
-  const [hasCachedData, setHasCachedData] = useState<boolean>(sessionAdsCache !== null || hasLocalAds());
+  const [hasCachedData, setHasCachedData] = useState(initial.hasCache);
 
   const fetchAds = useCallback(async (force = false) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setLoading(false);
+      return sessionAdsCache ?? readLocalAds();
+    }
     // إذا كانت البيانات الحديثة موجودة في ذاكرة الجلسة وغير مجبرين على التحديث،
     // نعيدها فوراً دون الاتصال بالشبكة (يمنع تأخير زيارة الصفحة مرة أخرى).
     if (!force && sessionAdsCache !== null && Date.now() - sessionAdsCacheAt < SESSION_CACHE_TTL) {
@@ -564,17 +549,19 @@ export function useSlider() {
 
     try {
       // لا نحجب الواجهة عند وجود بيانات سابقة: نُسندها ونُحدّثها في الخلفية فقط.
-      setLoading(sessionAdsCache === null);
+      setLoading(sessionAdsCache === null && !initial.hasCache);
+      const normalized = await adsRead.get(async () => {
       const { data, error } = await supabase
         .from('slider_images')
-        .select('*')
+        .select('id,url,title,display_date,start_time,end_time,images,is_active,sort_order,created_at,updated_at')
         // الترتيب المحفوظ في Supabase أولاً (sort_order تصاعدي)، ثم الأقدم أولاً
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      const normalized = (data ?? []).map(normalizeAd);
+      return (data ?? []).map(normalizeAd);
+      }, force);
       sessionAdsCache = normalized;
       sessionAdsCacheAt = Date.now();
       setAds(normalized);
@@ -583,11 +570,9 @@ export function useSlider() {
       return normalized;
     } catch (error) {
       console.error('Error fetching slider ads from Supabase:', error);
-      const cached = readLocalAds();
-      sessionAdsCache = cached;
-      sessionAdsCacheAt = Date.now();
+      const cached = sessionAdsCache ?? readLocalAds();
       setAds(cached);
-      setHasCachedData(hasLocalAds());
+      setHasCachedData(initial.hasCache || sessionAdsCache !== null);
       return cached;
     } finally {
       setLoading(false);
@@ -595,7 +580,32 @@ export function useSlider() {
   }, []);
 
   useEffect(() => {
-    fetchAds();
+    let active = true;
+    const initialize = async () => {
+      if (!initial.hasCache) {
+        const cached = await offlineStore.getItem<SliderAd[]>(OFFLINE_KEYS.SLIDER).catch(() => null);
+        if (!active) return;
+        if (cached) {
+          const normalized = cached.map(normalizeAd);
+          sessionAdsCache = normalized;
+          sessionAdsCacheAt = 0;
+          adsRead.set(normalized);
+          setAds(normalized);
+          setHasCachedData(true);
+          setLoading(false);
+        }
+      }
+      if (active) void fetchAds(true);
+    };
+    void initialize();
+    const refreshOnline = () => { void fetchAds(true); };
+    window.addEventListener('online', refreshOnline);
+    window.addEventListener(APP_ONLINE_EVENT, refreshOnline);
+    return () => {
+      active = false;
+      window.removeEventListener('online', refreshOnline);
+      window.removeEventListener(APP_ONLINE_EVENT, refreshOnline);
+    };
   }, [fetchAds]);
 
   const addAd = async (adData: Omit<SliderAd, 'id' | 'created_at' | 'updated_at'>) => {

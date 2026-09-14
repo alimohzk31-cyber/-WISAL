@@ -1,0 +1,5 @@
+
+> react-example@1.1.0 start
+> node --require ./scripts/node-os-userinfo-shim.cjs --import tsx server.ts
+
+Server is running on port 3001

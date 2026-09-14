@@ -12,6 +12,9 @@ import { useTheme } from '../context/ThemeContext';
 import ServiceModalShell from './ServiceModalShell';
 import { useToast } from './ToastProvider';
 import { getCurrentPositionReliable } from '../lib/geolocation';
+import { SocialContactFields } from './ServiceSocialContacts';
+import { invalidSocialContact } from '../lib/serviceSocialLinks';
+import { optimizeImageToDataUrl } from '../lib/imageOptimization';
 
 interface Props {
   onClose: () => void;
@@ -40,6 +43,10 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
     profession: '',
     experience: '',
     phone: '',
+    whatsappPhone: '',
+    facebookUrl: '',
+    instagramUrl: '',
+    tiktokUrl: '',
     location: '', // This will be the Area Name
     coordinatesInput: '', // Manual coordinates input
     image: '',
@@ -98,18 +105,19 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
         alert(t('image_too_large'));
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        const optimized = await optimizeImageToDataUrl(file, 1280, 1280, 0.78);
+        setFormData(prev => ({ ...prev, image: optimized }));
+      } catch {
+        alert('تعذر تجهيز الصورة. يرجى اختيار صورة أخرى.');
+      }
     }
   };
 
@@ -176,6 +184,12 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const invalidSocial = invalidSocialContact(formData);
+    if (invalidSocial) {
+      alert('تحقق من رقم واتساب وروابط حسابات التواصل قبل الحفظ.');
+      return;
+    }
+
     if (registrationPreview) {
       if (!registration || imagesBusy || attachmentBusy) return;
       const missing = registration.fields.find(field => field.required && !registrationDetails[field.key]?.trim());
@@ -188,6 +202,10 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
       setRegistrationError('');
       registrationPreview.onSubmit({
         name: formData.name.trim(), phone: formData.phone.trim(),
+        whatsappPhone: formData.whatsappPhone.trim() || undefined,
+        facebookUrl: formData.facebookUrl.trim() || undefined,
+        instagramUrl: formData.instagramUrl.trim() || undefined,
+        tiktokUrl: formData.tiktokUrl.trim() || undefined,
         categorySlug, categoryId: selectedCategory?.dbId,
         details: Object.fromEntries(Object.entries(registrationDetails).map(([key, value]) => [key, value.trim()])),
         images: registrationImages, credential: registrationAttachment,
@@ -246,6 +264,10 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
         profession: formData.profession,
         experience: formData.experience,
         phone: formData.phone,
+        whatsappPhone: formData.whatsappPhone.trim() || undefined,
+        facebookUrl: formData.facebookUrl.trim() || undefined,
+        instagramUrl: formData.instagramUrl.trim() || undefined,
+        tiktokUrl: formData.tiktokUrl.trim() || undefined,
         location: formData.location,
         latitude: finalCoords?.lat,
         longitude: finalCoords?.lng,
@@ -468,6 +490,8 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
             />
           </div>
 
+          <SocialContactFields values={formData} onChange={(field, value) => setFormData(current => ({ ...current, [field]: value }))} />
+
           {/* Image Upload */}
           {registration ? <ServiceImagePicker images={registrationImages} min={registration.images.min} max={registration.images.max} onChange={setRegistrationImages} onBusy={setImagesBusy} /> : <div className="space-y-1.5">
             <label className={`text-sm flex items-center gap-2 font-bold text-[var(--text-secondary)]`}>
@@ -478,7 +502,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                 <div className={`relative w-full h-48 rounded-xl overflow-hidden border group border-[var(--border)]`}>
                   <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-[var(--accent-primary)] hover:text-white transition-all"
@@ -486,7 +510,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                     >
                       <Upload className="w-5 h-5" />
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
                       className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-red-500 transition-all"
@@ -511,8 +535,8 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                   </div>
                 </button>
               )}
-              <input 
-                type="file" 
+              <input
+                type="file"
                 ref={fileInputRef}
                 onChange={handleImageUpload}
                 accept="image/*"
@@ -533,7 +557,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                 <video
                   src={formData.video}
                   controls
-                  preload="metadata"
+                  preload="none"
                   className="max-h-56 w-full object-contain"
                 />
                 <button

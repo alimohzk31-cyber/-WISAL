@@ -14,7 +14,12 @@ const directory = buildCategoryDirectory(sources);
 
 test('new entry points preserve old links and do not duplicate their old child cards', () => {
   for (const [parent, slug] of [['building-materials', 'steel'], ['doors-windows', 'pvc'], ['shopping', 'clothes']]) {
-    assert.deepEqual(directory.resolveRoute(parent, slug), { sectionSlug: slug });
+    const promoted = directory.sections.find(section => section.slug === slug)!;
+    const defaultChildSlug = promoted.defaultChildSlug ?? promoted.children[0]?.slug;
+    assert.deepEqual(directory.resolveRoute(parent, slug), {
+      sectionSlug: slug,
+      ...(defaultChildSlug ? { childSlug: defaultChildSlug } : {}),
+    });
     assert.equal(directory.sections.filter(section => section.slug === slug).length, 1);
     assert.ok(!directory.sections.find(section => section.slug === parent)!.children.some(child => child.slug === slug));
     assert.deepEqual(directory.locateService({ categorySlug: parent, subCategory: slug }), { sectionSlug: slug });

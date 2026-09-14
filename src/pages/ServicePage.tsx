@@ -4,8 +4,10 @@ import { useLocation, useNavigate, useOutletContext, useParams } from 'react-rou
 import { useServices } from '../context/ServicesContext';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
-import { logSupabaseError, mapRowToService, type Service } from '../hooks/useServices';
+import { logSupabaseError, mapRowToService, SERVICE_DETAIL_COLUMNS, type Service } from '../hooks/useServices';
 import { supabase } from '../lib/supabase';
+import { createRequestCache } from '../lib/requestCache';
+import { fetchCategoryRows } from '../lib/categoryRows';
 import LoadingState from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
@@ -20,6 +22,7 @@ import ServiceDetailModal from '../components/ServiceDetailModal';
 // ما دامت الخدمة معروضة أصلاً من publicServices (البيانات المعتمدة المحلية).
 // ---------------------------------------------------------------------------
 const SERVICE_PAGE_TTL = 60 * 1000;
+const detailRequests = new Map<string, ReturnType<typeof createRequestCache<any>>>();
 let serviceFetchCache: {
   id: string;
   at: number;
@@ -40,7 +43,7 @@ export default function ServicePage() {
   const validId = Number.isSafeInteger(Number(serviceId)) && Number(serviceId) > 0;
   const cachedService = publicServices.find(item => String(item.id) === serviceId);
   const current = result?.id === serviceId ? result : undefined;
-  const service = current ? current.service : cachedService;
+  const service = current?.error ? cachedService : current ? current.service : cachedService;
 
   // Fetch this primary key directly, including on Refresh; do not wait for the
   // paginated directory to eventually load the service or fall back to a slug.
@@ -58,9 +61,24 @@ export default function ServicePage() {
 
     async function loadService() {
       try {
-        const { data, error } = await supabase.from('services').select('*').eq('id', serviceId).eq('status', 'approved').maybeSingle();
+        let read = detailRequests.get(serviceId!);
+        if (!read) {
+          read = createRequestCache<any>(SERVICE_PAGE_TTL);
+          if (detailRequests.size >= 40) detailRequests.delete(detailRequests.keys().next().value!);
+          detailRequests.set(serviceId!, read);
+        }
+        const data = await read.get(async () => {
+          const { data, error } = await supabase.from('services').select(SERVICE_DETAIL_COLUMNS).eq('id', serviceId).eq('status', 'approved').maybeSingle();
+          if (error) throw error;
+          const row = data as any;
+          if (row && !row.category_slug && row.category_id != null) {
+            const categories = await fetchCategoryRows();
+            const category = categories.find(categoryRow => String(categoryRow.id) === String(row.category_id));
+            return { ...row, category_slug: category?.slug };
+          }
+          return row;
+        }, attempt > 0);
         if (!active) return;
-        if (error) throw error;
         const next = { id: serviceId!, service: data ? mapRowToService(data) : undefined };
         serviceFetchCache = { id: serviceId!, at: Date.now(), error: false, result: next };
         setResult(next);
@@ -85,11 +103,13 @@ export default function ServicePage() {
       ? categoryUrl(service?.categorySlug || state!.categorySlug)
       : getDirectoryNavigationState(state).directoryOrigin);
   const goBack = () => {
-    if (savedCategoryUrl && state?.directoryPrevious === savedCategoryUrl && Number(window.history.state?.idx) > 0) {
-      navigate(-1);
-    } else {
-      navigate(parentUrl, { replace: true, state: { directoryOrigin: getDirectoryNavigationState(state).directoryOrigin } });
-    }
+    // HashRouter/WebView history indexes are not reliable enough to use -1
+    // here. Always replace details with the validated category URL so Back
+    // cannot land on an intermediate or invalid hash entry (white screen).
+    navigate(parentUrl, {
+      replace: true,
+      state: { directoryOrigin: getDirectoryNavigationState(state).directoryOrigin },
+    });
   };
 
   if (!validId || !service) {

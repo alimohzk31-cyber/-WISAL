@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { isOnlineConnection } from '../lib/connectivity';
 
-export function useStats() {
+export function useStats(loadStats = true) {
   const [stats, setStats] = useState({ visits: 0, downloads: 0 });
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    if (loadStats) fetchStats();
+  }, [loadStats]);
 
   const fetchStats = async () => {
     try {
       const { data, error } = await supabase
         .from('stats')
-        .select('*')
+        .select('id,visits,downloads')
         .eq('id', 1)
         .single();
         
@@ -34,6 +35,7 @@ export function useStats() {
   };
 
   const incrementVisits = async () => {
+    if (!isOnlineConnection()) return;
     try {
       const { error } = await supabase.rpc('increment_visits');
       if (error) {

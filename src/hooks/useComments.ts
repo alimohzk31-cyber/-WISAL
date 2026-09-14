@@ -1,5 +1,6 @@
 ﻿import { supabase } from '../lib/supabase';
 import { getOwnerId } from './useServices';
+import { requireOnlineConnection } from '../lib/connectivity';
 
 // Length rules for a comment.
 export const COMMENT_MIN_LENGTH = 5;
@@ -22,6 +23,7 @@ export function getCommentOwnerId(): string {
 // Helper to upload an image to the existing Supabase storage.
 // Reuses the same storage system used elsewhere in the project.
 export async function uploadCommentImage(file: File): Promise<string | null> {
+  requireOnlineConnection();
   try {
     const fileName = 'comment_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11) + '.' + (file.name.split('.').pop() || 'jpg');
     const { error } = await supabase.storage
@@ -53,7 +55,7 @@ export async function uploadCommentImage(file: File): Promise<string | null> {
 export async function fetchComments(limit?: number): Promise<Comment[]> {
   let query = supabase
     .from('comments')
-    .select('*')
+    .select('id,content,image_url,owner_id,created_at')
     .order('created_at', { ascending: false });
 
   if (limit !== undefined && limit > 0) {
@@ -77,6 +79,7 @@ export async function addComment(input: {
   content: string;
   image_url?: string | null;
 }): Promise<Comment> {
+  requireOnlineConnection();
   const { data, error } = await supabase
     .from('comments')
     .insert({
@@ -99,6 +102,7 @@ export async function addComment(input: {
 // Update the text content of an existing comment.
 // Used by admin panel to edit a comment.
 export async function updateCommentContent(id: number, content: string): Promise<Comment> {
+  requireOnlineConnection();
   const { data, error } = await supabase
     .from('comments')
     .update({ content })
@@ -118,6 +122,7 @@ export async function updateCommentContent(id: number, content: string): Promise
 // Update the image_url of an existing comment.
 // Used by admin panel to attach/replace/remove an image.
 export async function updateCommentImage(id: number, image_url: string | null): Promise<Comment> {
+  requireOnlineConnection();
   const { data, error } = await supabase
     .from('comments')
     .update({ image_url })
@@ -140,6 +145,7 @@ export async function updateCommentImage(id: number, image_url: string | null): 
 // We must treat a 0-row result as a failure so the UI never removes a comment
 // that still exists in public.comments.
 export async function deleteComment(id: number): Promise<void> {
+  requireOnlineConnection();
   const { data, error } = await supabase
     .from('comments')
     .delete()

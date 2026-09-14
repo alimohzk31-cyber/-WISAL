@@ -8,6 +8,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import ServiceModalShell from './ServiceModalShell';
 import { getCurrentPositionReliable } from '../lib/geolocation';
+import { SocialContactFields } from './ServiceSocialContacts';
+import { invalidSocialContact } from '../lib/serviceSocialLinks';
 
 interface Props {
   service: Service;
@@ -27,6 +29,10 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
     profession: service.profession || '',
     experience: service.experience || '',
     phone: service.phone || '',
+    whatsappPhone: service.whatsappPhone || '',
+    facebookUrl: service.facebookUrl || '',
+    instagramUrl: service.instagramUrl || '',
+    tiktokUrl: service.tiktokUrl || '',
     location: service.location,
     image: service.image,
     categorySlug: service.categorySlug,
@@ -57,6 +63,11 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (invalidSocialContact(formData)) {
+      alert('تحقق من رقم واتساب وروابط حسابات التواصل قبل الحفظ.');
+      return;
+    }
 
     // Strict validation: only the real numeric id from Supabase may be used.
     // Never fall back to slug - an UPDATE by slug would target the wrong row or none at all.
@@ -199,6 +210,8 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
               dir="ltr"
             />
           </div>
+
+          <SocialContactFields values={formData} onChange={(field, value) => setFormData(current => ({ ...current, [field]: value }))} />
           
           {/* Action Buttons */}
           <div className={`sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex shrink-0 gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-3 sm:-mx-5 sm:-mb-5 sm:gap-3 sm:p-4`}>

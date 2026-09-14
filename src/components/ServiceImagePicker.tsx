@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { ImagePlus, X } from 'lucide-react';
+import { optimizeImageToDataUrl } from '../lib/imageOptimization';
 
 interface Props {
   images: string[];
@@ -21,17 +22,7 @@ export default function ServiceImagePicker({ images, min, max, onChange, onBusy 
     if (files.some(file => file.size > 2 * 1024 * 1024)) { setError('يجب ألا يتجاوز حجم الصورة الواحدة 2 ميغابايت.'); return; }
     setBusy(true); onBusy(true);
     try {
-      const urls = await Promise.all(files.map(file => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = reject;
-        reader.onload = () => {
-          const image = new Image();
-          image.onload = () => resolve(String(reader.result));
-          image.onerror = reject;
-          image.src = String(reader.result);
-        };
-        reader.readAsDataURL(file);
-      })));
+      const urls = await Promise.all(files.map(file => optimizeImageToDataUrl(file, 1280, 1280, 0.78)));
       onChange([...images, ...urls]);
     } catch { setError('تعذر قراءة إحدى الصور. اختر صورًا سليمة وحاول مجددًا.'); }
     finally { setBusy(false); onBusy(false); }
@@ -41,7 +32,7 @@ export default function ServiceImagePicker({ images, min, max, onChange, onBusy 
     <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-muted)]"><span>من {min} إلى {max} صور؛ الصورة الأولى هي الغلاف.</span><span aria-live="polite">{images.length} / {max}</span></div>
     {images.length > 0 && <div className="grid grid-cols-3 gap-2">
       {images.map((image, index) => <div key={`${index}-${image.slice(-24)}`} className="relative aspect-square overflow-hidden rounded-xl border border-[var(--border)]">
-        <img src={image} alt={`صورة الصيدلية ${index + 1}`} className="h-full w-full object-cover" />
+        <img src={image} alt={`صورة الصيدلية ${index + 1}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         <button type="button" disabled={busy} aria-label={`حذف الصورة ${index + 1}`} onClick={() => onChange(images.filter((_, i) => i !== index))} className="absolute left-0 top-0 flex h-11 w-11 items-center justify-center rounded-br-xl bg-black/60 text-white"><X className="h-4 w-4" /></button>
         {index === 0 && <span className="absolute bottom-0 right-0 rounded-tl-lg bg-[var(--accent-primary)] px-2 py-1 text-[10px] font-bold text-white">الغلاف</span>}
       </div>)}

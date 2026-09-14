@@ -30,13 +30,17 @@ export default function HeaderClock() {
   const [showClock, setShowClock] = useState(false);
 
   useEffect(() => {
-    const tick = window.setInterval(() => setNow(new Date()), 100);
-    return () => window.clearInterval(tick);
-  }, []);
+    if (!showClock) return;
+    const update = () => { if (!document.hidden) setNow(new Date()); };
+    update();
+    const tick = window.setInterval(update, 1000);
+    document.addEventListener('visibilitychange', update);
+    return () => { window.clearInterval(tick); document.removeEventListener('visibilitychange', update); };
+  }, [showClock]);
 
   useEffect(() => {
     // دورة ثابتة تضمن العودة إلى الهوية وعدم توقف التناوب بعد أول انتقال.
-    const alternate = window.setInterval(() => setShowClock(current => !current), 6000);
+    const alternate = window.setInterval(() => { if (!document.hidden) setShowClock(current => !current); }, 6000);
     return () => window.clearInterval(alternate);
   }, []);
 
@@ -47,7 +51,7 @@ export default function HeaderClock() {
   }).format(now), [now.getDate(), now.getMonth(), now.getFullYear()]);
 
   return (
-    <div className="relative flex h-16 w-[218px] max-w-[58vw] items-center justify-center sm:w-[270px]" aria-live="off">
+    <div className="relative flex h-12 w-[200px] max-w-[54vw] items-center justify-center sm:w-[240px]" aria-live="off">
       <AnimatePresence initial={false} mode="wait">
         {!showClock ? (
           <motion.div
@@ -63,7 +67,7 @@ export default function HeaderClock() {
             <img
               src={`${(import.meta as any).env.BASE_URL}assets/wisal-header-brand-animated.png`}
               alt="وصال — WISAL — كل الخدمات في مكان واحد"
-              className="wisal-living-logo relative z-10 max-h-[58px] max-w-full object-contain"
+              className="wisal-living-logo relative z-10 max-h-[44px] max-w-full object-contain"
               draggable={false}
             />
             <span className="wisal-logo-shine" aria-hidden="true" />

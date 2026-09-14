@@ -43,9 +43,10 @@ test('legacy links and car specialties remain accessible', () => {
   for (const [slug, expected] of [['dentist', 'doctors'], ['school', 'education'], ['university', 'education'], ['cafe', 'food'], ['car-electric', 'cars'], ['electrician', 'electrical'], ['real-estate', 'real-estate']]) {
     assert.equal(directory.locateCategory(slug)?.sectionSlug, expected);
   }
-  for (const slug of ['oil-change', 'car-wash', 'car-tires', 'spare-parts', 'car-filters', 'car-glass', 'car-rental']) {
+  for (const slug of ['oil-change', 'car-wash', 'car-tires', 'spare-parts', 'car-sonar', 'car-filters', 'car-glass', 'car-rental']) {
     assert.deepEqual(directory.locateService({ categorySlug: 'car-repair', subCategory: slug }), { sectionSlug: 'cars', childSlug: slug });
   }
+  assert.deepEqual(directory.locateService({ categorySlug: 'car-repair', profession: 'سونار' }), { sectionSlug: 'cars', childSlug: 'car-sonar' });
 });
 
 test('moved specialties retain their old routes and service identifiers', () => {
@@ -86,6 +87,25 @@ test('overlapping professions have exactly one display destination', () => {
     assert.equal(directory.sections.filter(section => section.slug === result?.sectionSlug).length, 1);
   }
   assert.equal(directory.locateService({ categorySlug: 'clinic', profession: 'تخصص غير محدد' })?.sectionSlug, 'doctors');
+});
+
+test('aluminum services use a real legacy construction row without misplacing old construction services', () => {
+  const directory = buildCategoryDirectory([
+    ...categories,
+    { slug: 'construction-decor', dbId: 'construction', name: 'البناء والديكور' },
+  ]);
+  assert.deepEqual(
+    directory.locateService({ categorySlug: 'construction-decor', categoryId: 'construction', profession: 'أعمال ألمنيوم' }),
+    { sectionSlug: 'aluminum-glass', childSlug: 'aluminum-work' },
+  );
+  assert.deepEqual(
+    directory.locateService({ categorySlug: 'construction-decor', categoryId: 'construction', profession: 'واجهات زجاجية' }),
+    { sectionSlug: 'aluminum-glass', childSlug: 'glass-facades' },
+  );
+  assert.deepEqual(
+    directory.locateService({ categorySlug: 'construction-decor', categoryId: 'construction', profession: 'مقاولات' }),
+    { sectionSlug: 'construction', childSlug: 'contracting' },
+  );
 });
 
 test('search finds parent sections by specialty and keeps administrative queries blocked', () => {

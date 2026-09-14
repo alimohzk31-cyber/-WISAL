@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getOwnerId } from './useServices';
+import { requireOnlineConnection } from '../lib/connectivity';
 
 // ---------------------------------------------------------------------------
 // useFeedInteractions — نظام التفاعلات والتعليقات للتصفح الاجتماعي.
@@ -67,15 +68,21 @@ function buildSummary(rows: { reaction_type: ReactionType }[]): ReactionSummary 
   for (const row of rows) {
     byType[row.reaction_type] = (byType[row.reaction_type] || 0) + 1;
   }
+  return summarizeCounts(byType);
+}
+
+function summarizeCounts(byType: Partial<Record<ReactionType, number>>): ReactionSummary {
   let top: ReactionSummary['top'] = null;
   let topCount = 0;
+  let total = 0;
   for (const [type, count] of Object.entries(byType)) {
+    total += count ?? 0;
     if ((count as number) > topCount) {
       topCount = count as number;
       top = { type: type as ReactionType, emoji: REACTION_META[type as ReactionType]?.emoji ?? '👍' };
     }
   }
-  return { total: rows.length, byType, top };
+  return { total, byType, top };
 }
 
 // ---------------------------------------------------------------------------
@@ -103,10 +110,13 @@ interface FeedCacheSnapshot {
 
 let feedCache: FeedCacheSnapshot | null = null;
 let feedRequest: { idsKey: string; promise: Promise<void> } | null = null;
+let feedRevision = 0;
 
 /** يُبطل كاش الجلسة بعد أي عملية كتابة ناجحة (تفاعل/تعليق/حذف). */
 function invalidateFeedCache() {
+  feedRevision++;
   feedCache = null;
+  feedRequest = null;
 }
 
 function applyFeedCacheSnapshot(snapshot: FeedCacheSnapshot, setters: {
@@ -127,9 +137,13 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
   const [commentsByService, setCommentsByService] = useState<Record<string, PostComment[]>>({});
   const [reactionsUnavailable, setReactionsUnavailable] = useState(false);
 
-  const idsKey = serviceIds.map(String).join(',');
+  const idsKey = [...new Set(serviceIds.map(Number).filter(id => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b).join(',');
+  const currentIds = useRef(idsKey);
+  currentIds.current = idsKey;
 
   const load = useCallback(async () => {
+    const revision = feedRevision;
+    const isCurrent = () => revision === feedRevision && currentIds.current === idsKey;
     const ids = idsKey ? idsKey.split(',') : [];
     if (ids.length === 0) {
       setSummaries({});
@@ -147,7 +161,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
     // طلب جارٍ مطابق (تركيب مزدوج في اللحظة نفسها): ننتظر نفس النتيجة فقط
     if (feedRequest && feedRequest.idsKey === idsKey) {
       await feedRequest.promise;
-      if (feedCache && feedCache.idsKey === idsKey) {
+      if (isCurrent() && feedCache && feedCache.idsKey === idsKey) {
         applyFeedCacheSnapshot(feedCache, { setSummaries, setMyReactions, setCommentsByService, setReactionsUnavailable });
       }
       return;
@@ -162,11 +176,12 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
             .in('service_id', ids),
           supabase
             .from('service_comments')
-            .select('*')
+            .select('id,service_id,owner_id,content,image_url,created_at,updated_at')
             .in('service_id', ids)
             .order('created_at', { ascending: true })
             .limit(1000),
         ]);
+        if (!isCurrent()) return;
 
         if (reactionsRes.error) {
           logError('load(reactions)', reactionsRes.error);
@@ -232,7 +247,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
     } finally {
       if (feedRequest?.promise === promise) feedRequest = null;
     }
-    if (feedCache && feedCache.idsKey === idsKey) {
+    if (isCurrent() && feedCache && feedCache.idsKey === idsKey) {
       applyFeedCacheSnapshot(feedCache, { setSummaries, setMyReactions, setCommentsByService, setReactionsUnavailable });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -244,9 +259,11 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
 
   // اختيار/تغيير/إلغاء التفاعل — تفاعل واحد فقط لكل مستخدم على كل منشور.
   const toggleReaction = useCallback(async (serviceId: string | number, type: ReactionType) => {
+    requireOnlineConnection();
     const key = String(serviceId);
     const ownerId = getOwnerId();
     const current = myReactions[key] ?? null;
+    invalidateFeedCache();
 
     // تحديث متفائل فوري للواجهة
     const applyOptimistic = (next: ReactionType | null) => {
@@ -256,10 +273,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
         const byType: Partial<Record<ReactionType, number>> = { ...base.byType };
         if (current) byType[current] = Math.max(0, (byType[current] || 0) - 1);
         if (next) byType[next] = (byType[next] || 0) + 1;
-        const rows = Object.entries(byType).flatMap(([t, n]) =>
-          Array.from({ length: n as number }, () => ({ reaction_type: t as ReactionType }))
-        );
-        return { ...prev, [key]: buildSummary(rows) };
+        return { ...prev, [key]: summarizeCounts(byType) };
       });
     };
 
@@ -301,6 +315,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
 
   // إضافة تعليق جديد — يعيد الصف المُدرج ليظهر فوراً دون إعادة تحميل.
   const addComment = useCallback(async (serviceId: string | number, content: string): Promise<PostComment> => {
+    requireOnlineConnection();
     const trimmed = content.trim();
     if (!trimmed) {
       throw new Error('لا يمكن إرسال تعليق فارغ.');
@@ -333,6 +348,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
 
   // حذف تعليق — يُسمح فقط لصاحب الجهاز بحذف تعليقه من الواجهة.
   const deleteComment = useCallback(async (comment: PostComment) => {
+    requireOnlineConnection();
     if (comment.owner_id !== getOwnerId()) return;
     const { error } = await supabase
       .from('service_comments')

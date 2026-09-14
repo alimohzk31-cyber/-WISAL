@@ -26,14 +26,37 @@ export async function measureAdminOperation<T>(step: string, operation: () => Pr
 }
 export function getAdminPerformanceSamples() { return samples.map(sample => ({ ...sample })); }
 
+// Public reads must never keep an empty/skeleton screen waiting indefinitely.
+// Writes and uploads are deliberately excluded because aborting them can leave
+// their outcome ambiguous to the user.
+export const SUPABASE_READ_TIMEOUT_MS = 8_000;
+
 // Observe the unchanged AdminRoute's network requests without altering its checks.
 export const adminTimedFetch: typeof fetch = async (input, init) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   const path = new URL(url).pathname;
+  const method = (init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
   const step = path.endsWith('/auth/v1/user') ? 'network.getUser'
     : path.endsWith('/rpc/is_admin') ? 'network.is_admin' : null;
-  if (!step) return fetch(input, init);
+  const controller = method === 'GET' ? new AbortController() : null;
+  const sourceSignal = init?.signal || (input instanceof Request ? input.signal : undefined);
+  const relayAbort = () => controller?.abort(sourceSignal?.reason);
+  if (sourceSignal?.aborted) relayAbort();
+  else sourceSignal?.addEventListener('abort', relayAbort, { once: true });
+  const timer = controller ? setTimeout(() => controller.abort(new DOMException('Supabase read timed out', 'TimeoutError')), SUPABASE_READ_TIMEOUT_MS) : undefined;
+  const timedInit = controller ? { ...init, signal: controller.signal } : init;
+  if (!step) {
+    try { return await fetch(input, timedInit); }
+    finally {
+      if (timer) clearTimeout(timer);
+      sourceSignal?.removeEventListener('abort', relayAbort);
+    }
+  }
   const end = startAdminTiming(step);
-  try { const response = await fetch(input, init); end(response.ok ? 'ok' : 'error'); return response; }
+  try { const response = await fetch(input, timedInit); end(response.ok ? 'ok' : 'error'); return response; }
   catch (error) { end('error'); throw error; }
+  finally {
+    if (timer) clearTimeout(timer);
+    sourceSignal?.removeEventListener('abort', relayAbort);
+  }
 };

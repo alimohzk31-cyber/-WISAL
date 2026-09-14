@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ImgHTMLAttributes, type ReactEventHandler } from 'react';
+import { useCallback, useState, type ImgHTMLAttributes, type ReactEventHandler } from 'react';
 
 // ==============================
 // SafeImage / useImageFallback
@@ -33,25 +33,15 @@ export const FALLBACK_IMAGE =
  * السلايدر) تُعاد التعيين تلقائياً لتُحاول الصورة الجديدة.
  */
 export function useImageFallback(originalSrc: string, fallbackSrc: string = FALLBACK_IMAGE) {
-  const [src, setSrc] = useState(originalSrc);
-  const fallbackAppliedRef = useRef(false);
-  const originalSrcRef = useRef(originalSrc);
-
-  // إعادة التعيين فور تغيّر الصورة الأصلية: المصدر الجديد يُجرب من جديد
-  // (لا يبقى fallback من صورة قديمة معروضاً على صورة جديدة).
-  if (originalSrcRef.current !== originalSrc) {
-    originalSrcRef.current = originalSrc;
-    fallbackAppliedRef.current = false;
-    setSrc(originalSrc);
-  }
+  const [failedOriginalSrc, setFailedOriginalSrc] = useState<string | null>(null);
+  // اشتقاق المصدر أثناء الرسم يمنع setState داخل render وإعادة الرسم الإضافية
+  // عند انتقال البطاقة أو السلايدر إلى صورة جديدة.
+  const src = !originalSrc?.trim() || failedOriginalSrc === originalSrc ? fallbackSrc : originalSrc;
 
   const onError = useCallback(() => {
-    // حارس ضد الـ loop: إذا وصلنا للصورة البديلة وفشلت أيضاً نتجاهل الخطأ
-    // نهائياً ولا نعيد التعيين ثانيةً ولا نجرب أي مصدر آخر.
-    if (fallbackAppliedRef.current) return;
-    fallbackAppliedRef.current = true;
-    setSrc(fallbackSrc);
-  }, [fallbackSrc]);
+    // تخزين المصدر الأصلي الفاشل مرة واحدة يمنع loop حتى إذا فشل البديل.
+    setFailedOriginalSrc(previous => previous === originalSrc ? previous : originalSrc);
+  }, [originalSrc]);
 
   return { src, onError };
 }

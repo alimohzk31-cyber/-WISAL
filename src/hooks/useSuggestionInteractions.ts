@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getOwnerId } from './useServices';
+import { requireOnlineConnection } from '../lib/connectivity';
 
 export type ReactionType = 'like' | 'love';
 
@@ -67,6 +68,7 @@ export async function toggleReaction(
   suggestionId: number,
   type: ReactionType
 ): Promise<{ active: boolean }> {
+  requireOnlineConnection();
   const ownerId = getOwnerId();
 
   const { data: existing, error: fetchErr } = await supabase
@@ -110,7 +112,7 @@ export async function fetchSuggestionComments(
 ): Promise<SuggestionComment[]> {
   const { data, error } = await supabase
     .from('suggestion_comments')
-    .select('*')
+    .select('id,suggestion_id,content,owner_id,created_at')
     .eq('suggestion_id', suggestionId)
     .order('created_at', { ascending: true });
 
@@ -125,6 +127,7 @@ export async function addSuggestionComment(
   suggestionId: number,
   content: string
 ): Promise<SuggestionComment> {
+  requireOnlineConnection();
   const trimmed = content.trim();
   if (!trimmed || trimmed.length > 300) {
     throw new Error('التعليق يجب أن يكون بين 1 و 300 حرف.');
@@ -151,6 +154,7 @@ export async function deleteSuggestionComment(
   commentId: number,
   ownerId: string
 ): Promise<void> {
+  requireOnlineConnection();
   const { data, error } = await supabase
     .from('suggestion_comments')
     .delete()

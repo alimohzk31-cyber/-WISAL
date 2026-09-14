@@ -28,3 +28,9 @@ test('specialty selection never displays an option that differs from the submitt
   assert.equal(getInitialProfession(cars, 'ياباني'), 'ياباني');
   assert.equal(cars.allowCustomSpecialty, false);
 });
+
+test('cars sonar uses the existing car category form and submits the exact specialty', () => {
+  const sonar = getServiceFormConfig({ slug: 'car-repair', name: 'ورش سيارات' }, 'cars', 'car-sonar');
+  assert.ok(sonar.specialties.includes('سونار'));
+  assert.equal(getInitialProfession(sonar, 'سونار'), 'سونار');
+});

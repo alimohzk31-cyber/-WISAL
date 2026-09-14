@@ -4,7 +4,7 @@
  * بعد بناء standalone ناجح، ينسخ ناتج الإنتاج إلى release/standalone.
  * يبقى index.html في الجذر مدخل Vite المصدري دائماً.
  *
- * الاستخدام: npm run release
+ * الاستخدام: npm run release:standalone
  */
 import { copyFileSync, mkdirSync, existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { resolve, dirname } from 'path';
@@ -23,7 +23,7 @@ if (!existsSync(dist)) {
 // Reject split builds: this export requires JavaScript and CSS inside the HTML.
 const html = readFileSync(dist, 'utf8');
 if (/<script\b[^>]*\bsrc\s*=/i.test(html) || /<link\b[^>]*\brel=["'](?:stylesheet|modulepreload)["']/i.test(html)) {
-  console.error('[sync-index] شغّل npm run release لإنشاء نسخة مدمجة قابلة للفتح مباشرة.');
+  console.error('[sync-index] شغّل npm run release:standalone لإنشاء نسخة مدمجة قابلة للفتح مباشرة.');
   process.exit(1);
 }
 

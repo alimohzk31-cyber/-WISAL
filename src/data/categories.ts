@@ -10,7 +10,8 @@ import {
   Utensils, Coffee, Pizza, Cake,
   PlugZap, Wrench as PlumberWrench, Sparkles as Broom, Hammer,
   Landmark, Building2, Siren, Fuel, Mail,
-  HardHat, Code, Palette, Home, Factory, PanelsTopLeft, DoorOpen, SprayCan
+  HardHat, Code, Palette, Home, Factory, PanelsTopLeft, DoorOpen, SprayCan,
+  CarFront, Forklift,
 } from 'lucide-react';
 import type { Section, SectionFieldConfig, SectionRegistrationConfig } from '../types/models';
 
@@ -216,7 +217,7 @@ export const categories: Category[] = [
       registration: reg([
         txt('workType', 'نوع الأعمال', 'مثال: صيانة شاملة، تركيب باطورى، برمجة إلكترونية'),
       ], { featuresLabel: 'خدمات الورشة', featuresPlaceholder: 'اذكر الأعمال والصيانات التي تقدمها.' }),
-      specialties: ['ميكانيك', 'كهرباء سيارات', 'تكييف وتبريد', 'برمجة سيارات', 'تبديل زيوات', 'عجلات وميزان', 'سمكرة ودهان', 'فحص دوري شامل'],
+      specialties: ['ميكانيك', 'كهرباء سيارات', 'سونار', 'تكييف وتبريد', 'برمجة سيارات', 'تبديل زيوات', 'عجلات وميزان', 'سمكرة ودهان', 'فحص دوري شامل'],
     },
   },
   { slug: 'car-sales', name: 'سيارات للبيع', groupId: 'cars', icon: Car, color: 'orange',
@@ -729,6 +730,34 @@ export const categories: Category[] = [
         txt('brands', 'العلامات التجارية', 'مثال: نويبويا، مي بالاي، خوش مون، إيانيولا'),
       ], { featuresLabel: 'ما يميز المحل', featuresPlaceholder: 'اذكر العلامات التجارية الساخنة.' }),
       specialties: ['مكياج', 'مستحضرات عناية بالبشرة', 'عناية بالشعر', 'عطور'],
+    },
+  },
+  // ─── تأجير سيارات — قسم مستقل (لا فرع داخل «السيارات») ───
+  {
+    slug: 'car-rentals', name: 'تأجير سيارات', groupId: 'cars', icon: CarFront, color: 'blue',
+    keywords: ['تأجير سيارة', 'إيجار سيارات', 'إيجار سيارة', 'كراء سيارات', 'تأجير سيارات للمناسبات', 'car rental'],
+    fields: {
+      nameLabel: 'اسم المكتب / الشركة', namePlaceholder: 'مثال: مكتب النخبة لتأجير السيارات',
+      profession: 'تأجير سيارات',
+      registration: reg([
+        txt('carTypes', 'أنواع السيارات المتوفرة', 'مثال: كامري 2023، أوبترا، بييك 301'),
+        txt('rentalTerms', 'شروط التأجير', 'مثال: يومي/شهري، مع سائق أو بدون، كفالة'),
+      ], { featuresLabel: 'ما يميز الخدمة', featuresPlaceholder: 'مثال: توصيل السيارة للموقع، أسعار خاصة للمناسبات.' }),
+      specialties: ['تأجير يومي', 'تأجير شهري', 'مع سائق', 'تأجير للمناسبات'],
+    },
+  },
+  // ─── تأجير كرينات — قسم مستقل (لا فرع داخل «تأجير المعدات» أو «البناء») ───
+  {
+    slug: 'crane-rentals', name: 'تأجير كرينات', groupId: 'industrial-services', icon: Forklift, color: 'orange',
+    keywords: ['تأجير كرين', 'كرين', 'رافعة شوكية', 'تأجير رافعات شوكية', 'كرين هيدروليكي', 'crane rental'],
+    fields: {
+      nameLabel: 'اسم المكتب / الشركة', namePlaceholder: 'مثال: مكتب الفرات لتأجير الكرينات',
+      profession: 'تأجير كرينات',
+      registration: reg([
+        txt('craneTypes', 'أنواع وسعات الكرينات', 'مثال: كرين 5 طن، رافعة شوكية 3 طن'),
+        txt('rentalTerms', 'شروط التأجير', 'مثال: بالساعة/باليوم، مع عامل أو بدون'),
+      ], { featuresLabel: 'ما يميز الخدمة', featuresPlaceholder: 'مثال: وصول سريع لموقع العمل، سائقون معتمدون.' }),
+      specialties: ['كرين هيدروليكي', 'رافعة شوكية', 'رفع مواد بناء', 'تفريغ حاويات'],
     },
   },
 ];

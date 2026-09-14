@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { getCategoryIcon } from './categoryIcons';
 import {
   FolderOpen, Hospital, Pill, Stethoscope, Bone, Ambulance, Microscope,
-  Wrench, Hammer, Code, Smartphone, PlugZap, Car, Fuel, UtensilsCrossed,
+  Wrench, Hammer, Code, Smartphone, PlugZap, Car, CarFront, Forklift, Fuel, UtensilsCrossed,
   Coffee, ShoppingCart, Store, Banknote, CreditCard, ShieldCheck, Siren,
   Scale, Landmark, GraduationCap, BookOpen, Hotel, Home, Truck, Package,
   Plane, Dumbbell, Trophy, Waves, TreePine, Shirt, Monitor, Sparkles,
@@ -152,7 +152,9 @@ const SERVICE_ICON_ENTRIES: ServiceIconEntry[] = [
   { icon: Wifi, color: 'cyan', aliases: ['internet', 'انترنت', 'wifi'] },
   { icon: Scale, color: 'purple', aliases: ['legal-consult', 'استشارات قانونية', 'استشارات'] },
   // أقسام السيارات الفرعية (carSubSlugs) → أيقونة السيارة
-  { icon: Car, color: 'red', aliases: ['car-repair', 'car-electric', 'oil-change', 'car-wash', 'spare-parts', 'car-rental', 'car-tires', 'car-accessories', 'car-filters', 'car-glass', 'ورشة سيارات', 'زيوت', 'غسيل سيارات', 'قطع غيار'] },
+  { icon: Car, color: 'red', aliases: ['car-repair', 'car-electric', 'oil-change', 'car-wash', 'spare-parts', 'car-tires', 'car-accessories', 'car-filters', 'car-glass', 'ورشة سيارات', 'زيوت', 'غسيل سيارات', 'قطع غيار'] },
+  { icon: CarFront, color: 'blue', aliases: ['car-rentals', 'تأجير سيارات', 'تأجير سياره', 'تأجير سيارة', 'إيجار سيارات', 'إيجار سيارة', 'كراء سيارات', 'سيارة للايجار', 'سيارات للتأجير'] },
+  { icon: Forklift, color: 'orange', aliases: ['crane-rentals', 'تأجير كرينات', 'تأجير كرين', 'كرين', 'كرينة', 'رافعة شوكية', 'رافعه شوكيه', 'كرين هيدروليكي', 'كرينات'] },
   { icon: Plane, color: 'cyan', aliases: ['airlines', 'travel-agency', 'وكالة سفر', 'وكاله سفر'] },
   { icon: FolderOpen, color: 'slate', aliases: ['general', 'عام', 'أخرى', 'اخرى', 'other'] },
 ];

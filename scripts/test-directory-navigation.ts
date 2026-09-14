@@ -1,12 +1,22 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createMemoryRouter } from 'react-router-dom';
-import { categoryUrl, directoryBackAction, directoryEntryState, getHomeView, readCategoryUrl, openServiceDetails, shouldResetHomeScrollOnLoad } from '../src/lib/directoryNavigation';
+import { categoryUrl, directoryBackAction, directoryEntryState, getHomeView, readCategoryUrl, openServiceCategory, openServiceDetails, shouldResetHomeScrollOnLoad } from '../src/lib/directoryNavigation';
 import type { Service } from '../src/hooks/useServices';
 
 const makeRouter = (entry: string) => createMemoryRouter([{ path: '*' }], { initialEntries: [entry] });
 
 const service = { id: 1250, slug: 'existing-service-slug', categoryId: '37', categorySlug: 'car-repair' } as Service;
+
+test('browse category action opens the service actual specialty without opening its details', async () => {
+  const router = makeRouter('/?view=browse');
+  openServiceCategory(router.navigate, router.state.location, service, { sectionSlug: 'cars', childSlug: 'car-accessories' });
+  assert.equal(router.state.location.pathname + router.state.location.search, categoryUrl('cars', 'car-accessories'));
+  assert.equal(router.state.location.state.directoryOrigin, '/?view=browse');
+  await router.navigate(-1);
+  assert.equal(router.state.location.pathname + router.state.location.search, '/?view=browse');
+  router.dispose();
+});
 
 test('browse preview opens the real service id; Back visits its category then the browse source', async () => {
   const router = makeRouter('/?view=browse');

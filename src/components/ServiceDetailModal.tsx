@@ -1,5 +1,5 @@
-import React, { useLayoutEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { memo, useLayoutEffect, useRef } from 'react';
+import { motion } from 'motion/react';
 import { X, Phone, MapPin, Navigation, Briefcase, ExternalLink, Hourglass, XCircle } from 'lucide-react';
 import { Service } from '../hooks/useServices';
 import { serviceStatusOverlayClass } from '../types/models';
@@ -9,6 +9,7 @@ import SafeImage from './SafeImage';
 import ServiceStatusBadge from './ServiceStatusBadge';
 import { useServiceVisits } from '../hooks/useServiceVisits';
 import ServicePublicationTime from './ServicePublicationTime';
+import { ServiceSocialLinks } from './ServiceSocialContacts';
 
 interface ServiceDetailModalProps {
   service: Service;
@@ -21,9 +22,20 @@ interface ServiceDetailModalProps {
   };
 }
 
+const visitNumber = new Intl.NumberFormat('en-US');
+
+const ServiceVisitCount = memo(function ServiceVisitCount({ service }: { service: Service }) {
+  const visits = useServiceVisits(service);
+  return (
+    <p className="pt-4 border-t border-[var(--border)] text-sm font-medium text-[var(--text-primary)]" aria-label="عدد زيارات الخدمة" aria-live="polite">
+      <span aria-hidden="true">👁 </span>
+      {visits === undefined ? 'عدد الزيارات غير متاح' : <><bdi>{visitNumber.format(visits)}</bdi> {visits >= 3 && visits <= 10 ? 'زيارات' : 'زيارة'}</>}
+    </p>
+  );
+});
+
 export default function ServiceDetailModal({ service, onClose, theme, colors }: ServiceDetailModalProps) {
   const { t } = useLanguage();
-  const visits = useServiceVisits(service);
   const contentRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -36,8 +48,9 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-md"
+          className="absolute inset-0 bg-black/60"
         />
 
         {/* Modal Content */}
@@ -46,15 +59,14 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
           role="dialog"
           aria-modal="true"
           aria-label={service.name}
-          initial={{ scale: 0.8, opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ 
-            scale: 1, 
             opacity: 1, 
             y: 0,
-            transition: { type: 'spring', damping: 25, stiffness: 300 }
+            transition: { duration: 0.18, ease: 'easeOut' }
           }}
-          exit={{ scale: 0.8, opacity: 0, y: 20 }}
-          className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-3xl shadow-[var(--shadow-lg)] bg-[var(--surface-elevated)]"
+          exit={{ opacity: 0, y: 8, transition: { duration: 0.12 } }}
+          className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-3xl shadow-[var(--shadow-lg)] bg-[var(--surface-elevated)] [contain:layout_paint]"
         >
           {/* Close Button */}
           <button
@@ -213,10 +225,8 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
                 )}
               </div>
             )}
-            <p className="pt-4 border-t border-[var(--border)] text-sm font-medium text-[var(--text-primary)]" aria-label="عدد زيارات الخدمة" aria-live="polite">
-              <span aria-hidden="true">👁 </span>
-              {visits === undefined ? 'عدد الزيارات غير متاح' : <><bdi>{new Intl.NumberFormat('en-US').format(visits)}</bdi> {visits >= 3 && visits <= 10 ? 'زيارات' : 'زيارة'}</>}
-            </p>
+            <ServiceSocialLinks service={service} />
+            <ServiceVisitCount service={service} />
           </div>
         </motion.div>
     </div>

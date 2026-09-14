@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PackageCheck, PartyPopper, RefreshCw, X } from 'lucide-react';
-import { APP_VERSION, getLatestVersion, isNewerVersion } from '../lib/appVersion';
+import { APP_VERSION, PREVIOUS_APP_VERSION, getLatestVersion, isNewerVersion } from '../lib/appVersion';
 
 interface AppVersionModalProps {
   open: boolean;
@@ -79,6 +79,7 @@ export default function AppVersionModal({ open, onClose, hasUpdate, onUpdateAcce
             <p className="mt-1 text-sm font-bold text-[var(--text-secondary)]">
               الإصدار الحالي: <span className="text-[var(--accent-primary)]" dir="ltr">{APP_VERSION}</span>
             </p>
+            <p className="mt-1 text-xs font-bold text-[var(--text-muted)]">الإصدار السابق: <span dir="ltr">{PREVIOUS_APP_VERSION}</span></p>
 
             <div className="mt-4">
               {checking ? (

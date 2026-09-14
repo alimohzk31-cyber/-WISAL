@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { createRequestCache } from './requestCache';
 
 export interface AdminNotification {
   id: string;
@@ -22,7 +23,13 @@ export function unreadNotificationCount(items: AdminNotification[], readIds: Set
   return items.filter(item => item.published_at !== null && !readIds.has(item.id)).length;
 }
 
-export async function fetchNotifications(includeDrafts = false): Promise<AdminNotification[]> {
+const publishedRead = createRequestCache<AdminNotification[]>(10_000);
+export function fetchNotifications(includeDrafts = false): Promise<AdminNotification[]> {
+  // Admin drafts are never stored in the public cache.
+  return includeDrafts ? loadNotifications(true) : publishedRead.get(() => loadNotifications(false));
+}
+
+async function loadNotifications(includeDrafts: boolean): Promise<AdminNotification[]> {
   const items: AdminNotification[] = [];
   // Paginate so unread counts aren't silently capped by the API row limit.
   for (let offset = 0; ; offset += 500) {
@@ -40,5 +47,6 @@ export async function fetchNotifications(includeDrafts = false): Promise<AdminNo
 }
 
 export function notifyNotificationsChanged() {
+  publishedRead.invalidate();
   window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED));
 }

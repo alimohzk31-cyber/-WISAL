@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { usePageVisible } from '../hooks/usePageVisible';
 import { Search, Compass, LayoutGrid, Mic, MicOff, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { colorMapRedWhite } from '../data/categories';
@@ -12,9 +14,9 @@ import { useSlider, getSlideDuration } from '../hooks/useSlider';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
 import { useImageFallback } from '../components/SafeImage';
-import { SLIDE_POSITION_CLASSES, SLIDE_TEXT_ALIGN } from '../data/slideStyles';
+import { BROWSE_SLIDER_FRAME_CLASS, BROWSE_SLIDER_IMAGE_CLASS, SLIDE_POSITION_CLASSES, SLIDE_TEXT_ALIGN } from '../data/slideStyles';
 import SocialFeed from '../components/SocialFeed';
-import AddServiceModal from '../components/AddServiceModal';
+const AddServiceModal = lazy(() => import('../components/AddServiceModal'));
 import ErrorState from '../components/ui/ErrorState';
 import { buildDirectorySearchIndex, searchDirectory, getDirectDirectoryMatch } from '../lib/directorySearch';
 import { categoryUrl, directoryEntryState, getHomeView, shouldResetHomeScrollOnLoad } from '../lib/directoryNavigation';
@@ -31,6 +33,7 @@ type SpeechRecognitionInstance = {
 };
 
 export default function Home() {
+  const pageVisible = usePageVisible();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeView = getHomeView(searchParams.toString());
   const setActiveView = (view: 'browse' | 'services') => setSearchParams(previous => {
@@ -40,12 +43,21 @@ export default function Home() {
     return next;
   }, { replace: true });
   const [showAddService, setShowAddService] = useState(false);
-  const searchQuery = searchParams.get('q') ?? '';
-  const setSearchQuery = useCallback((value: string) => setSearchParams(previous => {
+  const urlQuery = searchParams.get('q') ?? '';
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const settledQuery = useDebouncedValue(searchQuery);
+  const queryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => { setSearchQuery(urlQuery); }, [urlQuery]);
+  useEffect(() => {
+    if (searchQuery === urlQuery) return;
+    queryTimer.current = setTimeout(() => setSearchParams(previous => {
     const next = new URLSearchParams(previous);
-    if (value) next.set('q', value); else next.delete('q');
+    if (searchQuery) next.set('q', searchQuery); else next.delete('q');
     return next;
-  }, { replace: true }), [setSearchParams]);
+    }, { replace: true }), 180);
+    return () => clearTimeout(queryTimer.current);
+  }, [searchQuery, urlQuery, setSearchParams]);
+  const openAddService = useCallback(() => setShowAddService(true), []);
   const [isListening, setIsListening] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -210,12 +222,12 @@ export default function Home() {
   const preloadedUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!nextSlideUrl) return;
+    if (!nextSlideUrl || !pageVisible) return;
     if (preloadedUrlsRef.current.has(nextSlideUrl)) return;
     preloadedUrlsRef.current.add(nextSlideUrl);
     const img = new Image();
     img.src = nextSlideUrl;
-  }, [nextSlideUrl]);
+  }, [nextSlideUrl, pageVisible]);
 
   // Fallback للصورة الحالية في السلايدر: إذا فشل تحميلها تُستبدل بصورة بديلة آمنة
   // (data-URI) مرة واحدة فقط — حارس الـ fallback يمنع أي loop حتى لو فشل البديل.
@@ -228,7 +240,7 @@ export default function Home() {
       setCurrentImageIndex(0);
       return;
     }
-    if (activeSlides.length === 1) return;
+    if (activeSlides.length === 1 || !pageVisible) return;
     // مدة العرض الحقيقية لكل شريحة تأتي من قاعدة البيانات (duration_seconds،
     // الافتراضي 5 ثوانٍ، بحدود 2-60). نستخدم setTimeout لكل شريحة على حدة
     // (وليس interval كل ثانية) ولا يوجد أي re-render وسيط.
@@ -238,19 +250,22 @@ export default function Home() {
       setCurrentImageIndex((prev) => (prev + 1) % activeSlides.length);
     }, durationMs);
     return () => clearTimeout(timer);
-  }, [activeSlides, currentImageIndex]);
+  }, [activeSlides, currentImageIndex, pageVisible]);
 
   // تصفية الأقسام — مُخزَّنة لتجنب إعادة الحساب في كل render (البحث يعيد الرسم
   // عند كل حرف، والتصفية تُحسب فقط عند تغير القائمة أو نص البحث)
   const searchIndex = useMemo(() => buildDirectorySearchIndex(sections, searchServices), [sections, searchServices]);
-  const searchResults = useMemo(() => searchDirectory(searchIndex, searchQuery), [searchIndex, searchQuery]);
+  const searchResults = useMemo(() => searchDirectory(searchIndex, settledQuery), [searchIndex, settledQuery]);
   const filteredCategories = useMemo(() => searchQuery.trim()
     ? sections.filter(section => searchResults.some(result => result.section.slug === section.slug))
     : sections, [sections, searchResults, searchQuery]);
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
-    const direct = getDirectDirectoryMatch(searchResults);
-    if (direct) navigate(direct.url, { state: directoryEntryState(location) });
+    const direct = getDirectDirectoryMatch(searchDirectory(searchIndex, searchQuery));
+    if (direct) {
+      clearTimeout(queryTimer.current);
+      navigate(direct.url, { state: directoryEntryState(location) });
+    }
   };
 
   const toggleVoiceSearch = useCallback(() => {
@@ -302,7 +317,7 @@ export default function Home() {
 
       {/* Welcome Slider Section */}
       <div
-        className="relative w-full max-w-5xl mx-auto h-[165px] sm:h-[170px] md:h-[230px] rounded-3xl overflow-hidden shadow-2xl group select-none"
+        className={`${BROWSE_SLIDER_FRAME_CLASS} group`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -318,7 +333,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
-                className="absolute inset-0 w-full h-full object-cover object-center"
+                className={BROWSE_SLIDER_IMAGE_CLASS}
                 draggable={false}
                 decoding="async"
                 loading={currentImageIndex === 0 ? 'eager' : 'lazy'}
@@ -409,8 +424,9 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]">
-            <div className="animate-pulse text-[var(--text-muted)]">جاري تحميل السلايدر...</div>
+          <div className="absolute inset-0 animate-pulse bg-[var(--bg-secondary)]" role="status" aria-label="جارٍ تحميل السلايدر">
+            <div className="absolute inset-x-6 bottom-8 h-5 rounded-full bg-[var(--surface-elevated)]/70" />
+            <div className="absolute inset-x-16 bottom-16 h-8 rounded-full bg-[var(--surface-elevated)]/70" />
           </div>
         )}
       </div>
@@ -437,7 +453,7 @@ export default function Home() {
         </button>
       </nav>
 
-      {activeView === 'browse' ? <SocialFeed onAddService={() => setShowAddService(true)} /> : <>
+      {activeView === 'browse' ? <SocialFeed onAddService={openAddService} /> : <>
 
       {/* Search Bar */}
       <section className="relative max-w-2xl mx-auto space-y-3 z-10" aria-label="بحث الأقسام وإحصائياتها">
@@ -531,7 +547,9 @@ export default function Home() {
       </>}
 
       {showAddService && (
+        <Suspense fallback={null}>
         <AddServiceModal onClose={() => setShowAddService(false)} />
+        </Suspense>
       )}
     </div>
   );

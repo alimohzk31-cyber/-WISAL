@@ -1,6 +1,6 @@
 import {
   Stethoscope, Hospital, Pill, TestTube, Sparkles, HeartPulse, GraduationCap,
-  Bike, Car, HardHat, Wrench, Zap, Snowflake, Smartphone, Utensils, House,
+  Bike, Car, CarFront, Forklift, HardHat, Wrench, Zap, Snowflake, Smartphone, Utensils, House,
   Sun, Monitor, Camera, Building2, Plane, Truck, Sofa, PanelsTopLeft,
   Paintbrush, Droplets, PartyPopper, Flower2, Scissors, BookOpen, Video,
   Calculator, Briefcase, PawPrint, ShieldCheck, Bus, Scale, Wifi,
@@ -63,7 +63,8 @@ export const directorySections: DirectorySection[] = [
     child('car-mechanic', 'ميكانيك', 'ميكانيكي', 'ميكانيك سيارات'), child('car-electric', 'كهرباء سيارات'),
     child('oil-change', 'تبديل زيوت', 'تبديل زيت'), child('car-tires', 'إطارات', 'إطارات سيارات', 'بنجرجي'),
     child('spare-parts', 'قطع غيار', 'قطع غيار سيارات'), child('car-wash', 'غسيل وتلميع', 'غسيل سيارات', 'تلميع سيارات'),
-    child('car-accessories', 'كماليات', 'كماليات سيارات'), child('car-filters', 'فلاتر سيارات'), child('car-glass', 'زجاج سيارات'), child('car-rental', 'تأجير سيارات'),
+    child('car-accessories', 'كماليات', 'كماليات سيارات'), child('car-sonar', 'سونار', 'سونار سيارات', 'فحص سونار', 'فحص سيارة', 'فحص سيارات', 'حساسات ركن', 'بارك سنسر', 'parking sensors'),
+    child('car-filters', 'فلاتر سيارات'), child('car-glass', 'زجاج سيارات'), child('car-rental', 'تأجير سيارات'),
   ]),
   {
     ...section('car-sales', 'بيع وشراء السيارات', Car, ['بيع وشراء', 'بيع وشراء سيارات', 'معارض سيارات', 'معرض سيارات', 'car-dealer'], [
@@ -86,7 +87,11 @@ export const directorySections: DirectorySection[] = [
     ]),
     defaultChildSlug: 'bike-motorcycle', hideAll: true,
   },
-  section('construction', 'البناء والإنشاءات', HardHat, ['شركات مقاولات', 'بناء', 'مقاولات', 'بناء البيوت'], [
+  // تأجير سيارات — قسم مستقل تماماً (لا فرع داخل السيارات ولا داخل أي قسم آخر).
+  // الـ slug 'car-rentals' لأن 'car-rental' محفوظ كفرع قديم داخل السيارات
+  // ولا يجوز تغيير mapping الأقسام الموجودة.
+  section('car-rentals', 'تأجير سيارات', CarFront, ['تأجير سيارة', 'إيجار سيارات', 'إيجار سيارة', 'كراء سيارات', 'تأجير سيارات للمناسبات'], []),
+  section('construction', 'البناء والإنشاءات', HardHat, ['construction-decor', 'البناء والديكور', 'شركات مقاولات', 'بناء', 'مقاولات', 'بناء البيوت'], [
     child('building', 'بناء', 'بناء منازل', 'بناء بيوت'), child('contracting', 'مقاولات', 'مقاول'), child('renovation', 'ترميم', 'ترميم منازل'),
   ]),
   section('plumbing', 'السباكة والصحيات', Wrench, ['plumber', 'سباك', 'سباكة', 'صحيات'], [
@@ -202,6 +207,10 @@ export const directorySections: DirectorySection[] = [
   section('equipment-rental', 'تأجير المعدات', Construction, ['تأجير معدات', 'إيجار معدات'], [
     child('building-equipment-rental', 'معدات بناء'), child('generator-rental', 'مولدات'), child('crane-rental', 'رافعات'), child('tool-rental', 'أدوات'), child('party-equipment-rental', 'معدات حفلات'),
   ]),
+  // تأجير كرينات — قسم مستقل تماماً (لا فرع داخل تأجير المعدات ولا داخل البناء).
+  // الـ slug 'crane-rentals' لأن 'crane-rental' محفوظ كفرع قديم («رافعات»)
+  // داخل تأجير المعدات ولا يجوز تغيير mapping الأقسام الموجودة.
+  section('crane-rentals', 'تأجير كرينات', Forklift, ['تأجير كرين', 'كرين', 'رافعة شوكية', 'تأجير رافعات شوكية', 'كرين هيدروليكي', 'كرائنة', 'رافعة برجية', 'رافعات', 'رافعه', 'هيدروليك', 'هيدروليكات', 'رفع حمولات', 'رفع حاويات', 'crane'], []),
   section('printing-services', 'خدمات الطباعة', Printer, ['مطابع', 'مطبعة', 'printing', 'طباعة'], [
     child('paper-printing', 'طباعة ورقية'), child('banners', 'بنرات'), child('business-cards', 'كروت'), child('photocopy', 'استنساخ'), child('commercial-printing', 'طباعة تجارية'),
   ]),
@@ -242,11 +251,11 @@ export const directorySections: DirectorySection[] = [
 const sectionOrder = [
   'doctors', 'hospitals', 'pharmacies', 'laboratories', 'rehabilitation', 'pet-care',
   'education', 'employment', 'legal', 'accounting-finance', 'office-services',
-  'cars', 'car-sales', 'bike-sales', 'transport', 'shipping-delivery', 'travel-tourism', 'real-estate',
+  'cars', 'car-sales', 'car-rentals', 'bike-sales', 'transport', 'shipping-delivery', 'travel-tourism', 'real-estate',
   'construction', 'building-materials', 'steel', 'plumbing', 'electrical', 'cooling', 'solar-energy',
   'home-services', 'home-appliances', 'furniture', 'doors-windows', 'pvc', 'aluminum-glass',
   'painting-decor', 'marble-ceramics', 'elevators', 'water-treatment', 'gardening',
-  'equipment-rental', 'industrial-services', 'computers', 'mobile-electronics',
+  'equipment-rental', 'crane-rentals', 'industrial-services', 'computers', 'mobile-electronics',
   'communications', 'network-services', 'digital-services', 'surveillance', 'security-safety',
   'food', 'shopping', 'clothes', 'jewelry', 'shoes-bags', 'tailoring', 'beauty-care', 'perfumes-cosmetics',
   'books-stationery', 'printing-services', 'marketing', 'media-production',
@@ -270,7 +279,7 @@ for (const item of directorySections) {
 const displayTransfers: Record<string, string[]> = {
   'building-materials': ['steel'], 'doors-windows': ['pvc'], shopping: ['clothes'],
   cars: ['car-sales'],
-  doctors: ['pet-care'], 'home-services': ['cooling'], construction: ['painting-decor'],
+  doctors: ['pet-care'], 'home-services': ['cooling'], construction: ['painting-decor', 'aluminum-glass'],
   surveillance: ['security-safety'], 'aluminum-glass': ['doors-windows'],
   'books-stationery': ['printing-services'], 'digital-services': ['marketing'],
   'mobile-electronics': ['computers', 'home-appliances'],

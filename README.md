@@ -11,11 +11,11 @@
 - **ردود وتعليقات**: تفاعل المستخدمين مع الخدمات ونظام تواصل.
 
 ## البناء والتشغيل
-المشروع مبني بـ **React + Vite**. البناء العادي ينتج مجلد `dist` مع ملفات JavaScript وCSS منفصلة للاستضافة. أما `npm run release` فيستخدم وضع `standalone` لدمج JavaScript وCSS داخل الإندكس، وينسخ الصور والصفحات العامة بجانبه ليدعم الفتح المباشر.
+الإصدار الحالي **وصال 1.1** (Android: `1.1.0`، والإصدار السابق `1.0`). المشروع مبني بـ **React + Vite**. البناء العادي ينتج مجلد `dist` مع ملفات JavaScript وCSS منفصلة للاستضافة، ويحفظ `npm run release` نسخة جاهزة للرفع في `release/web`. ارفع محتويات المجلد كاملة، بما فيها `assets`، حتى يعمل التحميل الكسول وكاش الملفات.
 
 للتطوير شغّل `npm run dev` ثم افتح `http://localhost:3000/index.html`. ملف `index.html` في الجذر هو نقطة دخول Vite ويربط `src/main.tsx`؛ يحتاج خادم Vite ولا يعمل بالنقر المزدوج عبر `file://`.
 
-لفتح نسخة مدمجة مباشرة، شغّل `npm run release` ثم افتح `release/standalone/index.html`. احتفظ بالصور والصفحات المنسوخة بجانبه. تحميل بيانات الخدمات من Supabase يحتاج اتصالاً بالإنترنت.
+لفتح نسخة مدمجة مباشرة، شغّل `npm run release:standalone` ثم افتح `release/standalone/index.html`. هذا التصدير يدمج كود الصفحات ويُلغي تقسيم الحزمة؛ استخدم `release/web` للاستضافة. احتفظ بالصور والصفحات المنسوخة بجانب النسخة المدمجة. تحميل بيانات الخدمات من Supabase يحتاج اتصالاً بالإنترنت.
 
 للتشغيل عبر خادم الإنتاج المحلي، شغّل `npm run build` ثم `npm start` وافتح `http://localhost:3000`.
 
@@ -23,7 +23,9 @@
 |---|---|
 | `npm run dev` | خادم تطوير؛ يتحقق من `index.html` بدون استبداله |
 | `npm run build` | بناء الإنتاج من `index.html` إلى `dist/index.html` |
-| `npm run release` | بناء نسخة مدمجة ثم نسخ الإندكس والصور والصفحات العامة إلى `release/standalone` |
+| `npm run release` | بناء نسخة الويب المقسمة وتجهيزها في `release/web` |
+| `npm run release:standalone` | تصدير النسخة المدمجة في `release/standalone` للفتح المباشر |
+| `npm run test:performance` | اختبارات منع تكرار الطلبات وحفظ البيانات السابقة |
 | `npm start` | تشغيل محتويات `dist` على `http://localhost:3000` بعد البناء |
 | `npm run lint` | فحص TypeScript (`tsc --noEmit`) |
 | `npm run deploy` | نشر مجلد `dist` عبر GitHub Pages (`gh-pages`) |
@@ -42,6 +44,6 @@
 
 ## نقل المشروع وإعادة البناء
 - انسخ ملفات المصدر و`package.json` و`package-lock.json` وملفات الإعدادات ومجلدات `public` و`assets` و`android`. مجلد `node_modules` ومخرجات البناء والذاكرة المؤقتة لا يلزم رفعها.
-- بعد النقل شغّل `npm ci` لاستعادة المكتبات من ملف القفل، ثم `npm run lint` و`npm run build`. للتشغيل المحلي استخدم `npm start`، ولتحديث الإندكس القابل للفتح المباشر استخدم `npm run release`.
+- بعد النقل شغّل `npm ci` لاستعادة المكتبات من ملف القفل، ثم `npm run lint` و`npm run build`. للتشغيل المحلي استخدم `npm start`، ولتجهيز ملفات الموقع استخدم `npm run release`. التصدير القابل للفتح المباشر له أمر مستقل: `npm run release:standalone`.
 - لإعادة تجهيز Android شغّل `npm run android:sync` ثم `npm run android:aab` بعد تجهيز Java وAndroid SDK. احتفظ بملفات التوقيع المحلية في مكان آمن؛ تبقى مستثناة من الرفع ويجب توفيرها محلياً لبناء إصدار موقّع بنفس الهوية.
 - يحتوي `wisal-upload.zip`، عند توفره، على نسخة للنقل بدون المكتبات المثبتة والكاش والأسرار المحلية؛ يتضمن الإندكس الجاهز وصوره. أعد البناء بعد فك الضغط إذا أردت تشغيل الخادم أو تحديث Android.

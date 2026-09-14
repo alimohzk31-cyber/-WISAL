@@ -7,13 +7,16 @@ import ts from 'typescript';
 import { test } from 'node:test';
 
 const source = fs.readFileSync(new URL('../src/hooks/useServiceVisits.ts', import.meta.url), 'utf8');
-function mount({ service, routeId = String(service.id), rpc, enabled = true }) {
+let entrySequence = 0;
+function mount({ service, routeId = String(service.id), entryKey = `entry-${++entrySequence}`, rpc, enabled = true }) {
   let effect, cleanup, state, ref;
   const code = ts.transpileModule(source.replace('(import.meta as any).env.VITE_SERVICE_VIEWS_RPC_ENABLED', JSON.stringify(String(enabled))), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const exports = {};
   vm.runInNewContext(code, {
+    setTimeout,
+    clearTimeout,
     exports, console: { warn() {} },
     require(name) {
       if (name === 'react') return {
@@ -21,7 +24,10 @@ function mount({ service, routeId = String(service.id), rpc, enabled = true }) {
         useState() { return [state, value => { state = value; }]; },
         useEffect(callback) { effect = callback; },
       };
-      if (name === 'react-router-dom') return { useMatch: () => routeId === null ? null : { params: { serviceId: routeId } } };
+      if (name === 'react-router-dom') return {
+        useLocation: () => ({ key: entryKey }),
+        useMatch: () => routeId === null ? null : { params: { serviceId: routeId } },
+      };
       if (name === '../lib/supabase') return { supabase: { rpc } };
       throw new Error(`Unexpected import: ${name}`);
     },

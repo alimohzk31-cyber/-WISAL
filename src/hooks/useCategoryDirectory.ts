@@ -1,51 +1,35 @@
-import { buildCategoryDirectory } from '../data/categoryDirectory';
+﻿import { buildCategoryDirectory } from '../data/categoryDirectory';
 import type { SourceCategory } from '../data/categoryDirectory';
 import type { Service } from './useServices';
 
-// ---------------------------------------------------------------------------
-// مشاركة الحساب الثقيل على مستوى الوحدة:
-// buildCategoryDirectory + تجميع الخدمات حسب القسم كانت تُنفَّذ منفصلة في
-// Home وCategoryPage وServicePage وSocialFeed وSmartSearchModal — أي 5 مرات
-// لنفس البيانات عند كل انتقال/رسم. الآن تُحفظ النتيجة بمفتاح هوية المرجع
-// (===) فلا يُعاد الحساب إلا عند تغيّر مصفوفة categories أو services فعلياً.
-// ---------------------------------------------------------------------------
-interface DirectoryMemo {
-  categories: SourceCategory[];
-  directory: ReturnType<typeof buildCategoryDirectory>;
-}
-let directoryMemo: DirectoryMemo | null = null;
+type Directory = ReturnType<typeof buildCategoryDirectory>;
+type GroupedDirectory = Directory & { bySection: Map<string, Service[]>; searchServices: Service[] };
+// Separate public/admin inputs do not evict each other's calculations.
+// Weak keys allow replaced snapshots and their indexes to be collected.
+const directories = new WeakMap<SourceCategory[], Directory>();
+const grouped = new WeakMap<SourceCategory[], WeakMap<Service[], GroupedDirectory>>();
 
-interface GroupsResult {
-  bySection: Map<string, Service[]>;
-  searchServices: Service[];
-}
-interface GroupsMemo extends GroupsResult {
-  categories: SourceCategory[];
-  services: Service[];
-}
-let groupsMemo: GroupsMemo | null = null;
-
-// Derive browsing data in memory; never pass these synthetic slugs to storage.
-export function useCategoryDirectory(categories: SourceCategory[], services: Service[]) {
-  const directory = directoryMemo && directoryMemo.categories === categories
-    ? directoryMemo.directory
-    : (directoryMemo = { categories, directory: buildCategoryDirectory(categories) }).directory;
-
-  const groups = groupsMemo && groupsMemo.categories === categories && groupsMemo.services === services
-    ? groupsMemo
-    : (() => {
-        const bySection = new Map<string, Service[]>();
-        const searchServices: Service[] = [];
-        for (const service of services) {
-          const placement = directory.locateService(service);
-          if (!placement) continue;
-          const items = bySection.get(placement.sectionSlug) ?? [];
-          items.push(service);
-          bySection.set(placement.sectionSlug, items);
-          searchServices.push({ ...service, categorySlug: placement.sectionSlug, subCategory: placement.childSlug });
-        }
-        return (groupsMemo = { categories, services, bySection, searchServices });
-      })();
-
-  return { ...directory, bySection: groups.bySection, searchServices: groups.searchServices };
+export function useCategoryDirectory(categories: SourceCategory[], services: Service[]): GroupedDirectory {
+  let directory = directories.get(categories);
+  if (!directory) {
+    directory = buildCategoryDirectory(categories);
+    directories.set(categories, directory);
+  }
+  let byServices = grouped.get(categories);
+  if (!byServices) { byServices = new WeakMap(); grouped.set(categories, byServices); }
+  const existing = byServices.get(services);
+  if (existing) return existing;
+  const bySection = new Map<string, Service[]>();
+  const searchServices: Service[] = [];
+  for (const service of services) {
+    const placement = directory.locateService(service);
+    if (!placement) continue;
+    const items = bySection.get(placement.sectionSlug) ?? [];
+    items.push(service);
+    bySection.set(placement.sectionSlug, items);
+    searchServices.push({ ...service, categorySlug: placement.sectionSlug, subCategory: placement.childSlug });
+  }
+  const result = { ...directory, bySection, searchServices };
+  byServices.set(services, result);
+  return result;
 }

@@ -18,7 +18,7 @@ const samples: Array<[string, string, string?]> = [
   ['مستشفى أهلي', 'hospitals'], ['دكتور أسنان', 'doctors', 'dentist'], ['فحص نظر', 'doctors', 'ophthalmology'],
   ['أريد دكتور لابني', 'doctors', 'pediatrics'], ['حب شباب', 'doctors', 'dermatology'],
   ['عيادة بيطرية', 'pet-care', 'veterinary'], ['فحص دم', 'laboratories', 'medical-tests'],
-  ['سونار', 'laboratories', 'imaging'], ['ممرض منزلي', 'hospitals'], ['قبول جامعي', 'education'],
+  ['سونار طبي', 'laboratories', 'imaging'], ['ممرض منزلي', 'hospitals'], ['قبول جامعي', 'education'],
   ['تسجيل مدرسة', 'education', 'school'], ['كورس', 'education', 'institute'], ['مدرس خصوصي', 'education', 'tutor'],
   ['حضانة', 'sports', 'kids-area'], ['معرض سيارات', 'car-sales'], ['سيارتي ما تشتغل', 'cars', 'car-mechanic'],
   ['بطارية سيارة', 'cars', 'car-electric'], ['بنچر', 'cars', 'car-tires'], ['تبديل زيت', 'cars', 'oil-change'],
@@ -48,6 +48,16 @@ test('each of the 71 requested service groups resolves to its existing section',
   }
 });
 
+test('the normalized synonym index is reused for the same directory snapshot', () => {
+  const directory = buildCategoryDirectory(categories);
+  const services: [] = [];
+  assert.strictEqual(
+    buildDirectorySearchIndex(directory.sections, services),
+    buildDirectorySearchIndex(directory.sections, services),
+  );
+  assert.deepEqual(searchDirectory(index, '   '), []);
+});
+
 test('iraqi natural sentences, filler words and context disambiguation', () => {
   const sentences: Array<[string, string, string?]> = [
     ['محتاج سباك', 'plumbing'], ['الحنفية تسرب ماي', 'plumbing'], ['أريد لوله', 'plumbing'],
@@ -64,6 +74,13 @@ test('iraqi natural sentences, filler words and context disambiguation', () => {
   assert.ok(spareResults.some(result => result.url === categoryUrl('cars', 'spare-parts')));
   assert.ok(spareResults.length > 1);
   assert.equal(getDirectDirectoryMatch(spareResults), undefined);
+  const sonarResults = searchDirectory(index, 'سونار');
+  assert.ok(sonarResults.some(result => result.url === categoryUrl('laboratories', 'imaging')));
+  assert.ok(sonarResults.some(result => result.url === categoryUrl('cars', 'car-sonar')));
+  assert.equal(getDirectDirectoryMatch(sonarResults), undefined);
+  for (const query of ['سونار سيارات', 'فحص سونار', 'فحص سيارة', 'فحص سيارات']) {
+    assert.equal(top(query), categoryUrl('cars', 'car-sonar'), query);
+  }
 });
 
 test('simple misspellings and dialect variants stay searchable', () => {

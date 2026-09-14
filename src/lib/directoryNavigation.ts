@@ -28,6 +28,16 @@ export interface ServiceNavigationState extends DirectoryNavigationState {
   serviceCategoryUrl: string;
 }
 
+export function openServiceCategory(
+  navigate: NavigateFunction, location: DirectoryLocation,
+  service: Pick<Service, 'categorySlug'>,
+  placement?: { sectionSlug: string; childSlug?: string },
+): void {
+  navigate(categoryUrl(placement?.sectionSlug ?? service.categorySlug, placement?.childSlug), {
+    state: directoryEntryState(location),
+  });
+}
+
 export function openServiceDetails(
   navigate: NavigateFunction, location: DirectoryLocation,
   service: Service, placement?: { sectionSlug: string; childSlug?: string },

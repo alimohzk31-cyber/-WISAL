@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState, useEffect } from 'react';
 import { useParams, useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, MapPin, Phone, Clock, Briefcase, Navigation, UserPlus, XCircle, Hourglass, Menu } from 'lucide-react';
 import { colorMap, colorMapRedWhite } from '../data/categories';
@@ -6,9 +6,9 @@ import { useCategories } from '../hooks/useCategories';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
 import { useServices } from '../context/ServicesContext';
 import { Service } from '../hooks/useServices';
-import AddServiceModal from '../components/AddServiceModal';
+const AddServiceModal = lazy(() => import('../components/AddServiceModal'));
 import ServiceDetailModal from '../components/ServiceDetailModal';
-import SafeImage from '../components/SafeImage';
+import { LazyServiceCardImage } from '../components/LazyServiceMedia';
 import ServiceStatusBadge from '../components/ServiceStatusBadge';
 import EmptyState from '../components/ui/EmptyState';
 import LoadingState from '../components/ui/LoadingState';
@@ -108,14 +108,22 @@ export default function CategoryPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const routePlacement = resolveRoute(id ?? '', searchParams.get('sub') ?? undefined);
+  // ---------------- اختيار القسم الفرعي (الإصلاح الجذري) ----------------
+  // احترام نية المستخدم الصريحة: sub=all أو غياب المعامل تماماً يعني عرض كل
+  // خدمات القسم (بما فيها الخدمات التابعة للقسم الرئيسي دون تخصص فرعي).
+  // سابقاً كان resolveRoute يفرض "أول قسم فرعي" افتراضياً حتى بدون sub=،
+  // وكانت فلترة الصفحة تلتزم به افتراضياً فتُخفي كل الخدمات التي لا childSlug
+  // لها رغم ظهورها في صفحة التصفح — وهذا هو سبب "القسم يفتح فارغاً".
+  const rawSub = searchParams.get('sub');
+  const hasExplicitSubCategory = rawSub != null && rawSub !== '' && rawSub !== 'all';
+  const routePlacement = resolveRoute(id ?? '', hasExplicitSubCategory ? rawSub : undefined);
   const category = sections.find(item => item.slug === routePlacement?.sectionSlug);
   const [isAddingService, setIsAddingService] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isSubcategoryMenuOpen, setIsSubcategoryMenuOpen] = useState(false);
   const subcategoryMenuRef = useRef<HTMLDivElement>(null);
-  const activeSubCategory = routePlacement?.childSlug ?? 'all';
-  const hasExplicitSubCategory = searchParams.has('sub');
+  // sub=all أو بلا sub => view كل الأقسام؛ مع sub صريح => view ذلك الفرع فقط.
+  const activeSubCategory = hasExplicitSubCategory ? (routePlacement?.childSlug ?? 'all') : 'all';
   const { primaryColor, theme } = useOutletContext<{ primaryColor: string, theme: string }>();
   
   // Modal details belong to the current directory entry only.
@@ -172,7 +180,19 @@ export default function CategoryPage() {
   );
   const joinCategory = category.sources.find(source => source.dbId != null && locateCategory(source.slug)?.childSlug === activeSubCategory)
     ?? category.sources.find(source => source.dbId != null && (!activeChild ||
-      locateService({ categorySlug: source.slug, categoryId: source.dbId, profession: activeChild.name })?.childSlug === activeChild.slug));
+      locateService({ categorySlug: source.slug, categoryId: source.dbId, profession: activeChild.name })?.childSlug === activeChild.slug))
+    // بعض أقسام العرض الجديدة (مثل الألمنيوم) لا تملك صفاً مستقلاً في قواعد
+    // البيانات القديمة. استخدم صف التخزين الحقيقي المتوافق فقط عندما يعيد
+    // locateService نفس القسم/التخصص؛ تبقى هوية DB صحيحة ولا تُخزَّن slug وهمية.
+    ?? categories.find(source => {
+      if (source.dbId == null) return false;
+      const placement = locateService({
+        categorySlug: source.slug,
+        categoryId: source.dbId,
+        profession: activeChild?.name ?? category.name,
+      });
+      return placement?.sectionSlug === category.slug && (!activeChild || placement.childSlug === activeChild.slug);
+    });
   // The directory resolves icons locally, including legacy custom categories.
   const Icon = category.icon;
   // Buttons/functional elements keep the theme accent palette (unchanged).
@@ -223,6 +243,20 @@ export default function CategoryPage() {
                   transition={{ duration: 0.16 }}
                   className="absolute right-0 top-full z-30 mt-2 max-h-[60vh] w-64 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
                 >
+<button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={activeSubCategory === 'all'}
+                    onClick={() => chooseSubCategory('all')}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-right text-sm font-bold transition-colors ${
+                      activeSubCategory === 'all'
+                        ? 'bg-[var(--accent-soft)] text-[var(--text-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--accent-soft)]'
+                    }`}
+                  >
+                    <span>كل الأقسام</span>
+                    {activeSubCategory === 'all' && <span className="h-2 w-2 shrink-0 rounded-full bg-current" aria-hidden="true" />}
+                  </button>
                   {subCategories.map(sub => {
                     const isActive = activeSubCategory === sub.slug;
                     return (
@@ -293,12 +327,7 @@ export default function CategoryPage() {
 
               {/* Simple Image Section */}
               <div className="aspect-square overflow-hidden relative">
-                <SafeImage
-                  src={service.image}
-                  alt={service.name}
-                  decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
+                <LazyServiceCardImage service={service} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 <div className={`absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent`} />
                 
                 {/* Quick Call Action Overlay */}
@@ -369,12 +398,14 @@ export default function CategoryPage() {
       )}
 
       {isAddingService && (
+        <Suspense fallback={null}>
         <AddServiceModal 
           joinSection={{ slug: category.slug, name: activeChild ? `${category.name} (${activeChild.name})` : category.name, childSlug: activeChild?.slug }}
           initialCategorySlug={joinCategory?.slug ?? ''}
           initialProfession={activeChild?.name}
           onClose={() => setIsAddingService(false)} 
         />
+        </Suspense>
       )}
 
       <AnimatePresence>

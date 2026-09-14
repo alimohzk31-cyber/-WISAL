@@ -153,7 +153,7 @@ export default function MessagesManager() {
                   {hasImage && (
                     <div className="shrink-0">
                       <a href={msg.image_url!} target="_blank" rel="noopener noreferrer">
-                        <img src={msg.image_url!} alt="مرفق الاقتراح" className="w-full sm:w-36 h-28 object-cover rounded-xl border border-[var(--border)]" />
+                        <img src={msg.image_url!} alt="مرفق الاقتراح" loading="lazy" decoding="async" className="w-full sm:w-36 h-28 object-cover rounded-xl border border-[var(--border)]" />
                       </a>
                     </div>
                   )}

@@ -19,3 +19,22 @@ export const SLIDE_TEXT_ALIGN: Record<string, 'right' | 'center' | 'left'> = {
   center: 'center',
   left: 'left'
 };
+
+/**
+ * الإطار البصري المشترك لسلايدر التصفح وسلايدر الوظائف.
+ * إبقاؤه هنا يمنع اختلاف العرض/الارتفاع/الزوايا بين الصفحتين مستقبلًا.
+ */
+export const BROWSE_SLIDER_FRAME_CLASS =
+  'relative mx-auto h-[165px] w-full max-w-5xl select-none overflow-hidden rounded-3xl shadow-2xl sm:h-[170px] md:h-[230px]';
+
+export const BROWSE_SLIDER_IMAGE_CLASS =
+  'absolute inset-0 h-full w-full object-cover object-center';
+
+export type SliderSwipeAction = 'next' | 'previous' | null;
+
+/** RTL swipe direction shared by touch and mouse pointer events. */
+export function getSliderSwipeAction(startX: number, endX: number, threshold = 40): SliderSwipeAction {
+  const distance = endX - startX;
+  if (Math.abs(distance) < threshold) return null;
+  return distance > 0 ? 'previous' : 'next';
+}

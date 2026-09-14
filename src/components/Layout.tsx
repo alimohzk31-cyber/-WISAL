@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Info, Heart, MessageSquareWarning, Menu, Search, Palette, Bell, PackageCheck, BriefcaseBusiness } from 'lucide-react';
+import { Bookmark, Info, Heart, MessageSquareWarning, Menu, Search, Palette, Bell, PackageCheck } from 'lucide-react';
 import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
 const SuggestionsFeedModal = lazy(() => import('./SuggestionsFeedModal'));
@@ -179,10 +179,6 @@ export default function Layout() {
 
           {/* Left: ☰ Main Menu — 5 items, Admin outside */}
           <div className="relative" ref={mainMenuRef}>
-            <Link to="/jobs" aria-label="البحث عن وظيفة" className="group absolute left-full top-1/2 ml-2 flex -translate-y-1/2 flex-col items-center text-[var(--accent-primary)]">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm"><BriefcaseBusiness className="h-6 w-6" /></span>
-              <motion.span initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0] }} transition={{ duration: 5, repeat: Infinity, times: [0, .2, .75, 1] }} className="absolute top-full mt-1 whitespace-nowrap text-[9px] font-bold">البحث عن وظيفة</motion.span>
-            </Link>
             <button
               type="button"
               onClick={() => setShowMainMenu(value => !value)}
@@ -229,6 +225,14 @@ export default function Layout() {
                     <MessageSquareWarning className="h-5 w-5 text-teal-500" />
                     الاقتراحات
                   </button>
+                  <Link
+                    to="/saved"
+                    onClick={() => setShowMainMenu(false)}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-amber-500/10"
+                  >
+                    <Bookmark className="h-5 w-5 text-amber-500" />
+                    الخدمات المحفوظة
+                  </Link>
                   {/* 3. 🔎 البحث الذكي — نافذة عائمة صغيرة داخل نفس الصفحة */}
                   <button
                     type="button"

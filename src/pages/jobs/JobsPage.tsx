@@ -25,15 +25,25 @@ export default function JobsPage() {
   }), [jobs, filters]);
 
   return <main className="mx-auto max-w-6xl space-y-6 pb-12" dir="rtl">
+    <JobsSlider managedSlides={presentation.slides} settings={presentation.settings} jobs={jobs} />
+
+    {/* زر + الدائري: يفتح نفس نموذج إضافة الوظيفة الحالي */}
+    <button
+      type="button"
+      onClick={() => setAddOpen(true)}
+      aria-label="إضافة وظيفة"
+      className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-primary)] text-white shadow-[var(--shadow-lg)] transition hover:brightness-110 active:scale-95 sm:h-14 sm:w-14"
+    >
+      <Plus className="h-6 w-6 sm:h-7 sm:w-7" />
+    </button>
+
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent-primary)]"><BriefcaseBusiness className="h-6 w-6" /></span>
         <div><h1 className="text-2xl font-black text-[var(--text-primary)] sm:text-3xl">البحث عن وظيفة</h1><p className="mt-1 text-sm font-bold text-[var(--text-muted)]">اعثر على الفرصة المناسبة حسب اختصاصك وموقعك</p></div>
       </div>
-      <button onClick={() => setAddOpen(true)} className="inline-flex items-center justify-center gap-2 self-stretch rounded-2xl bg-[var(--accent-primary)] px-5 py-3 text-sm font-black text-white shadow-[var(--shadow)] transition hover:brightness-110 sm:self-auto"><Plus className="h-5 w-5" />إضافة وظيفة</button>
     </header>
 
-    <JobsSlider managedSlides={presentation.slides} settings={presentation.settings} jobs={jobs} />
 
     <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow)] sm:p-5">
       <div className="mb-3 flex items-center gap-2 text-sm font-black text-[var(--text-primary)]"><SlidersHorizontal className="h-4 w-4 text-[var(--accent-primary)]" />البحث والتصفية</div>

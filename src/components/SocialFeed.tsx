@@ -12,9 +12,15 @@ import ServicePublicationTime from './ServicePublicationTime';
 import { getServicePublicationTimestamp } from '../lib/servicePublicationTime';
 import { LazyServiceGallery } from './LazyServiceMedia';
 import { getBrowseDescriptionPreview } from '../lib/browseServiceCard';
+import { useSavedServices } from '../hooks/useSavedServices';
+import type { Service } from '../types/models';
 
 interface SocialFeedProps {
-  onAddService: () => void;
+  onAddService?: () => void;
+  services?: Service[];
+  showAddButton?: boolean;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 function getBrowseImages(service: { image?: string; images?: string[] }): string[] {
@@ -22,12 +28,20 @@ function getBrowseImages(service: { image?: string; images?: string[] }): string
     .filter((image): image is string => typeof image === 'string' && image.trim().length > 0)));
 }
 
-function SocialFeed({ onAddService }: SocialFeedProps) {
+function SocialFeed({
+  onAddService,
+  services,
+  showAddButton = true,
+  emptyTitle = 'لا توجد منشورات للعرض حاليًا',
+  emptyDescription = 'ستظهر هنا الخدمات المعتمدة عند توفرها.',
+}: SocialFeedProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { publicServices } = useServices();
   const { categories } = useCategories();
   const { sections, locateService } = useCategoryDirectory(categories, publicServices);
+  const { savedIds, toggleSaved } = useSavedServices();
+  const sourceServices = services ?? publicServices;
 
   // التصفح الاجتماعي يعرض الخدمات المعتمدة للجميع، بالإضافة إلى الخدمات التي
   // أضافها هذا الجهاز وما زالت قيد المراجعة (تظهر له فوراً بعد الإضافة
@@ -35,9 +49,9 @@ function SocialFeed({ onAddService }: SocialFeedProps) {
   // ملاحظة أداء/صحة: نسخة قبل الفرز (spread) — الفرز مكانياً (mutate) كان
   // يعيد ترتيب مصفوفة publicServices المشتركة مع باقي الصفحات ويُبطل الكاش.
   const feedItems = useMemo(() => {
-    return [...publicServices]
+    return [...sourceServices]
       .sort((a, b) => getServicePublicationTimestamp(b) - getServicePublicationTimestamp(a));
-  }, [publicServices]);
+  }, [sourceServices]);
   const [visibleCount, setVisibleCount] = useState(12);
   const [expandedServices, setExpandedServices] = useState<Set<string>>(() => new Set());
   const visibleItems = useMemo(() => feedItems.slice(0, visibleCount), [feedItems, visibleCount]);
@@ -66,8 +80,8 @@ function SocialFeed({ onAddService }: SocialFeedProps) {
       {feedItems.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--card)] px-6 py-16 text-center">
           <MessageCircle className="mx-auto mb-4 h-10 w-10 text-[var(--text-muted)]" />
-          <h2 className="text-lg font-bold text-[var(--text-primary)]">لا توجد منشورات للعرض حاليًا</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">ستظهر هنا الخدمات المعتمدة عند توفرها.</p>
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">{emptyTitle}</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{emptyDescription}</p>
         </div>
       ) : (
         visibleItems.map((service) => {
@@ -117,8 +131,8 @@ function SocialFeed({ onAddService }: SocialFeedProps) {
                 )}
 
                 {description.text && (
-                  <p id={`browse-details-${serviceKey}`} className="text-sm leading-6 text-[var(--text-muted)]">
-                    <span className="transition-opacity duration-150">
+                  <p id={`browse-details-${serviceKey}`} className={`text-sm leading-6 text-[var(--text-muted)] ${expanded ? '' : 'flex min-w-0 items-center gap-1'}`}>
+                    <span className={`transition-opacity duration-150 ${expanded ? '' : 'min-w-0 flex-1 truncate'}`}>
                       {expanded ? service.experience?.trim() : description.text}
                     </span>{' '}
                     {description.truncated && (
@@ -146,6 +160,9 @@ function SocialFeed({ onAddService }: SocialFeedProps) {
                   onToggleReaction={(type) => toggleReaction(service.id!, type)}
                   onAddComment={async (content) => { await addComment(service.id!, content); }}
                   onDeleteComment={deleteComment}
+                  views={service.views}
+                  saved={savedIds.has(String(service.id))}
+                  onToggleSaved={() => toggleSaved(service.id!)}
                 />
               )}
 
@@ -164,7 +181,7 @@ function SocialFeed({ onAddService }: SocialFeedProps) {
           عرض المزيد
         </button>
       )}
-      <button
+      {showAddButton && onAddService && <button
         type="button"
         onClick={onAddService}
         aria-label="إضافة خدمة"
@@ -173,7 +190,7 @@ function SocialFeed({ onAddService }: SocialFeedProps) {
         style={{ backgroundColor: 'var(--accent-primary)' }}
       >
         <Plus className="h-8 w-8" />
-      </button>
+      </button>}
     </section>
   );
 }

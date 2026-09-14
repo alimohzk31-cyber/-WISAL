@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { usePageVisible } from '../hooks/usePageVisible';
-import { Search, Compass, LayoutGrid, Mic, MicOff, Loader2 } from 'lucide-react';
+import { Search, Compass, LayoutGrid, BriefcaseBusiness, Mic, MicOff, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { colorMapRedWhite } from '../data/categories';
 import { useCategories } from '../hooks/useCategories';
@@ -231,9 +231,9 @@ export default function Home() {
 
   // Fallback للصورة الحالية في السلايدر: إذا فشل تحميلها تُستبدل بصورة بديلة آمنة
   // (data-URI) مرة واحدة فقط — حارس الـ fallback يمنع أي loop حتى لو فشل البديل.
-  const { src: currentSlideSrc, onError: handleCurrentSlideError } = useImageFallback(
-    (activeSlides[currentImageIndex] ?? activeSlides[0])?.url || ''
-  );
+  const currentSlide = activeSlides[currentImageIndex] ?? activeSlides[0];
+  const currentSlideHasContent = Boolean(currentSlide?.title || currentSlide?.subtitle || currentSlide?.button_text);
+  const { src: currentSlideSrc, onError: handleCurrentSlideError } = useImageFallback(currentSlide?.url || '');
 
   useEffect(() => {
     if (activeSlides.length === 0) {
@@ -299,7 +299,7 @@ export default function Home() {
   useEffect(() => () => recognitionRef.current?.stop(), []);
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-500 relative">
+    <div className="space-y-6 animate-in fade-in duration-500 relative">
       {/* Ambient Background Lights — ثابتة بدون حركة JS (كانت تسبب لاقاً حاداً
           على الهاتف: 3 عناصر بـ blur ضخم تُعاد رسمها كل إطار بلا نهاية). الشكل
           البصري (توهج محيطي) محفوظ لكن بتكلفة رسم واحدة فقط. */}
@@ -341,12 +341,10 @@ export default function Home() {
               />
             </AnimatePresence>
             
-            {/* نص الشريحة: فقط ما يحدده المدير (عنوان/وصف/زر) — بدون أي خلفية أو
-                طبقة تعتيم أو gradient فوق الصورة. مكان النص ومحاذاته من إعدادات الشريحة.
-                إذا لم يُدخل المدير نصاً تظهر الصورة وحدها. */}
-            <div
+            {/* النص Overlay فوق الصورة الكاملة؛ لا توجد لوحة أو خلفية منفصلة خلفه. */}
+            {currentSlideHasContent && <div
               dir={activeSlides[currentImageIndex]?.language === 'en' ? 'ltr' : 'rtl'}
-              className={`absolute inset-0 flex flex-col px-4 z-10 pointer-events-none ${SLIDE_POSITION_CLASSES[activeSlides[currentImageIndex]?.text_position || 'bottom']}`}
+              className={`absolute inset-0 z-10 flex flex-col overflow-hidden px-4 pointer-events-none sm:px-6 ${SLIDE_POSITION_CLASSES[activeSlides[currentImageIndex]?.text_position || 'bottom']}`}
               style={{
                 textAlign: SLIDE_TEXT_ALIGN[activeSlides[currentImageIndex]?.text_align || 'center'],
                 fontFamily: `'${activeSlides[currentImageIndex]?.font_family || 'Cairo'}', Cairo, sans-serif`,
@@ -359,7 +357,7 @@ export default function Home() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                    className="text-2xl md:text-5xl font-bold mb-1.5 md:mb-2 w-full drop-shadow-sm"
+                    className="mb-1.5 w-full text-2xl font-bold leading-tight drop-shadow-sm md:mb-2 md:text-5xl"
                     style={{
                       color: activeSlides[currentImageIndex]?.text_color || '#FFFFFF',
                       fontSize: activeSlides[currentImageIndex]?.font_size
@@ -377,7 +375,7 @@ export default function Home() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
-                    className="text-sm md:text-xl max-w-2xl font-bold w-full drop-shadow-sm"
+                    className="w-full max-w-2xl text-sm font-bold leading-relaxed drop-shadow-sm md:text-xl"
                     style={{ color: activeSlides[currentImageIndex]?.text_color || '#FFFFFF' }}
                   >
                     {activeSlides[currentImageIndex].subtitle}
@@ -391,13 +389,13 @@ export default function Home() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.5 }}
-                    className="pointer-events-auto inline-block mt-2.5 md:mt-3 px-5 md:px-6 py-2 md:py-2.5 rounded-xl text-sm md:text-base font-bold text-white shadow-lg hover:brightness-110 hover:scale-[1.03] active:scale-95 transition-all"
+                    className="pointer-events-auto mt-2.5 inline-block rounded-xl px-5 py-2 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.03] hover:brightness-110 active:scale-95 md:mt-3 md:px-6 md:py-2.5 md:text-base"
                     style={{ backgroundColor: activeSlides[currentImageIndex]?.button_color || '#7C3AED' }}
                   >
                     {activeSlides[currentImageIndex].button_text}
                   </motion.a>
                 ) : null}
-            </div>
+            </div>}
 
             {/* Slider Indicators (clickable) - تظهر فقط مع أكثر من شريحة */}
             {activeSlides.length > 1 && (
@@ -431,26 +429,35 @@ export default function Home() {
         )}
       </div>
 
-      {/* Primary navigation: the only two destinations below the slider. */}
-      <nav className="relative z-10 mx-auto -mt-6 flex w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-1.5 shadow-[var(--shadow-lg)]" aria-label="التنقل الرئيسي">
+      {/* Primary navigation: three destinations below the slider — التصفح | الخدمات | البحث عن وظيفة */}
+      <nav className="relative z-10 mx-auto -mt-4 flex w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-1.5 shadow-[var(--shadow-lg)]" aria-label="التنقل الرئيسي">
         <button
           type="button"
           onClick={() => setActiveView('browse')}
           aria-pressed={activeView === 'browse'}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${activeView === 'browse' ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)]'}`}
+          className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-3 text-[11px] font-bold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${activeView === 'browse' ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)]'}`}
         >
-          <Compass className="h-5 w-5" />
+          <Compass className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
           التصفح
         </button>
         <button
           type="button"
           onClick={() => setActiveView('services')}
           aria-pressed={activeView === 'services'}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${activeView === 'services' ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)]'}`}
+          className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-3 text-[11px] font-bold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${activeView === 'services' ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)]'}`}
         >
-          <LayoutGrid className="h-5 w-5" />
+          <LayoutGrid className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
           الخدمات
         </button>
+        {/* يفتح صفحة الوظائف الحالية نفسها (نفس المسار /jobs) بنفس أيقونة الحقيبة */}
+        <Link
+          to="/jobs"
+          aria-label="البحث عن وظيفة"
+          className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-3 text-[11px] font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)] sm:gap-2 sm:px-4 sm:text-sm"
+        >
+          <BriefcaseBusiness className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+          البحث عن وظيفة
+        </Link>
       </nav>
 
       {activeView === 'browse' ? <SocialFeed onAddService={openAddService} /> : <>

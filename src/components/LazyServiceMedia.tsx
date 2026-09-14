@@ -63,7 +63,7 @@ export function LazyServiceGallery({ service, images }: { service: Service; imag
   const resolvedImages = images.length ? images : image ? [image] : [];
   if (settled && resolvedImages.length === 0) return null;
   return (
-    <div ref={hostRef} className="min-h-52 bg-[var(--bg-secondary)] sm:min-h-60">
+    <div ref={hostRef} className="w-full bg-[var(--bg-secondary)]">
       {resolvedImages.length
         ? <BrowseServiceGallery images={[resolvedImages[0]]} alt={service.name} compact />
         : <div className="h-52 animate-pulse bg-[var(--bg-secondary)] sm:h-60" role="status" aria-label="جارٍ تحميل الصورة" />}

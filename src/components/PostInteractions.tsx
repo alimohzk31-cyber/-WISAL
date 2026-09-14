@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Trash2, MessageCircle, ThumbsUp } from 'lucide-react';
+import { Bookmark, Eye, Send, Loader2, Trash2, MessageCircle, ThumbsUp } from 'lucide-react';
 import {
   REACTIONS,
   REACTION_META,
@@ -18,6 +18,9 @@ interface PostInteractionsProps {
   onToggleReaction: (type: ReactionType) => void;
   onAddComment: (content: string) => Promise<void>;
   onDeleteComment: (comment: PostComment) => void;
+  views?: number;
+  saved: boolean;
+  onToggleSaved: () => void;
 }
 
 function formatCommentTime(value?: string | null): string {
@@ -56,6 +59,9 @@ export default function PostInteractions({
   onToggleReaction,
   onAddComment,
   onDeleteComment,
+  views,
+  saved,
+  onToggleSaved,
 }: PostInteractionsProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -150,7 +156,8 @@ export default function PostInteractions({
   return (
     <>
       {/* شريط التفاعل مباشرة أسفل صورة المنشور */}
-      <div className="flex items-center gap-1.5 border-t border-[var(--border)] px-3 py-1.5 sm:px-4">
+      <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] px-2 py-1.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-0.5">
         {/* زر الإعجاب: ضغطة واحدة = Like، ضغط مطوّل = فتح قائمة التفاعلات */}
         <div className="relative">
           <button
@@ -164,7 +171,7 @@ export default function PostInteractions({
             aria-label="إعجاب — اضغط مطولاً لعرض التفاعلات"
             title="اضغط للإعجاب — اضغط مطولاً لعرض التفاعلات"
             draggable={false}
-            className={`flex select-none items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors hover:bg-[var(--accent-soft)] ${myReaction ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
+            className={`flex select-none items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${myReaction ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
           >
             {myReactionMeta ? (
@@ -212,7 +219,7 @@ export default function PostInteractions({
           onClick={() => setCommentsOpen((v) => !v)}
           aria-expanded={commentsOpen}
           aria-label="التعليقات"
-          className={`ms-auto flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors hover:bg-[var(--accent-soft)] ${commentsOpen ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
+          className={`flex items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${commentsOpen ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
         >
           <MessageCircle className="h-4 w-4" />
           <span>تعليق</span>
@@ -222,6 +229,23 @@ export default function PostInteractions({
             </span>
           )}
         </button>
+        <button
+          type="button"
+          onClick={onToggleSaved}
+          aria-pressed={saved}
+          aria-label={saved ? 'إزالة من الخدمات المحفوظة' : 'حفظ الخدمة'}
+          className={`flex items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${saved ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
+        >
+          <Bookmark className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
+          <span>{saved ? 'محفوظ' : 'حفظ'}</span>
+        </button>
+        </div>
+
+        <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--text-muted)]" aria-label={views === undefined ? 'عدد الزيارات غير متاح' : `${views} زيارة`}>
+          <Eye className="h-4 w-4" />
+          {views === undefined ? '—' : views.toLocaleString('ar-IQ')}
+          <span className="hidden sm:inline">زيارة</span>
+        </span>
       </div>
 
       {/* نافذة التعليقات المنسدلة داخل المنشور */}

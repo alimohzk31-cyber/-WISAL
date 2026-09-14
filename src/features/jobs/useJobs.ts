@@ -88,7 +88,7 @@ export function useJobs() {
     };
   }, [load]);
   useEffect(() => {
-    const channel = supabase.channel('public-jobs-live')
+    const channel = supabase.channel(`public-jobs-live-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { void load(true); })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };

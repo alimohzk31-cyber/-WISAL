@@ -76,7 +76,7 @@ export function useJobPresentation() {
     const refreshOnline = () => refresh(true);
     window.addEventListener('online', refreshOnline);
     window.addEventListener(APP_ONLINE_EVENT, refreshOnline);
-    const channel = supabase.channel('job-presentation-live')
+    const channel = supabase.channel(`job-presentation-live-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'job_slides' }, () => refresh(true))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'job_categories' }, () => refresh(true))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'job_slider_settings' }, () => refresh(true))

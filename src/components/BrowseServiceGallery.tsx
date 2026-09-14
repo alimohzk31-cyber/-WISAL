@@ -276,7 +276,7 @@ export default function BrowseServiceGallery({ images, alt, compact = false }: B
             alt={`${alt}${hasMultiple ? ` — الصورة ${index + 1}` : ''}`}
             draggable={false}
             className={compact
-              ? 'mx-auto block h-52 w-full select-none object-contain object-center sm:h-60'
+              ? 'mx-auto block h-auto max-h-[32rem] w-full select-none object-contain object-center'
               : 'mx-auto block h-auto max-h-[min(70dvh,42rem)] w-full select-none object-contain object-center'}
           />
         </button>

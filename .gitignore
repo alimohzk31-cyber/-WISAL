@@ -44,6 +44,10 @@ release/
 /tdir.txt
 /_fetch_chunk.txt
 android/_gradle.txt
+scripts/tmp-*
+scripts/*-mobile.png
+scripts/*-visual-result.json
+scripts/*-visual-dry.txt
 *.tsbuildinfo
 *.tmp
 *.temp
@@ -69,3 +73,12 @@ android/app/google-services.json
 
 # Portable source package generated locally
 /wisal-upload.zip
+*.apk
+*.aab
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Uncompressed working copies of generated slider banners (JPEGs are shipped)
+/public/slider-banners/**/*.png

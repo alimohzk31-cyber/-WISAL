@@ -10,6 +10,9 @@ async function listFiles(directory, prefix = '') {
   for (const entry of entries) {
     const relative = path.posix.join(prefix, entry.name);
     if (relative === 'sw.js' || relative.startsWith('.vite/')) continue;
+    // Keep uncompressed working copies out of the precache. Published slider
+    // banners use the optimized JPEG files under public/slider-banners.
+    if (relative.startsWith('slider-banners/') && relative.endsWith('.png')) continue;
     if (entry.isDirectory()) files.push(...await listFiles(path.join(directory, entry.name), relative));
     else files.push(relative);
   }

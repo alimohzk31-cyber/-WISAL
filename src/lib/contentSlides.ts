@@ -18,17 +18,17 @@ export interface ContentSlide {
   jobId?: string | number;
 }
 
-/** Optional local visual QA switch. Live approved content is the default. */
-export const SLIDER_DEMO_MODE = String((import.meta as any).env?.VITE_SLIDER_DEMO_MODE ?? 'false').toLowerCase() === 'true';
-const SERVICE_DEMO_LABELS = ['كهربائي منازل', 'سباك', 'صيدلية', 'طبيب', 'مطعم', 'ميكانيكي سيارات', 'بناء وإنشاءات', 'ألواح طاقة شمسية', 'ملابس', 'هواتف وصيانة'];
-const JOB_DEMO_LABELS = ['موظف مبيعات', 'محاسب', 'سائق', 'عامل مطعم', 'كهربائي', 'موظف مكتب', 'مصمم', 'مبرمج', 'مندوب توصيل', 'تدريب عن بُعد'];
+/** Local banner set is enabled by default; live approved content remains opt-in. */
+export const SLIDER_DEMO_MODE = String((import.meta as any).env?.VITE_SLIDER_DEMO_MODE ?? 'true').toLowerCase() === 'true';
+const SERVICE_DEMO_LABELS = ['سباك', 'كهربائي', 'ميكانيكي سيارات', 'طبيب', 'صيدلية', 'مطعم', 'بناء وإنشاءات', 'ألمنيوم', 'PVC', 'ملابس', 'هواتف وصيانة', 'طاقة شمسية', 'خياطة', 'نجارة', 'تنظيف منازل', 'تصوير', 'نقل أثاث', 'حدائق', 'تبريد وتكييف', 'حدادة'];
+const JOB_DEMO_LABELS = ['موظف مكتب', 'محاسب', 'مبرمج', 'مصمم', 'موظف مبيعات', 'سائق', 'مهندس', 'عمل عن بُعد', 'عامل مطعم', 'مندوب توصيل', 'مسوق رقمي', 'معلم', 'ممرض', 'مهندس معماري', 'دعم فني', 'عامل مخزن', 'خدمة زبائن', 'مصور', 'موظف موارد بشرية', 'متدرب'];
 
 function demoSlides(group: 'services' | 'jobs', labels: readonly string[]): ContentSlide[] {
   return labels.map((title, index) => ({
     id: `demo-${group}-${index + 1}`,
     title,
     category: group === 'services' ? 'خدمات وصال' : 'فرص وصال',
-    imageUrl: `/slider-demo/${group}/${group === 'services' ? 'service' : 'job'}-${String(index + 1).padStart(2, '0')}.png`,
+    imageUrl: `/slider-banners/${group}/${group === 'services' ? 'service' : 'job'}-${String(index + 1).padStart(2, '0')}.jpg`,
     href: group === 'services' ? '/?view=services' : '/jobs',
   }));
 }

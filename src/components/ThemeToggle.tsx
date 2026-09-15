@@ -15,12 +15,14 @@ const THEME_LABELS: Record<string, string> = {
   light: 'Light',
   royal: 'Royal Purple',
   red: '🔴 الأبيض والأحمر',
+  blue: 'السماوي / الأزرق',
 };
 
 const THEME_SWATCHES: Record<string, string> = {
   light: '#DAD7D2',
   royal: '#6A0DAD',
   red: '#D90429',
+  blue: '#087CFF',
 };
 
 const THEME_OPTIONS: ThemeOption[] = SELECTABLE_THEMES.map((id) => ({
@@ -117,4 +119,3 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false }:
     </div>
   );
 }
-

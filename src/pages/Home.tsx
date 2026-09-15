@@ -1,21 +1,17 @@
 import { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
-import { usePageVisible } from '../hooks/usePageVisible';
 import { Search, Compass, LayoutGrid, BriefcaseBusiness, Mic, MicOff, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { colorMapRedWhite } from '../data/categories';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
 import { useServices } from '../context/ServicesContext';
-import { motion, AnimatePresence } from 'motion/react';
-
-import { useSlider, getSlideDuration } from '../hooks/useSlider';
 
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
-import { useImageFallback } from '../components/SafeImage';
-import { BROWSE_SLIDER_FRAME_CLASS, BROWSE_SLIDER_IMAGE_CLASS, SLIDE_POSITION_CLASSES, SLIDE_TEXT_ALIGN } from '../data/slideStyles';
 import SocialFeed from '../components/SocialFeed';
+import ContentSlider from '../components/ContentSlider';
+import { buildServiceContentSlides, DEMO_SERVICE_SLIDES, SLIDER_DEMO_MODE } from '../lib/contentSlides';
 const AddServiceModal = lazy(() => import('../components/AddServiceModal'));
 import ErrorState from '../components/ui/ErrorState';
 import { buildDirectorySearchIndex, searchDirectory, getDirectDirectoryMatch } from '../lib/directorySearch';
@@ -33,7 +29,6 @@ type SpeechRecognitionInstance = {
 };
 
 export default function Home() {
-  const pageVisible = usePageVisible();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeView = getHomeView(searchParams.toString());
   const setActiveView = (view: 'browse' | 'services') => setSearchParams(previous => {
@@ -60,7 +55,6 @@ export default function Home() {
   const openAddService = useCallback(() => setShowAddService(true), []);
   const [isListening, setIsListening] = useState(false);
   const [voiceError, setVoiceError] = useState('');
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const location = useLocation();
@@ -70,7 +64,6 @@ export default function Home() {
   const { categories } = useCategories();
   const { publicServices, loading: servicesLoading, error: servicesError, refreshServices } = useServices();
   const { sections, bySection, searchServices } = useCategoryDirectory(categories, publicServices);
-  const { ads: sliderAds, loading: sliderLoading, hasCachedData } = useSlider();
   const { t } = useLanguage();
   const resetScrollAfterRefresh = useRef(
     typeof performance !== 'undefined' && shouldResetHomeScrollOnLoad(
@@ -99,51 +92,7 @@ export default function Home() {
     return () => cancelAnimationFrame(frame);
   }, [tool]);
 
-  // Build active slide items (expanding multi-image ads).
-  // useMemo يمنع إعادة بناء المصفوفة في كل Render (مثلاً أثناء الكتابة في حقل
-  // البحث) وبالتالي يمنع إعادة تنفيذ Preload وتحميل الصور من الشبكة بلا داعٍ.
-  const activeSlides = useMemo(() => {
-    // قاعدة الظهور العامة: is_active فقط.
-    // السلايدر المفعل يبقى ظاهراً دائماً (اليوم/غداً/بعد أسبوع/بعد شهر) حتى يعطله
-    // المدير بنفسه أو يحذفه — لا يوجد أي شرط زمني (display_date / start_time / end_time)
-    // يمنع ظهوره. الأعمدة الزمنية تبقى في قاعدة البيانات وتظهر كمعلومات في لوحة الإدارة.
-    return sliderAds
-      .filter((ad) => ad.is_active !== false)
-      .flatMap((ad) => {
-        if (ad.images && ad.images.length > 0) {
-          return ad.images.map((imgUrl) => ({
-            url: imgUrl,
-            title: ad.title,
-            subtitle: ad.subtitle || '',
-            button_text: ad.button_text || '',
-            button_link: ad.button_link || '',
-            duration_seconds: ad.duration_seconds,
-            language: ad.language || 'ar',
-            font_family: ad.font_family || 'Cairo',
-            font_size: ad.font_size,
-            text_color: ad.text_color || '#FFFFFF',
-            button_color: ad.button_color || '#7C3AED',
-            text_position: ad.text_position || 'bottom',
-            text_align: ad.text_align || 'center'
-          }));
-        }
-        return [{
-          url: ad.url || '',
-          title: ad.title,
-          subtitle: ad.subtitle || '',
-          button_text: ad.button_text || '',
-          button_link: ad.button_link || '',
-          duration_seconds: ad.duration_seconds,
-          language: ad.language || 'ar',
-          font_family: ad.font_family || 'Cairo',
-          font_size: ad.font_size,
-          text_color: ad.text_color || '#FFFFFF',
-          button_color: ad.button_color || '#7C3AED',
-          text_position: ad.text_position || 'bottom',
-          text_align: ad.text_align || 'center'
-        }];
-      });
-  }, [sliderAds]);
+  const contentSlides = useMemo(() => SLIDER_DEMO_MODE ? DEMO_SERVICE_SLIDES : buildServiceContentSlides(publicServices, categories), [publicServices, categories]);
 
   // Scroll Restoration — معالج مُهذَّب: القيمة تُحفظ في متغير خلال التمرير
   // (rAF مرة واحدة لكل إطار كحد أقصى) والكتابة لـ sessionStorage تحدث مرة واحدة
@@ -189,68 +138,6 @@ export default function Home() {
       window.removeEventListener('pagehide', persistPosition);
     };
   }, [activeView]);
-
-  // Slider navigation: next / prev + swipe support (touch devices)
-  const nextSlide = useCallback(() => {
-    if (activeSlides.length > 0) setCurrentImageIndex((i) => (i + 1) % activeSlides.length);
-  }, [activeSlides.length]);
-  const prevSlide = useCallback(() => {
-    if (activeSlides.length > 0) setCurrentImageIndex((i) => (i - 1 + activeSlides.length) % activeSlides.length);
-  }, [activeSlides.length]);
-
-  const touchStartX = useRef<number | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(dx) > 40) {
-      // واجهة RTL: السحب لليمين = الشريحة السابقة، ولليسار = التالية
-      if (dx > 0) prevSlide(); else nextSlide();
-    }
-    touchStartX.current = null;
-  };
-
-  // Preload the next slide image so transitions stay smooth (no quality change).
-  // يعتمد على نص الرابط (primitive) وليس على المصفوفة كاملة، مع Set لحفظ الروابط
-  // التي تَمت معالجتها مسبقاً؛ فيُتجنَّب التنفيذ مع كل re-render أو تغيير بسيط
-  // في الصفحة، ولا يتكرر طلب الشبكة لنفس الرابط إطلاقاً (ولا إعادة محاولة بعد فشله).
-  const nextSlideUrl = activeSlides.length > 1
-    ? activeSlides[(currentImageIndex + 1) % activeSlides.length]?.url || ''
-    : '';
-  const preloadedUrlsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!nextSlideUrl || !pageVisible) return;
-    if (preloadedUrlsRef.current.has(nextSlideUrl)) return;
-    preloadedUrlsRef.current.add(nextSlideUrl);
-    const img = new Image();
-    img.src = nextSlideUrl;
-  }, [nextSlideUrl, pageVisible]);
-
-  // Fallback للصورة الحالية في السلايدر: إذا فشل تحميلها تُستبدل بصورة بديلة آمنة
-  // (data-URI) مرة واحدة فقط — حارس الـ fallback يمنع أي loop حتى لو فشل البديل.
-  const currentSlide = activeSlides[currentImageIndex] ?? activeSlides[0];
-  const currentSlideHasContent = Boolean(currentSlide?.title || currentSlide?.subtitle || currentSlide?.button_text);
-  const { src: currentSlideSrc, onError: handleCurrentSlideError } = useImageFallback(currentSlide?.url || '');
-
-  useEffect(() => {
-    if (activeSlides.length === 0) {
-      setCurrentImageIndex(0);
-      return;
-    }
-    if (activeSlides.length === 1 || !pageVisible) return;
-    // مدة العرض الحقيقية لكل شريحة تأتي من قاعدة البيانات (duration_seconds،
-    // الافتراضي 5 ثوانٍ، بحدود 2-60). نستخدم setTimeout لكل شريحة على حدة
-    // (وليس interval كل ثانية) ولا يوجد أي re-render وسيط.
-    const current = activeSlides[currentImageIndex] ?? activeSlides[0];
-    const durationMs = getSlideDuration(current) * 1000;
-    const timer = setTimeout(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % activeSlides.length);
-    }, durationMs);
-    return () => clearTimeout(timer);
-  }, [activeSlides, currentImageIndex, pageVisible]);
 
   // تصفية الأقسام — مُخزَّنة لتجنب إعادة الحساب في كل render (البحث يعيد الرسم
   // عند كل حرف، والتصفية تُحسب فقط عند تغير القائمة أو نص البحث)
@@ -315,119 +202,7 @@ export default function Home() {
         />
       </div>
 
-      {/* Welcome Slider Section */}
-      <div
-        className={`${BROWSE_SLIDER_FRAME_CLASS} group`}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {!sliderLoading && activeSlides.length > 0 ? (
-          <>
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={`slide-${currentImageIndex}-${activeSlides[currentImageIndex]?.url}`}
-                src={currentSlideSrc}
-                alt={activeSlides[currentImageIndex]?.title || 'وصال | WISAL'}
-                onError={handleCurrentSlideError}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-                className={BROWSE_SLIDER_IMAGE_CLASS}
-                draggable={false}
-                decoding="async"
-                loading={currentImageIndex === 0 ? 'eager' : 'lazy'}
-                fetchPriority={currentImageIndex === 0 ? 'high' : 'auto'}
-              />
-            </AnimatePresence>
-            
-            {/* النص Overlay فوق الصورة الكاملة؛ لا توجد لوحة أو خلفية منفصلة خلفه. */}
-            {currentSlideHasContent && <div
-              dir={activeSlides[currentImageIndex]?.language === 'en' ? 'ltr' : 'rtl'}
-              className={`absolute inset-0 z-10 flex flex-col overflow-hidden px-4 pointer-events-none sm:px-6 ${SLIDE_POSITION_CLASSES[activeSlides[currentImageIndex]?.text_position || 'bottom']}`}
-              style={{
-                textAlign: SLIDE_TEXT_ALIGN[activeSlides[currentImageIndex]?.text_align || 'center'],
-                fontFamily: `'${activeSlides[currentImageIndex]?.font_family || 'Cairo'}', Cairo, sans-serif`,
-              }}
-            >
-                {/* العنوان (يظهر فقط عند إدخاله من إعدادات السلايدر) */}
-                {activeSlides[currentImageIndex]?.title ? (
-                  <motion.h1
-                    key={`title-${currentImageIndex}`}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="mb-1.5 w-full text-2xl font-bold leading-tight drop-shadow-sm md:mb-2 md:text-5xl"
-                    style={{
-                      color: activeSlides[currentImageIndex]?.text_color || '#FFFFFF',
-                      fontSize: activeSlides[currentImageIndex]?.font_size
-                        ? `min(${activeSlides[currentImageIndex].font_size}px, 7vw)`
-                        : undefined
-                    }}
-                  >
-                    {activeSlides[currentImageIndex].title}
-                  </motion.h1>
-                ) : null}
-                {/* العنوان الفرعي (يظهر فقط عند إدخاله من إعدادات السلايدر) */}
-                {activeSlides[currentImageIndex]?.subtitle ? (
-                  <motion.p
-                    key={`subtitle-${currentImageIndex}`}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    className="w-full max-w-2xl text-sm font-bold leading-relaxed drop-shadow-sm md:text-xl"
-                    style={{ color: activeSlides[currentImageIndex]?.text_color || '#FFFFFF' }}
-                  >
-                    {activeSlides[currentImageIndex].subtitle}
-                  </motion.p>
-                ) : null}
-                {/* زر CTA (يظهر فقط عند إدخال نص الزر من إعدادات السلايدر) */}
-                {activeSlides[currentImageIndex]?.button_text ? (
-                  <motion.a
-                    key={`cta-${currentImageIndex}`}
-                    href={activeSlides[currentImageIndex].button_link || '#'}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    className="pointer-events-auto mt-2.5 inline-block rounded-xl px-5 py-2 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.03] hover:brightness-110 active:scale-95 md:mt-3 md:px-6 md:py-2.5 md:text-base"
-                    style={{ backgroundColor: activeSlides[currentImageIndex]?.button_color || '#7C3AED' }}
-                  >
-                    {activeSlides[currentImageIndex].button_text}
-                  </motion.a>
-                ) : null}
-            </div>}
-
-            {/* Slider Indicators (clickable) - تظهر فقط مع أكثر من شريحة */}
-            {activeSlides.length > 1 && (
-              <div className="absolute bottom-3 md:bottom-4 left-0 right-0 flex justify-center gap-1.5 z-20 px-4">
-                {activeSlides.map((_, idx) => (
-                  <button 
-                    key={`slider-indicator-${idx}`} 
-                    onClick={() => setCurrentImageIndex(idx)}
-                    aria-label={`الشريحة ${idx + 1}`}
-                    className={`h-1.5 rounded-full transition-all duration-500 ${idx === currentImageIndex ? 'w-6' : 'w-1.5 bg-white/60 hover:bg-white/90'}`}
-                    style={{ backgroundColor: idx === currentImageIndex ? primaryColor : undefined }}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        ) : !sliderLoading && activeSlides.length === 0 ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[var(--bg-secondary)]">
-            <h1 className="text-3xl md:text-5xl font-bold mb-4 z-10 text-[var(--text-primary)]">
-              {t('smart_guide')} <span style={{ color: primaryColor }}>{t('services')}</span>
-            </h1>
-            <p className="text-lg max-w-md font-bold z-10 text-[var(--text-secondary)]">
-              دليلك الشامل لجميع الخدمات المحلية المعتمدة
-            </p>
-          </div>
-        ) : (
-          <div className="absolute inset-0 animate-pulse bg-[var(--bg-secondary)]" role="status" aria-label="جارٍ تحميل السلايدر">
-            <div className="absolute inset-x-6 bottom-8 h-5 rounded-full bg-[var(--surface-elevated)]/70" />
-            <div className="absolute inset-x-16 bottom-16 h-8 rounded-full bg-[var(--surface-elevated)]/70" />
-          </div>
-        )}
-      </div>
+      <ContentSlider slides={contentSlides} loading={servicesLoading} label="الخدمات المعتمدة" testId="services-slider" imageFit="contain" />
 
       {/* Primary navigation: three destinations below the slider — التصفح | الخدمات | البحث عن وظيفة */}
       <nav className="relative z-10 mx-auto -mt-4 flex w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-1.5 shadow-[var(--shadow-lg)]" aria-label="التنقل الرئيسي">

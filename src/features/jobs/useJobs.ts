@@ -11,13 +11,29 @@ const JOBS_CACHE_TTL = 60_000;
 let jobsCache: { jobs: Job[]; at: number; configured: boolean; error: boolean } | null = null;
 let jobsRequest: Promise<typeof jobsCache> | null = null;
 let jobMediaColumnsSupported: boolean | null = null;
+let jobDetailColumnsSupported: boolean | null = null;
 
 const JOBS_BASE_COLUMNS = 'id,title,company,specialty,category_id,description,governorate,area,employment_type,salary,experience,qualification,phone,image_url,created_at,status,job_categories(name)';
-const JOBS_MEDIA_COLUMNS = `${JOBS_BASE_COLUMNS},image_urls,video_url`;
+const JOBS_MEDIA_COLUMNS = 'image_urls,video_url';
+const JOBS_DETAIL_COLUMNS = 'company_about,requirements,benefits,address,salary_negotiable,whatsapp,email,application_deadline,training_duration,training_paid,training_hiring_possible';
 
 function isMissingMediaColumns(error: any): boolean {
   const detail = `${error?.message || ''} ${error?.details || ''}`;
   return /image_urls|video_url/i.test(detail) && ['42703', 'PGRST100', 'PGRST204'].includes(String(error?.code || ''));
+}
+
+function isMissingDetailColumns(error: any): boolean {
+  const detail = `${error?.message || ''} ${error?.details || ''}`;
+  return /company_about|requirements|benefits|salary_negotiable|application_deadline|training_duration|training_paid|training_hiring_possible|whatsapp|address/i.test(detail)
+    && ['42703', 'PGRST100', 'PGRST204'].includes(String(error?.code || ''));
+}
+
+function selectedJobColumns() {
+  return [
+    JOBS_BASE_COLUMNS,
+    jobMediaColumnsSupported === false ? '' : JOBS_MEDIA_COLUMNS,
+    jobDetailColumnsSupported === false ? '' : JOBS_DETAIL_COLUMNS,
+  ].filter(Boolean).join(',');
 }
 
 async function fetchApprovedJobs(force = false) {
@@ -26,14 +42,21 @@ async function fetchApprovedJobs(force = false) {
   if (jobsRequest) return jobsRequest;
   jobsRequest = (async () => {
     let result: any = await supabase.from('jobs')
-      .select((jobMediaColumnsSupported === false ? JOBS_BASE_COLUMNS : JOBS_MEDIA_COLUMNS) as any)
+      .select(selectedJobColumns() as any)
       .eq('status', 'approved').order('created_at', { ascending: false });
+    if (result.error && jobDetailColumnsSupported !== false && isMissingDetailColumns(result.error)) {
+      jobDetailColumnsSupported = false;
+      result = await supabase.from('jobs').select(selectedJobColumns() as any)
+        .eq('status', 'approved').order('created_at', { ascending: false });
+    }
     if (result.error && jobMediaColumnsSupported !== false && isMissingMediaColumns(result.error)) {
       jobMediaColumnsSupported = false;
-      result = await supabase.from('jobs').select(JOBS_BASE_COLUMNS as any)
+      result = await supabase.from('jobs').select(selectedJobColumns() as any)
         .eq('status', 'approved').order('created_at', { ascending: false });
-    } else if (!result.error) {
-      jobMediaColumnsSupported = true;
+    }
+    if (!result.error) {
+      if (jobMediaColumnsSupported !== false) jobMediaColumnsSupported = true;
+      if (jobDetailColumnsSupported !== false) jobDetailColumnsSupported = true;
     }
     const { data, error } = result;
     const missing = error?.code === '42P01' || error?.code === 'PGRST205';
@@ -110,14 +133,19 @@ export function useJobs() {
         images: uploadedImages.map(item => item.publicUrl),
         video: uploadedVideo?.publicUrl,
       };
-      let { error } = await supabase.from('jobs').insert(newJobRow(savedJob, true));
+      let { error } = await supabase.from('jobs').insert(newJobRow(savedJob, true, true));
+      if (error && isMissingDetailColumns(error)) {
+        jobDetailColumnsSupported = false;
+        ({ error } = await supabase.from('jobs').insert(newJobRow(savedJob, true, false)));
+      }
       if (error && isMissingMediaColumns(error)) {
         jobMediaColumnsSupported = false;
         if (uploadedPaths.length) throw new Error('يلزم تنفيذ supabase_jobs_media_upgrade.sql لتفعيل صور وفيديو الوظائف.');
-        ({ error } = await supabase.from('jobs').insert(newJobRow(savedJob, false)));
+        ({ error } = await supabase.from('jobs').insert(newJobRow(savedJob, false, jobDetailColumnsSupported !== false)));
       }
       if (error) throw error;
-      jobMediaColumnsSupported = true;
+      if (jobMediaColumnsSupported !== false) jobMediaColumnsSupported = true;
+      if (jobDetailColumnsSupported !== false) jobDetailColumnsSupported = true;
     } catch (error) {
       await removeUploadedJobMedia(uploadedPaths);
       throw error;

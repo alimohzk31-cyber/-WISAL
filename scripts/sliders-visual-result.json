@@ -1,0 +1,512 @@
+{
+  "base": "http://127.0.0.1:3100",
+  "services": {
+    "approvedRows": 27,
+    "approvedWithImage": 27,
+    "slideCount": 12,
+    "observed": [
+      {
+        "slideId": "service-92",
+        "hasImageInDb": true,
+        "srcKind": "بديل-رمادي",
+        "natural": "800x600",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-93",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA",
+        "natural": "1024x1024",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-85",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA",
+        "natural": "1254x1254",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-86",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA",
+        "natural": "851x315",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-87",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA",
+        "natural": "1254x1254",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-88",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA",
+        "natural": "640x640",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-89",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA",
+        "natural": "1254x1254",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-90",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4QEvRXhpZgAATU0AKgA",
+        "natural": "1080x2460",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-91",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4QEvRXhpZgAATU0AKgA",
+        "natural": "1080x2460",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-84",
+        "hasImageInDb": true,
+        "srcKind": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA",
+        "natural": "512x512",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-83",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA",
+        "natural": "720x720",
+        "objectFit": "cover"
+      },
+      {
+        "slideId": "service-82",
+        "hasImageInDb": true,
+        "srcKind": "data:image/jpeg;base64,/9j/4QEvRXhpZgAATU0AKgA",
+        "natural": "1080x2460",
+        "objectFit": "cover"
+      }
+    ],
+    "observedCount": 12,
+    "fallbackCount": 1,
+    "wrongFallback": [
+      "service-92"
+    ],
+    "unloaded": []
+  },
+  "jobs": {
+    "approvedRows": 1,
+    "detail": {
+      "slideId": "job-6",
+      "frame": {
+        "width": 1024,
+        "height": 230
+      },
+      "frameRect": {
+        "x": 208,
+        "y": 105,
+        "width": 1024,
+        "height": 230
+      },
+      "renderedSlides": 1,
+      "dotCount": 0,
+      "hasBackdrop": true,
+      "foreground": {
+        "src": "https://nnxrjpitjxtceydlcxzm.supabase.co/storage/v1/object/public/service-media/jobs/images/1789410140354_o23gyc64.webp",
+        "isFallback": false,
+        "naturalWidth": 1254,
+        "naturalHeight": 1254,
+        "objectFit": "contain",
+        "filter": "none",
+        "boxWidth": 1024,
+        "boxHeight": 230
+      },
+      "backdrop": {
+        "src": "https://nnxrjpitjxtceydlcxzm.supabase.co/storage/v1/object/public/service-media/jobs/images/1789410140354_o23gyc64.webp",
+        "isFallback": false,
+        "naturalWidth": 1254,
+        "naturalHeight": 1254,
+        "objectFit": "cover",
+        "filter": "blur(12px) brightness(0.7)",
+        "boxWidth": 1126.39990234375,
+        "boxHeight": 253
+      }
+    },
+    "contentBox": {
+      "contentWidth": 230,
+      "contentHeight": 230,
+      "imageRatio": 1
+    }
+  },
+  "aspect": {
+    "contain": {
+      "audit-portrait": {
+        "natural": "600x1200",
+        "box": "1024x230",
+        "content": "115x230",
+        "objectFit": "contain",
+        "pixels": {
+          "top": {
+            "name": "top",
+            "x": 512,
+            "y": 8,
+            "r": 254,
+            "g": 0,
+            "b": 0
+          },
+          "bottom": {
+            "name": "bottom",
+            "x": 512,
+            "y": 222,
+            "r": 0,
+            "g": 0,
+            "b": 183
+          },
+          "left": {
+            "name": "left",
+            "x": 457,
+            "y": 115,
+            "r": 0,
+            "g": 190,
+            "b": 0
+          },
+          "right": {
+            "name": "right",
+            "x": 567,
+            "y": 115,
+            "r": 242,
+            "g": 129,
+            "b": 0
+          }
+        },
+        "markers": {
+          "top": true,
+          "bottom": true,
+          "left": true,
+          "right": true
+        }
+      },
+      "audit-square": {
+        "natural": "900x900",
+        "box": "1024x230",
+        "content": "230x230",
+        "objectFit": "contain",
+        "pixels": {
+          "top": {
+            "name": "top",
+            "x": 512,
+            "y": 8,
+            "r": 254,
+            "g": 1,
+            "b": 1
+          },
+          "bottom": {
+            "name": "bottom",
+            "x": 512,
+            "y": 222,
+            "r": 1,
+            "g": 1,
+            "b": 183
+          },
+          "left": {
+            "name": "left",
+            "x": 402,
+            "y": 115,
+            "r": 1,
+            "g": 190,
+            "b": 1
+          },
+          "right": {
+            "name": "right",
+            "x": 622,
+            "y": 115,
+            "r": 242,
+            "g": 129,
+            "b": 1
+          }
+        },
+        "markers": {
+          "top": true,
+          "bottom": true,
+          "left": true,
+          "right": true
+        }
+      },
+      "audit-landscape": {
+        "natural": "1600x700",
+        "box": "1024x230",
+        "content": "526x230",
+        "objectFit": "contain",
+        "pixels": {
+          "top": {
+            "name": "top",
+            "x": 512,
+            "y": 8,
+            "r": 254,
+            "g": 7,
+            "b": 8
+          },
+          "bottom": {
+            "name": "bottom",
+            "x": 512,
+            "y": 222,
+            "r": 6,
+            "g": 5,
+            "b": 183
+          },
+          "left": {
+            "name": "left",
+            "x": 260,
+            "y": 115,
+            "r": 8,
+            "g": 191,
+            "b": 8
+          },
+          "right": {
+            "name": "right",
+            "x": 764,
+            "y": 115,
+            "r": 242,
+            "g": 132,
+            "b": 8
+          }
+        },
+        "markers": {
+          "top": true,
+          "bottom": true,
+          "left": true,
+          "right": true
+        }
+      }
+    },
+    "cover": {
+      "audit-portrait": {
+        "natural": "600x1200",
+        "box": "1024x230",
+        "content": "115x230",
+        "objectFit": "cover",
+        "pixels": {
+          "top": {
+            "name": "top",
+            "x": 512,
+            "y": 8,
+            "r": 254,
+            "g": 254,
+            "b": 254
+          },
+          "bottom": {
+            "name": "bottom",
+            "x": 512,
+            "y": 222,
+            "r": 183,
+            "g": 183,
+            "b": 183
+          },
+          "left": {
+            "name": "left",
+            "x": 457,
+            "y": 115,
+            "r": 242,
+            "g": 242,
+            "b": 242
+          },
+          "right": {
+            "name": "right",
+            "x": 567,
+            "y": 115,
+            "r": 242,
+            "g": 242,
+            "b": 242
+          }
+        },
+        "markers": {
+          "top": false,
+          "bottom": false,
+          "left": false,
+          "right": false
+        }
+      },
+      "audit-square": {
+        "natural": "900x900",
+        "box": "1024x230",
+        "content": "230x230",
+        "objectFit": "cover",
+        "pixels": {
+          "top": {
+            "name": "top",
+            "x": 512,
+            "y": 8,
+            "r": 254,
+            "g": 254,
+            "b": 254
+          },
+          "bottom": {
+            "name": "bottom",
+            "x": 512,
+            "y": 222,
+            "r": 183,
+            "g": 183,
+            "b": 183
+          },
+          "left": {
+            "name": "left",
+            "x": 402,
+            "y": 115,
+            "r": 242,
+            "g": 242,
+            "b": 242
+          },
+          "right": {
+            "name": "right",
+            "x": 622,
+            "y": 115,
+            "r": 242,
+            "g": 242,
+            "b": 242
+          }
+        },
+        "markers": {
+          "top": false,
+          "bottom": false,
+          "left": false,
+          "right": false
+        }
+      },
+      "audit-landscape": {
+        "natural": "1600x700",
+        "box": "1024x230",
+        "content": "526x230",
+        "objectFit": "cover",
+        "pixels": {
+          "top": {
+            "name": "top",
+            "x": 512,
+            "y": 8,
+            "r": 254,
+            "g": 254,
+            "b": 254
+          },
+          "bottom": {
+            "name": "bottom",
+            "x": 512,
+            "y": 222,
+            "r": 183,
+            "g": 183,
+            "b": 183
+          },
+          "left": {
+            "name": "left",
+            "x": 260,
+            "y": 115,
+            "r": 242,
+            "g": 242,
+            "b": 242
+          },
+          "right": {
+            "name": "right",
+            "x": 764,
+            "y": 115,
+            "r": 242,
+            "g": 242,
+            "b": 242
+          }
+        },
+        "markers": {
+          "top": false,
+          "bottom": false,
+          "left": false,
+          "right": false
+        }
+      }
+    }
+  },
+  "checks": [
+    "PASS: سلايدر التصفح: عدد الشرائح المعلن في النقاط = 12",
+    "FAIL: سلايدر التصفح: 12 شريحة تم التنقل إليها يدوياً — صور حقيقية ظاهرة، وبلا بديل رمادي لخدمة لها صورة في القاعدة (1)",
+    "PASS: سلايدر الوظائف: الصورة ظاهرة فعلياً (1254x1254)",
+    "PASS: سلايدر الوظائف: الصورة الأمامية object-fit=contain (contain)",
+    "PASS: سلايدر الوظائف: طبقة خلفية cover مموّهة تملأ الفراغات (filter=blur(12px) brightness(0.7))",
+    "PASS: سلايدر الوظائف: الصورة تُعرض كاملة داخل الإطار (230x230 داخل 1024x230)",
+    "PASS: النسب (contain): audit-portrait 600x1200 — الحواف الأربع ظاهرة بصرياً (أعلى=true، أسفل=true، يمين=true، يسار=true)",
+    "PASS: النسب (contain): audit-square 900x900 — الحواف الأربع ظاهرة بصرياً (أعلى=true، أسفل=true، يمين=true، يسار=true)",
+    "PASS: النسب (contain): audit-landscape 1600x700 — الحواف الأربع ظاهرة بصرياً (أعلى=true، أسفل=true، يمين=true، يسار=true)",
+    "PASS: تحقق ذاتي: وضع cover على صورة عمودية يقص الأعلى/الأسفل فعلاً (أعلى=false، أسفل=false)",
+    "FAIL: Mobile services-slider: صورة حقيقية ظاهرة 800x600 داخل إطار 358x165 (object-fit=cover)",
+    "PASS: Mobile jobs-slider: صورة حقيقية ظاهرة 1254x1254 داخل إطار 366x165 (object-fit=contain)"
+  ],
+  "consoleErrors": [
+    "Access to XMLHttpRequest at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to ",
+    "Failed to load resource: net::ERR_FAILED",
+    "Access to resource at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to the su",
+    "Failed to load resource: net::ERR_FAILED",
+    "Access to XMLHttpRequest at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to ",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "[FeedInteractions:load(comments)] [object Object]",
+    "[FeedInteractions:load] [object Object]",
+    "Access to XMLHttpRequest at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to ",
+    "Failed to load resource: net::ERR_FAILED",
+    "Access to resource at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to the su",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Access to XMLHttpRequest at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to ",
+    "Failed to load resource: net::ERR_FAILED",
+    "Access to XMLHttpRequest at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to ",
+    "Failed to load resource: net::ERR_FAILED",
+    "Access to resource at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to the su",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "[FeedInteractions:load(comments)] [object Object]",
+    "[FeedInteractions:load] [object Object]",
+    "Access to resource at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to the su",
+    "Failed to load resource: net::ERR_FAILED",
+    "Access to XMLHttpRequest at 'https://cloudflareinsights.com/cdn-cgi/rum' from origin 'http://127.0.0.1:3100' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1' that is not equal to ",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()"
+  ],
+  "pageErrors": [],
+  "failedRequests": [
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED",
+    "POST https://cloudflareinsights.com/cdn-cgi/rum — net::ERR_FAILED"
+  ],
+  "badResponses": [
+    "400 https://nnxrjpitjxtceydlcxzm.supabase.co/rest/v1/service_comments?select=id%2Cservice_id%2Cowner_id%2Ccontent%2Cimage_url%2Ccreated_at%2Cupdated_at&service_id=i",
+    "400 https://nnxrjpitjxtceydlcxzm.supabase.co/rest/v1/job_slides?select=id%2Ctitle%2Csubtitle%2Cimage_url%2Csort_order%2Cis_visible%2Ccreated_at%2Cbutton_text%2Cbutt",
+    "400 https://nnxrjpitjxtceydlcxzm.supabase.co/rest/v1/jobs?select=id%2Ctitle%2Ccompany%2Cspecialty%2Ccategory_id%2Cdescription%2Cgovernorate%2Carea%2Cemployment_type",
+    "404 https://nnxrjpitjxtceydlcxzm.supabase.co/rest/v1/job_slider_settings?select=id%2Cautoplay%2Cduration_seconds%2Cloop_enabled%2Ctouch_drag%2Cmobile_height%2Ccorne",
+    "400 https://nnxrjpitjxtceydlcxzm.supabase.co/rest/v1/service_comments?select=id%2Cservice_id%2Cowner_id%2Ccontent%2Cimage_url%2Ccreated_at%2Cupdated_at&service_id=i",
+    "404 https://nnxrjpitjxtceydlcxzm.supabase.co/rest/v1/job_slider_settings?select=id%2Cautoplay%2Cduration_seconds%2Cloop_enabled%2Ctouch_drag%2Cmobile_height%2Ccorne",
+    "400 https://nnxrjpitjxtceydlcxzm.supabase.co/rest/v1/job_slides?select=id%2Ctitle%2Csubtitle%2Cimage_url%2Csort_order%2Cis_visible%2Ccreated_at%2Cbutton_text%2Cbutt",
+    "400 https://nnxrjpitjxtceydlcxzm.supabase.co/rest/v1/jobs?select=id%2Ctitle%2Ccompany%2Cspecialty%2Ccategory_id%2Cdescription%2Cgovernorate%2Carea%2Cemployment_type"
+  ],
+  "mobile": {
+    "services": {
+      "frame": "358x165",
+      "natural": "800x600",
+      "objectFit": "cover",
+      "isFallback": true
+    },
+    "jobs": {
+      "frame": "366x165",
+      "natural": "1254x1254",
+      "objectFit": "contain",
+      "isFallback": false
+    }
+  }
+}

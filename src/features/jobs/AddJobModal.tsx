@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  BriefcaseBusiness, Building2, ImagePlus, MapPin,
+  BriefcaseBusiness, Building2, CalendarDays, ImagePlus, MapPin,
   Phone, Send, Trash2, Upload, Video, X,
 } from 'lucide-react';
 import { useToast } from '../../components/ToastProvider';
@@ -8,12 +8,14 @@ import { employmentTypes } from './jobData';
 import {
   MAX_JOB_IMAGE_BYTES, MAX_JOB_IMAGES, MAX_JOB_VIDEO_BYTES, MAX_JOB_VIDEO_SECONDS,
 } from './jobMediaConfig';
-import type { NewJob, NewJobMedia } from './types';
+import type { EmploymentType, NewJob, NewJobMedia } from './types';
 import type { JobCategory } from './admin/jobAdminApi';
 
-const emptyJob = (): NewJob => ({
+const emptyJob = (employmentType: EmploymentType = 'كامل'): NewJob => ({
   title: '', company: '', specialty: '', description: '', governorate: '', area: '',
-  employmentType: 'كامل', salary: '', experience: '', qualification: '', phone: '',
+  employmentType, salary: '', experience: '', qualification: '', phone: '', requirements: '',
+  companyAbout: '', benefits: '', address: '', whatsapp: '', email: '', applicationDeadline: '',
+  trainingDuration: '', trainingPaid: false, trainingHiringPossible: false, salaryNegotiable: false,
 });
 
 interface SelectedImage { file: File; preview: string }
@@ -51,13 +53,14 @@ function SectionTitle({ icon, title, hint }: { icon: React.ReactNode; title: str
   </div>;
 }
 
-export default function AddJobModal({ onClose, onSubmit, categories }: {
+export default function AddJobModal({ onClose, onSubmit, categories, initialEmploymentType }: {
   onClose: () => void;
   onSubmit: (job: NewJob, media: NewJobMedia) => Promise<void>;
   categories: JobCategory[];
+  initialEmploymentType?: EmploymentType;
 }) {
   const toast = useToast();
-  const [form, setForm] = useState<NewJob>(emptyJob);
+  const [form, setForm] = useState<NewJob>(() => emptyJob(initialEmploymentType));
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<SelectedVideo>();
   const [saving, setSaving] = useState(false);
@@ -128,7 +131,7 @@ export default function AddJobModal({ onClose, onSubmit, categories }: {
   const reset = () => {
     images.forEach(image => URL.revokeObjectURL(image.preview));
     if (selectedVideo) URL.revokeObjectURL(selectedVideo.preview);
-    setForm(emptyJob()); setImages([]); setSelectedVideo(undefined); setError('');
+    setForm(emptyJob(initialEmploymentType)); setImages([]); setSelectedVideo(undefined); setError('');
     if (imageInput.current) imageInput.current.value = '';
     if (videoInput.current) videoInput.current.value = '';
   };
@@ -152,7 +155,7 @@ export default function AddJobModal({ onClose, onSubmit, categories }: {
   return <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/65 sm:items-center sm:p-4" role="presentation">
     <section role="dialog" aria-modal="true" aria-labelledby="add-job-title" className="flex h-[100dvh] w-full flex-col overflow-hidden bg-[var(--surface-elevated)] shadow-2xl sm:max-h-[92dvh] sm:max-w-2xl sm:rounded-3xl">
       <header className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3.5 sm:px-6 sm:py-4">
-        <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white"><BriefcaseBusiness /></span><div><h2 id="add-job-title" className="text-lg font-black text-[var(--text-primary)] sm:text-xl">إضافة وظيفة</h2><p className="text-xs font-bold text-[var(--text-muted)]">ستُراجع الوظيفة قبل ظهورها للعامة</p></div></div>
+        <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white"><BriefcaseBusiness /></span><div><h2 id="add-job-title" className="text-lg font-black text-[var(--text-primary)] sm:text-xl">نشر فرصة عمل</h2><p className="text-xs font-bold text-[var(--text-muted)]">ستُراجع الفرصة قبل ظهورها للعامة</p></div></div>
         <button type="button" onClick={onClose} disabled={saving} aria-label="إغلاق" className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"><X /></button>
       </header>
 
@@ -166,20 +169,30 @@ export default function AddJobModal({ onClose, onSubmit, categories }: {
               <Field label="المهنة أو الاختصاص" required><input required value={form.specialty} onChange={event => patch('specialty', event.target.value)} className={inputClass} placeholder="مثال: محاسبة، مبيعات، طبخ" /></Field>
               {categories.length > 0 ? <Field label="قسم الوظيفة" required><select required value={form.categoryId || ''} onChange={event => patch('categoryId', Number(event.target.value) || undefined)} className={inputClass}><option value="">اختر القسم</option>{categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></Field> : null}
             </div>
-            <Field label="الوصف والتفاصيل" required><textarea required value={form.description} onChange={event => patch('description', event.target.value)} className={`${inputClass} min-h-28 resize-y leading-7`} placeholder="المهام، ساعات العمل، والمتطلبات الأساسية" /></Field>
+            <Field label="وصف الوظيفة" required><textarea required value={form.description} onChange={event => patch('description', event.target.value)} className={`${inputClass} min-h-28 resize-y leading-7`} placeholder="طبيعة العمل والمسؤوليات اليومية" /></Field>
+            <Field label="المتطلبات" required><textarea required value={form.requirements || ''} onChange={event => patch('requirements', event.target.value)} className={`${inputClass} min-h-24 resize-y leading-7`} placeholder="اكتب كل متطلب في سطر مستقل" /></Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="نبذة عن الشركة (اختياري)"><textarea value={form.companyAbout || ''} onChange={event => patch('companyAbout', event.target.value)} className={`${inputClass} min-h-24 resize-y`} /></Field>
+              <Field label="المميزات (اختياري)"><textarea value={form.benefits || ''} onChange={event => patch('benefits', event.target.value)} className={`${inputClass} min-h-24 resize-y`} placeholder="راتب، حوافز، نقل..." /></Field>
+            </div>
           </section>
 
           <section className="space-y-4 border-t border-[var(--border)] pt-5">
             <SectionTitle icon={<MapPin className="h-5 w-5" />} title="الموقع والتواصل" />
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="المحافظة" required><input required value={form.governorate} onChange={event => patch('governorate', event.target.value)} className={inputClass} /></Field>
-              <Field label="المنطقة" required><input required value={form.area} onChange={event => patch('area', event.target.value)} className={inputClass} /></Field>
+              <Field label="المحافظة" required={form.employmentType !== 'عن بُعد'}><input required={form.employmentType !== 'عن بُعد'} value={form.governorate} onChange={event => patch('governorate', event.target.value)} className={inputClass} placeholder={form.employmentType === 'عن بُعد' ? 'اختياري للعمل عن بُعد' : ''} /></Field>
+              <Field label="المنطقة" required={form.employmentType !== 'عن بُعد'}><input required={form.employmentType !== 'عن بُعد'} value={form.area} onChange={event => patch('area', event.target.value)} className={inputClass} placeholder={form.employmentType === 'عن بُعد' ? 'اختياري للعمل عن بُعد' : ''} /></Field>
+              <Field label="العنوان (اختياري)"><input value={form.address || ''} onChange={event => patch('address', event.target.value)} className={inputClass} /></Field>
               <Field label="رقم الهاتف أو وسيلة التواصل" required><div className="relative"><Phone className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" /><input required type="tel" dir="ltr" minLength={7} value={form.phone} onChange={event => patch('phone', event.target.value)} className={`${inputClass} pr-10 text-left`} placeholder="07X XXXX XXXX" /></div></Field>
-              <Field label="نوع الدوام" required><select value={form.employmentType} onChange={event => patch('employmentType', event.target.value as NewJob['employmentType'])} className={inputClass}>{employmentTypes.map(type => <option key={type}>{type}</option>)}</select></Field>
-              <Field label="الراتب (اختياري)"><input value={form.salary || ''} onChange={event => patch('salary', event.target.value)} className={inputClass} /></Field>
+              <Field label="نوع الوظيفة" required><select value={form.employmentType} onChange={event => patch('employmentType', event.target.value as NewJob['employmentType'])} className={inputClass}>{employmentTypes.map(type => <option key={type}>{type === 'كامل' ? 'دوام كامل' : type === 'جزئي' ? 'دوام جزئي' : type}</option>)}</select></Field>
+              <Field label="الراتب (اختياري)"><div className="space-y-2"><input disabled={form.salaryNegotiable} value={form.salary || ''} onChange={event => patch('salary', event.target.value)} className={inputClass} placeholder="مثال: 750,000 دينار" /><label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={Boolean(form.salaryNegotiable)} onChange={event => patch('salaryNegotiable', event.target.checked)} /> يحدد بعد المقابلة</label></div></Field>
               <Field label="الخبرة (اختياري)"><input value={form.experience || ''} onChange={event => patch('experience', event.target.value)} className={inputClass} /></Field>
               <Field label="المؤهل (اختياري)"><input value={form.qualification || ''} onChange={event => patch('qualification', event.target.value)} className={inputClass} /></Field>
+              <Field label="واتساب (اختياري)"><input type="tel" dir="ltr" value={form.whatsapp || ''} onChange={event => patch('whatsapp', event.target.value)} className={`${inputClass} text-left`} /></Field>
+              <Field label="البريد الإلكتروني (اختياري)"><input type="email" dir="ltr" value={form.email || ''} onChange={event => patch('email', event.target.value)} className={`${inputClass} text-left`} /></Field>
+              <Field label="آخر موعد للتقديم (اختياري)"><div className="relative"><CalendarDays className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" /><input type="date" value={form.applicationDeadline || ''} onChange={event => patch('applicationDeadline', event.target.value)} className={`${inputClass} pr-10`} /></div></Field>
             </div>
+            {form.employmentType === 'تدريب' ? <div className="rounded-2xl bg-[var(--accent-soft)] p-4"><h4 className="mb-3 font-black text-[var(--accent-primary)]">تفاصيل التدريب</h4><div className="grid gap-4 sm:grid-cols-2"><Field label="مدة التدريب"><input value={form.trainingDuration || ''} onChange={event => patch('trainingDuration', event.target.value)} className={inputClass} placeholder="مثال: 3 أشهر" /></Field><div className="space-y-3 pt-1 text-sm font-bold"><label className="flex items-center gap-2"><input type="checkbox" checked={Boolean(form.trainingPaid)} onChange={event => patch('trainingPaid', event.target.checked)} /> التدريب مدفوع</label><label className="flex items-center gap-2"><input type="checkbox" checked={Boolean(form.trainingHiringPossible)} onChange={event => patch('trainingHiringPossible', event.target.checked)} /> توجد إمكانية للتوظيف بعد التدريب</label></div></div></div> : null}
           </section>
 
           <section className="space-y-4 border-t border-[var(--border)] pt-5">

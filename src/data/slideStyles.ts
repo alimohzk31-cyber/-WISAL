@@ -30,6 +30,21 @@ export const BROWSE_SLIDER_FRAME_CLASS =
 export const BROWSE_SLIDER_IMAGE_CLASS =
   'absolute inset-0 h-full w-full object-cover object-center';
 
+/**
+ * وضع "الصورة الكاملة" (بدون قص) — طبقتان من نفس الصورة:
+ *   1) BROWSE_SLIDER_BACKDROP_CLASS: تملأ الإطار بـ cover مع blur خفيف وتعتيم
+ *      بسيط، فقط لملء الفراغات حول الصورة الأصلية بدون فراغ قبيح.
+ *   2) BROWSE_SLIDER_CONTAIN_CLASS: الصورة الأصلية كاملة (contain) تستغل أكبر
+ *      مساحة ممكنة داخل السلايدر مع الحفاظ على نسبة الأبعاد — لا قص من الأعلى
+ *      أو الأسفل ولا تشويه.
+ * يُستخدم في سلايدر الوظائف لأن صور الوظائف عمودية/مربعة/أفقية بأحجام مختلفة.
+ */
+export const BROWSE_SLIDER_BACKDROP_CLASS =
+  'absolute inset-0 h-full w-full scale-110 object-cover object-center blur-md brightness-[0.7]';
+
+export const BROWSE_SLIDER_CONTAIN_CLASS =
+  'absolute inset-0 h-full w-full object-contain object-center';
+
 export type SliderSwipeAction = 'next' | 'previous' | null;
 
 /** RTL swipe direction shared by touch and mouse pointer events. */

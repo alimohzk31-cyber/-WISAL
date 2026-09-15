@@ -123,6 +123,35 @@
     --border-color: var(--border);
   }
 
+  [data-theme='blue'] {
+    --bg-primary: #F3F8FF;
+    --bg-secondary: #EAF4FF;
+    --surface: #FFFFFF;
+    --surface-elevated: #FFFFFF;
+    --card: #FFFFFF;
+    --text-primary: #12233F;
+    --text-secondary: #405B7A;
+    --text-muted: #7286A1;
+    --border: #D9E8F7;
+    --border-strong: #B8D9FF;
+    --accent-primary: #087CFF;
+    --accent-hover: #0669DB;
+    --accent-active: #0557B8;
+    --accent-light: #79B8FF;
+    --accent-soft: #EAF4FF;
+    --accent-contrast: #FFFFFF;
+    --input-bg: #FFFFFF;
+    --input-border: #B8D9FF;
+    --shadow: 0 10px 30px rgba(20, 100, 210, 0.08);
+    --shadow-lg: 0 20px 45px rgba(20, 100, 210, 0.12);
+    --glow: rgba(8, 124, 255, 0.15);
+    --focus-ring: rgba(8, 124, 255, 0.25);
+    --primary-color: var(--accent-primary);
+    --card-bg: var(--card);
+    --header-bg: rgba(234, 244, 255, 0.94);
+    --border-color: var(--border);
+  }
+
   body {
     @apply bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors duration-300;
     font-family: "Cairo", sans-serif;

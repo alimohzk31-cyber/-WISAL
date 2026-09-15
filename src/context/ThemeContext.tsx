@@ -5,17 +5,18 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 // and never applied.
 // لإضافة ثيم جديد مستقبلاً: أضف معرّفه هنا + ألوانه في PRIMARY_COLORS
 // + كتلة [data-theme='id'] في src/index.css + عنصر في THEME_OPTIONS بـ ThemeToggle.
-export type Theme = 'light' | 'dark' | 'royal' | 'red';
+export type Theme = 'light' | 'dark' | 'royal' | 'red' | 'blue';
 
 export const PRIMARY_COLORS: Record<Theme, string> = {
   light: '#6D5ACF', // calm purple (المظهر الفاتح)
   royal: '#6D5ACF', // calm purple (المظهر الملكي)
   red: '#D90429', // red (المظهر الأبيض والأحمر)
+  blue: '#087CFF',
   dark: '#6D5ACF', // unreachable fallback (dark mode is disabled)
 };
 
 // الثيمات القابلة للاختيار (قابلة للتوسعة — أضف هنا عند إضافة ثيم جديد)
-export const SELECTABLE_THEMES: Theme[] = ['light', 'royal', 'red'];
+export const SELECTABLE_THEMES: Theme[] = ['light', 'royal', 'red', 'blue'];
 
 export function getPrimaryColor(theme: Theme): string {
   return PRIMARY_COLORS[theme];

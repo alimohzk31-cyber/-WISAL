@@ -6,7 +6,7 @@ coverage/
 *.log
 *.err
 .env*
-!.env.example
+**/.env*
 
 # Android build
 android/.gradle/
@@ -17,6 +17,8 @@ android/keystore.properties
 android/keystore/
 *.keystore
 *.jks
+**/keystore.properties
+**/keystore/
 
 # Capacitor توقيع وإعدادات محلية
 capacitor.config.json
@@ -61,6 +63,9 @@ android/**/.externalNativeBuild/
 *.pem
 .npmrc
 android/app/google-services.json
+**/google-services.json
+**/*credentials*.json
+**/*service-account*.json
 
 # Portable source package generated locally
 /wisal-upload.zip

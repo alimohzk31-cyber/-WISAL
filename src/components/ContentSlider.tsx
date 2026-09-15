@@ -127,8 +127,6 @@ export default function ContentSlider({
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end overflow-hidden px-4 pb-8 text-right text-white sm:px-6 md:pb-10">
         <motion.h1 key={`title-${slide.id}`} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-1 line-clamp-1 w-full text-lg font-semibold leading-snug [text-shadow:0_1px_2px_rgba(0,0,0,0.45)] md:mb-1.5 md:text-[24px]">{slide.title}</motion.h1>
-        <motion.p key={`category-${slide.id}`} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }}
-          className="w-full truncate text-[13px] font-medium leading-relaxed text-white/90 [text-shadow:0_1px_2px_rgba(0,0,0,0.45)] md:text-[15px]">{slide.category}</motion.p>
       </div>
       {count > 1 && <div className="absolute bottom-3 left-0 right-0 z-20 flex justify-center gap-1.5 px-4 md:bottom-4">
         {dots.map(dot => <button key={slides[dot].id} type="button" onClick={() => setIndex(dot)} aria-label={`الشريحة ${dot + 1} من ${count}`} aria-current={dot === currentIndex ? 'true' : undefined}

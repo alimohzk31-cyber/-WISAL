@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, BriefcaseBusiness, GraduationCap, House, Mic, Plus, Search, Timer, X } from 'lucide-react';
 import JobsSlider from '../../features/jobs/JobsSlider';
+import DirectoryNav from '../../components/DirectoryNav';
 import JobCard from '../../features/jobs/JobCard';
 import AddJobModal from '../../features/jobs/AddJobModal';
 import { employmentTypeLabel } from '../../features/jobs/jobData';
@@ -38,6 +39,7 @@ export default function JobsPage() {
   return <main className="-mx-4 -my-8 min-h-screen bg-[#f3f8ff] px-3 pb-16 pt-3 text-[#12233f] sm:px-6 sm:pt-6 lg:px-8" dir="rtl">
     <div className="mx-auto max-w-6xl space-y-5 sm:space-y-7">
     <JobsSlider settings={presentation.settings} jobs={jobs} loading={loading} />
+    <DirectoryNav activeView="jobs" />
 
     <section aria-label="البحث عن وظيفة">
       <label className="relative block rounded-[20px] bg-white shadow-[0_9px_30px_rgba(20,100,210,0.12)]">

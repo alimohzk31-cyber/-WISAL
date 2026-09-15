@@ -35,7 +35,7 @@ export function useSlideImages(slides: readonly ContentSlide[], activeIndex: num
   const requests = useRef(new Map<string, Promise<string>>());
 
   const imageFor = useCallback(
-    (slide: ContentSlide) => resolved[slide.id] || resolveSlideImageSrc(slide.imageUrl),
+    (slide: ContentSlide) => resolveSlideImageSrc(resolved[slide.id] || slide.imageUrl),
     [resolved]
   );
   // اشتقاق حالة التحميل من الحالة نفسها (بلا مؤقتات) يمنع أي لحظة يظهر فيها

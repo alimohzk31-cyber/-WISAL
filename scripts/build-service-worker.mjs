@@ -83,7 +83,11 @@ async function trimMediaCache(cache, maximum = 80) {
 
 async function staleWhileRevalidateMedia(request, event) {
   const cache = await caches.open(MEDIA_CACHE);
-  const cached = await cache.match(request);
+  // Images may have been precached with the app shell (local slider assets)
+  // or discovered at runtime (Supabase/Storage assets). Prefer the runtime
+  // copy, but keep the shell copy as an offline fallback as well.
+  const shell = await caches.open(SHELL_CACHE);
+  const cached = await cache.match(request) || await shell.match(request);
   const update = fetch(request).then(async response => {
     if (response.ok || response.type === 'opaque') {
       await cache.put(request, response.clone());
@@ -106,11 +110,14 @@ self.addEventListener('fetch', event => {
     event.respondWith(networkFirstNavigation(request, event));
     return;
   }
+  if (request.destination === 'image') {
+    event.respondWith(staleWhileRevalidateMedia(request, event));
+    return;
+  }
   if (url.origin === self.location.origin && url.href.startsWith(self.registration.scope)) {
     event.respondWith(cacheFirst(request));
     return;
   }
-  if (request.destination === 'image') event.respondWith(staleWhileRevalidateMedia(request, event));
 });
 `;
 

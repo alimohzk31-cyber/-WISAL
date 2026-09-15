@@ -1,5 +1,6 @@
 import { offlineStore, OFFLINE_KEYS } from './offlineStore';
 import { supabase } from './supabase';
+import { resolveSlideImageSrc } from './slideImageSource';
 
 type MediaEntry = { image: string; savedAt: number };
 type MediaCache = Record<string, MediaEntry>;
@@ -33,7 +34,8 @@ function persistCache() {
 }
 
 export async function getCachedServiceImage(id: string | number): Promise<string> {
-  return (await loadCache())[String(id)]?.image || '';
+  const cached = (await loadCache())[String(id)]?.image || '';
+  return cached ? resolveSlideImageSrc(cached) : '';
 }
 
 export async function fetchServiceImage(id: string | number): Promise<string> {
@@ -47,7 +49,10 @@ export async function fetchServiceImage(id: string | number): Promise<string> {
     const { data, error } = await supabase.from('services')
       .select('image_url').eq('id', id).eq('status', 'approved').maybeSingle();
     if (error) throw error;
-    const image = typeof data?.image_url === 'string' ? data.image_url : '';
+    // Store the browser-ready URL, not a raw relative Storage path. This keeps
+    // both the slider and offline consumers from retrying an invalid relative
+    // URL after the service row has been cached.
+    const image = typeof data?.image_url === 'string' ? resolveSlideImageSrc(data.image_url) : '';
     if (image) {
       const cache = await loadCache();
       cache[key] = { image, savedAt: Date.now() };

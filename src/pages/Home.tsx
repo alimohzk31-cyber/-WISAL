@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
-import { Search, Compass, LayoutGrid, BriefcaseBusiness, Mic, MicOff, Loader2 } from 'lucide-react';
+import { Search, Mic, MicOff, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { colorMapRedWhite } from '../data/categories';
 import { useCategories } from '../hooks/useCategories';
@@ -11,6 +11,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
 import SocialFeed from '../components/SocialFeed';
 import ContentSlider from '../components/ContentSlider';
+import DirectoryNav from '../components/DirectoryNav';
 import { buildServiceContentSlides, DEMO_SERVICE_SLIDES, SLIDER_DEMO_MODE } from '../lib/contentSlides';
 const AddServiceModal = lazy(() => import('../components/AddServiceModal'));
 import ErrorState from '../components/ui/ErrorState';
@@ -205,35 +206,7 @@ export default function Home() {
       <ContentSlider slides={contentSlides} loading={servicesLoading} label="الخدمات المعتمدة" testId="services-slider" imageFit="contain" />
 
       {/* Primary navigation: three destinations below the slider — التصفح | الخدمات | البحث عن وظيفة */}
-      <nav className="relative z-10 mx-auto -mt-4 flex w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-1.5 shadow-[var(--shadow-lg)]" aria-label="التنقل الرئيسي">
-        <button
-          type="button"
-          onClick={() => setActiveView('browse')}
-          aria-pressed={activeView === 'browse'}
-          className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-3 text-[11px] font-bold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${activeView === 'browse' ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)]'}`}
-        >
-          <Compass className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-          التصفح
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveView('services')}
-          aria-pressed={activeView === 'services'}
-          className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-3 text-[11px] font-bold transition-colors sm:gap-2 sm:px-4 sm:text-sm ${activeView === 'services' ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)]'}`}
-        >
-          <LayoutGrid className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-          الخدمات
-        </button>
-        {/* يفتح صفحة الوظائف الحالية نفسها (نفس المسار /jobs) بنفس أيقونة الحقيبة */}
-        <Link
-          to="/jobs"
-          aria-label="البحث عن وظيفة"
-          className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-3 text-[11px] font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)] sm:gap-2 sm:px-4 sm:text-sm"
-        >
-          <BriefcaseBusiness className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-          البحث عن وظيفة
-        </Link>
-      </nav>
+      <DirectoryNav activeView={activeView} onHomeViewChange={setActiveView} />
 
       {activeView === 'browse' ? <SocialFeed onAddService={openAddService} /> : <>
 

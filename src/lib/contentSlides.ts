@@ -18,8 +18,8 @@ export interface ContentSlide {
   jobId?: string | number;
 }
 
-/** Temporary local visual QA switch. Set VITE_SLIDER_DEMO_MODE=false for live approved content. */
-export const SLIDER_DEMO_MODE = String((import.meta as any).env?.VITE_SLIDER_DEMO_MODE ?? 'true').toLowerCase() !== 'false';
+/** Optional local visual QA switch. Live approved content is the default. */
+export const SLIDER_DEMO_MODE = String((import.meta as any).env?.VITE_SLIDER_DEMO_MODE ?? 'false').toLowerCase() === 'true';
 const SERVICE_DEMO_LABELS = ['كهربائي منازل', 'سباك', 'صيدلية', 'طبيب', 'مطعم', 'ميكانيكي سيارات', 'بناء وإنشاءات', 'ألواح طاقة شمسية', 'ملابس', 'هواتف وصيانة'];
 const JOB_DEMO_LABELS = ['موظف مبيعات', 'محاسب', 'سائق', 'عامل مطعم', 'كهربائي', 'موظف مكتب', 'مصمم', 'مبرمج', 'مندوب توصيل', 'تدريب عن بُعد'];
 

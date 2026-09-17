@@ -68,11 +68,11 @@ export default function NotificationsPopup({ onClose, notifications, loading, er
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
       onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
       <motion.div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="notifications-title" dir="rtl"
         initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="w-full max-w-md max-h-[85dvh] flex flex-col border rounded-2xl shadow-[var(--shadow-lg)] overflow-hidden bg-[var(--surface-elevated)] border-[var(--border)]">
+        className="flex max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-md flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)] sm:max-h-[85dvh]">
         <div className="p-4 border-b border-[var(--border)] flex items-center justify-between shrink-0">
           <h2 id="notifications-title" className="text-lg font-bold text-[var(--text-primary)]">الإشعارات</h2>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="إغلاق الإشعارات"

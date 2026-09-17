@@ -46,3 +46,16 @@ test('current approved company and area names are searchable', () => {
 test('unrelated content does not match', () => {
   assert.equal(matchesJobSearch(job({}), 'صيدلي سريري'), false);
 });
+
+test('Iraqi intent phrases keep only the profession and match its synonyms', () => {
+  const accountant = job({ title: 'محاسب', specialty: 'محاسبة ومالية' });
+  const administration = job({ title: 'موظف إداري', specialty: 'إدارة' });
+  const sales = job({ title: 'موظف مبيعات', specialty: 'تسويق ومبيعات' });
+  const fitter = job({ title: 'فني فيتر سيارات', specialty: 'ميكانيك وصيانة' });
+  assert.equal(matchesJobSearch(accountant, 'اريد محاسب'), true);
+  assert.equal(matchesJobSearch(accountant, 'اني محاسب اريد اشتغل'), true);
+  assert.equal(matchesJobSearch(accountant, 'محتاج محاسب'), true);
+  assert.equal(matchesJobSearch(administration, 'خريج ادارة'), true);
+  assert.equal(matchesJobSearch(sales, 'اريد اشتغل مبيعات'), true);
+  assert.equal(matchesJobSearch(fitter, 'اني فيتر اريد شغل'), true);
+});

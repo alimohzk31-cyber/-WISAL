@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { getCategoryFieldConfig } from '../src/data/categoryFields';
 import { getInitialProfession, getServiceFormConfig } from '../src/lib/serviceFormConfig';
+import { resolveServiceCategory } from '../src/lib/serviceCategorySelection';
 
 test('display aliases resolve central fields without mutating stored identities', () => {
   const category = Object.freeze({ slug: 'legacy-pharmacy', name: 'الصيدليات', dbId: 'real-17' });
@@ -33,4 +34,17 @@ test('cars sonar uses the existing car category form and submits the exact speci
   const sonar = getServiceFormConfig({ slug: 'car-repair', name: 'ورش سيارات' }, 'cars', 'car-sonar');
   assert.ok(sonar.specialties.includes('سونار'));
   assert.equal(getInitialProfession(sonar, 'سونار'), 'سونار');
+});
+
+test('nested section routes resolve the real DB category source', () => {
+  const carpenter = { slug: 'carpenter', name: 'نجار', dbId: 'cat-carpenter' };
+  const electrician = { slug: 'electrician', name: 'كهربائي', dbId: 'cat-electrician' };
+  assert.equal(
+    resolveServiceCategory([carpenter, electrician], '', { slug: 'home-services', childSlug: 'carpenter' }),
+    carpenter,
+  );
+  assert.equal(
+    resolveServiceCategory([carpenter, electrician], 'electrician', { slug: 'home-services', childSlug: 'carpenter' }),
+    electrician,
+  );
 });

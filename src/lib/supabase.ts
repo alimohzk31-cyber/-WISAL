@@ -7,8 +7,11 @@ import { adminTimedFetch, measureAdminOperation } from './adminPerformance';
 // Identity comes from Supabase Auth (auth.uid()) — the forgeable
 // client headers (x-owner-id / x-admin-mode) have been REMOVED.
 // --------------------------------------
-export const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-export const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+// Node-safe access (runtime tests import this module outside Vite; the browser
+// build always has import.meta.env defined by Vite itself).
+const env = ((import.meta as any).env ?? {}) as Record<string, string | undefined>;
+export const supabaseUrl = env.VITE_SUPABASE_URL || 'https://nnxrjpitjxtceydlcxzm.supabase.co';
+export const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: { fetch: adminTimedFetch },
@@ -19,7 +22,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-if (!(import.meta as any).env.VITE_SUPABASE_URL || !(import.meta as any).env.VITE_SUPABASE_ANON_KEY) {
+if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY) {
   console.warn("WARNING: Using hardcoded Supabase credentials because environment variables are missing.");
 }
 
@@ -33,9 +36,20 @@ if (!(import.meta as any).env.VITE_SUPABASE_URL || !(import.meta as any).env.VIT
 // ---------------------------------------------------------------------------
 
 interface AdminPinResponse {
+  ok?: boolean;
+  success?: boolean;
   access_token?: string;
   refresh_token?: string;
   code?: string;
+}
+
+async function clearLocalAuthSession(): Promise<boolean> {
+  try {
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -117,6 +131,13 @@ function setPinRateLimit(retryAfterSeconds?: number): void {
 export async function adminPinLogin(
   pin: string
 ): Promise<{ ok: true } | { ok: false; code: string }> {
+    // A PIN attempt always starts from a blank local auth state. Otherwise a
+    // previously persisted admin refresh token can make a failed PIN appear
+    // successful when the user later opens /admin directly.
+    if (!(await clearLocalAuthSession())) {
+      return { ok: false, code: 'session_clear_failed' };
+    }
+
     // Defense-in-depth: if we already hold a local 429 ban, refuse
     // immediately — do NOT send the PIN to the server. This guarantees
     // that even a correct PIN cannot create a session while banned,
@@ -178,7 +199,12 @@ export async function adminPinLogin(
   // Fail-closed: no body means no session.
   if (!data) return { ok: false, code: 'server_error' };
   if (data.code) return { ok: false, code: data.code };
-  if (typeof data.access_token !== 'string' || typeof data.refresh_token !== 'string') {
+  // Accept either positive flag: "ok" (current shape) or "success"
+  // (the Edge Function's response shape). Any response that carries
+  // neither flag — even if it happens to include tokens — fails closed
+  // as server_error: we never install a session from an unconfirmed success.
+  const accepted = data.ok === true || data.success === true;
+  if (!accepted || typeof data.access_token !== 'string' || typeof data.refresh_token !== 'string') {
     return { ok: false, code: 'server_error' };
   }
 
@@ -187,7 +213,10 @@ export async function adminPinLogin(
     access_token: data.access_token,
     refresh_token: data.refresh_token,
   }));
-  if (setError) return { ok: false, code: 'server_error' };
+  if (setError) {
+    await clearLocalAuthSession();
+    return { ok: false, code: 'server_error' };
+  }
   // Success — clear any previous local ban so the user can log in normally
   // if they retry after the window expires.
   clearPinRateLimit();

@@ -20,13 +20,13 @@ export function SocialContactFields({ values, onChange }: { values: SocialContac
   const [open, setOpen] = useState<SocialPlatform[]>(() => SOCIAL_PLATFORMS.filter(platform => Boolean(values[meta[platform].field])));
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2" aria-label="روابط التواصل الاختيارية">
+      <div className="flex min-w-0 flex-wrap items-center gap-2" aria-label="روابط التواصل الاختيارية">
         {SOCIAL_PLATFORMS.map(platform => {
           const item = meta[platform];
           const active = open.includes(platform);
           return <button key={platform} type="button" title={item.label} aria-label={`إضافة ${item.label}`} aria-pressed={active} onClick={() => setOpen(current => active ? current.filter(value => value !== platform) : [...current, platform])} className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black shadow-sm transition-transform hover:scale-105 ${item.color} ${active ? 'ring-2 ring-[var(--accent-primary)] ring-offset-2 ring-offset-[var(--surface-elevated)]' : 'opacity-80'}`}>{item.glyph}</button>;
         })}
-        <span className="text-xs font-bold text-[var(--text-muted)]">اختياري — اضغط لإظهار الحقل</span>
+        <span className="min-w-0 flex-1 break-words text-xs font-bold text-[var(--text-muted)]">اختياري — اضغط لإظهار الحقل</span>
       </div>
       {SOCIAL_PLATFORMS.filter(platform => open.includes(platform)).map(platform => {
         const item = meta[platform];

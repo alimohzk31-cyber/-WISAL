@@ -43,8 +43,8 @@ export default function AddCategoryModal({ onClose, onAdd }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className={`w-full max-w-2xl border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8 bg-[var(--surface-elevated)] border-[var(--border)]`}>
+    <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center overflow-y-auto bg-black/60 p-2 backdrop-blur-sm sm:p-4">
+      <div className={`my-4 w-full min-w-0 max-w-2xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-2xl animate-in fade-in zoom-in duration-200 sm:my-8`}>
         <div className={`p-4 border-b flex items-center justify-between sticky top-0 z-10 bg-[var(--surface-elevated)] border-[var(--border)]`}>
           <h2 className={`text-lg font-bold flex items-center gap-2 text-[var(--text-primary)]`}>
             <div className="w-8 h-8 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent-primary)]">
@@ -57,7 +57,7 @@ export default function AddCategoryModal({ onClose, onAdd }: Props) {
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="min-w-0 space-y-5 p-4 sm:space-y-6 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               {/* Name */}
@@ -76,7 +76,7 @@ export default function AddCategoryModal({ onClose, onAdd }: Props) {
               {/* Color */}
               <div className="space-y-1.5">
                 <label className={`text-sm font-bold text-[var(--text-secondary)]`}>{t('neon_color_label')}</label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid min-w-0 grid-cols-4 gap-2 sm:grid-cols-5">
                   {Object.entries(colorMap).map(([key, value]) => (
                     <button
                       key={key}
@@ -93,7 +93,7 @@ export default function AddCategoryModal({ onClose, onAdd }: Props) {
             {/* Icon Selector */}
             <div className="space-y-1.5">
               <label className={`text-sm font-bold text-[var(--text-secondary)]`}>{t('section_icon_label')}</label>
-              <div className={`border rounded-xl p-3 h-[280px] overflow-y-auto grid grid-cols-5 gap-2 bg-[var(--bg-secondary)] border-[var(--border)]`}>
+              <div className={`grid h-[280px] min-w-0 grid-cols-4 gap-2 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-3 sm:grid-cols-5`}>
                 {CATEGORY_ICON_NAMES.map(iconName => {
                   const IconComponent = CATEGORY_ICON_MAP[iconName];
                   if (!IconComponent) return null;
@@ -135,7 +135,7 @@ export default function AddCategoryModal({ onClose, onAdd }: Props) {
           </div>
           
           {/* Action Buttons */}
-          <div className={`flex gap-3 pt-4 border-t border-[var(--border)]`}>
+          <div className={`flex min-w-0 flex-col gap-2 border-t border-[var(--border)] pt-4 min-[360px]:flex-row sm:gap-3`}>
             <button
               type="button"
               onClick={onClose}

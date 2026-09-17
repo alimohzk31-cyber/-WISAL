@@ -94,7 +94,7 @@ function Seg<T extends string>({ value, onChange, options }: { value: T; onChang
 
 function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
   return (
-    <button type="button" onClick={() => onChange(!checked)} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3.5 py-2.5 text-start transition-colors hover:border-[var(--accent-primary)]/40">
+    <button type="button" onClick={() => onChange(!checked)} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3.5 py-2.5 text-start transition-colors hover:border-[var(--accent-primary)]/40">
       <span>
         <span className="block text-xs font-bold text-[var(--text-primary)]">{label}</span>
         {hint ? <span className="block text-[11px] font-bold text-[var(--text-muted)]">{hint}</span> : null}
@@ -202,10 +202,10 @@ export default function JobSlidesAdmin() {
     finally { setUploadProgress(null); }
   });
 
-  return <section dir="rtl" className="space-y-5">
-    <div className="flex flex-wrap items-center justify-between gap-3">
+  return <section dir="rtl" className="min-w-0 space-y-5">
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
       <SectionHeader icon={<Images className="h-5 w-5" />} text="سلايدر الوظائف" />
-      <div className="flex gap-2">
+      <div className="flex min-w-0 flex-wrap gap-2">
         <button type="button" disabled={busy || loading} onClick={refresh} className={inputCls}>تحديث</button>
         <button type="button" disabled={busy || loading} onClick={() => setDraft(emptyDraft(Math.max(0, ...slides.map(item => item.sortOrder)) + 1))} className={inputCls}>إضافة سلايد</button>
       </div>
@@ -232,11 +232,11 @@ export default function JobSlidesAdmin() {
       </fieldset>
     </details>
     {!loading && !slides.length && !error && <p className="text-[var(--text-muted)]">لا توجد سلايدات بعد.</p>}
-    <div className="grid gap-4 sm:grid-cols-2">
-      {slides.map((slide, index) => <article key={slide.id} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+    <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+      {slides.map((slide, index) => <article key={slide.id} className="min-w-0 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
         <div className="relative h-48"><JobSlideView slide={slide} interactive={false} /></div>
         <div className="space-y-3 p-3">
-          <p className="font-bold text-[var(--text-primary)]">{slide.title} <span className={JOB_STATUS_META[getJobSlideStatus(slide)].cls}>{JOB_STATUS_META[getJobSlideStatus(slide)].label}</span></p>
+          <p className="break-words font-bold text-[var(--text-primary)]">{slide.title} <span className={JOB_STATUS_META[getJobSlideStatus(slide)].cls}>{JOB_STATUS_META[getJobSlideStatus(slide)].label}</span></p>
           {slide.runMode === 'timed' && slide.runEndsAt && <p className="text-xs text-[var(--text-muted)]">نهاية التشغيل: {new Date(slide.runEndsAt).toLocaleString('ar-IQ')}</p>}
           <fieldset disabled={busy} className="flex flex-wrap gap-2 text-sm font-bold text-[var(--text-primary)]">
             <button type="button" onClick={() => setDraft(draftFromSlide(slide))}>تعديل</button>
@@ -250,7 +250,7 @@ export default function JobSlidesAdmin() {
         </div>
       </article>)}
     </div>
-    {draft && <form onSubmit={event => { event.preventDefault(); void save(); }} className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+    {draft && <form onSubmit={event => { event.preventDefault(); void save(); }} className="min-w-0 space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 sm:p-4">
       <h3 className="font-black text-[var(--text-primary)]">{draft.id ? 'تعديل السلايد' : 'سلايد جديد'}</h3>
       <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
         <Field label="العنوان"><input aria-label="عنوان السلايد" required className={inputCls} value={draft.title} onChange={event => patchDraft({ title: event.target.value })} /></Field>
@@ -262,7 +262,7 @@ export default function JobSlidesAdmin() {
         <Field label="نص الزر"><input aria-label="نص الزر" className={inputCls} value={draft.buttonText} onChange={event => patchDraft({ buttonText: event.target.value })} /></Field>
         <Toggle label="السلايد مفعّل" checked={draft.isVisible} onChange={isVisible => patchDraft({ isVisible })} />
         <Field label="مدة التشغيل"><Seg value={draft.runMode} options={[{ value: 'always', label: 'دائم' }, { value: 'timed', label: 'لمدة محددة' }]} onChange={runMode => patchDraft({ runMode })} /></Field>
-        {draft.runMode === 'timed' && <div className="grid grid-cols-3 gap-2">
+        {draft.runMode === 'timed' && <div className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-3">
           <TimePart label="ساعة" max={999} value={draft.durationHours} onChange={durationHours => patchDraft({ durationHours })} />
           <TimePart label="دقيقة" max={59} value={draft.durationMinutes} onChange={durationMinutes => patchDraft({ durationMinutes })} />
           <TimePart label="ثانية" max={59} value={draft.durationSeconds} onChange={durationSeconds => patchDraft({ durationSeconds })} />
@@ -279,7 +279,7 @@ export default function JobSlidesAdmin() {
       </fieldset>
       {uploadProgress !== null && <p role="status">رفع الصورة: {uploadProgress}%</p>}
       <div className="relative h-64 overflow-hidden rounded-2xl"><JobSlideView slide={slideFromDraft(draft)} interactive={false} /></div>
-      <div className="flex gap-3"><button type="submit" disabled={busy} className={inputCls}>حفظ السلايد</button><button type="button" disabled={busy} className={inputCls} onClick={() => setDraft(null)}>إلغاء</button></div>
+      <div className="flex min-w-0 flex-col gap-3 min-[360px]:flex-row"><button type="submit" disabled={busy} className={inputCls}>حفظ السلايد</button><button type="button" disabled={busy} className={inputCls} onClick={() => setDraft(null)}>إلغاء</button></div>
     </form>}
   </section>;
 }

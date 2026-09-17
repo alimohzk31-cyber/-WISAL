@@ -6,10 +6,17 @@ import { getCategorySynonyms } from '../data/categorySynonyms';
 import { getCategoryFieldConfig } from '../data/categoryFields';
 import type { Service } from '../hooks/useServices';
 import { categoryUrl } from './directoryNavigation';
+import {
+  normalizeSmartSearch,
+  smartSearchTokens,
+  smartSearchVariants,
+  SMART_SEARCH_STOPWORDS as SHARED_SEARCH_STOPWORDS,
+} from './smartSearch';
 
 const filler = new Set([
   'السلام', 'عليكم', 'اريد', 'احتاج', 'محتاج', 'محتاجه', 'ابحث', 'عن', 'وين', 'الكه', 'لو', 'سمحت',
   ...SMART_SEARCH_STOPWORDS.map(normalizeCategoryKey),
+  ...[...SHARED_SEARCH_STOPWORDS].map(normalizeSmartSearch),
 ]);
 // كلمات عامية شائعة تُحوَّل إلى الصيغة القياسية الواردة في قاموس الفئات.
 const variants: Record<string, string> = {
@@ -18,16 +25,21 @@ const variants: Record<string, string> = {
   مكيفات: 'مكيف', ميكانيكي: 'ميكانيك', زيوت: 'زيت', بنجري: 'بنجرجي',
 };
 export function normalizeDirectoryQuery(value: string): string {
-  return normalizeCategoryKey(value).replace(/[ؤئ]/g, letter => letter === 'ؤ' ? 'و' : 'ي')
+  const raw = normalizeSmartSearch(value);
+  const result = raw
     .replace(/تصليح|اصلاح|اصلح/g, 'صيانه').split(/\s+/)
     .filter(word => word && !filler.has(word))
     // لهجة عراقية: نزع بادئات الجر والتعريف المركبة (بالوايرات → وايرات،
     // والكهرباء → كهرباء، فالمكيف → مكيف). تُطبَّق على الاستعلام وعلى القاموس
     // معاً فتبقى المطابقة متسقة، والكلمات القصيرة (< 4 أحرف) لا تُمسّ.
     .map(word => {
-      const stripped = word.length >= 5 ? word.replace(/^[وفبك]ال(?=[\p{L}]{2,})/u, '') : word;
+      const stripped = word.length >= 4 ? word.replace(/^(?:[وفبك])?ال(?=[\p{L}]{2,})/u, '') : word;
       return variants[stripped] ?? variants[word] ?? stripped;
     }).join(' ');
+  // Keep the employment section discoverable for a query made only of intent
+  // words, e.g. "أريد شغل"; profession intent words are still removed below.
+  if (!result && raw.split(/\s+/).some(word => ['شغل', 'وظيفه', 'وظائف', 'عمل'].includes(word))) return 'شغل';
+  return result;
 }
 
 // Public business services may legitimately contain إدارة. Remove only their
@@ -102,7 +114,10 @@ function createDirectorySearchIndex(sections: DisplaySection[], services: Servic
         ownTokens: [...new Set([...terms, ...(sourceKeywords.get(item.slug) ?? []).map(normalizeDirectoryQuery)].flatMap(term => term.split(' ')))],
         contextTokens: normalizeDirectoryQuery([section.name, ...section.aliases, ...(directorySearchAliases[section.slug] ?? [])].join(' ')).split(' '),
         serviceTerms: services.filter(service => service.categorySlug === section.slug && (!child || service.subCategory === child.slug))
-          .map(service => normalizeDirectoryQuery(`${service.name} ${service.profession ?? ''}`)),
+          .map(service => normalizeDirectoryQuery([
+            service.name, service.profession, service.experience, service.location,
+            service.slug,
+          ].filter(Boolean).join(' '))),
       };
     });
   });
@@ -125,7 +140,21 @@ function nearWord(a: string, b: string): boolean {
 export function searchDirectory(index: DirectorySearchEntry[], query: string): DirectorySearchResult[] {
   const normalized = normalizeDirectoryQuery(query);
   if (!normalized || isPrivateDirectoryQuery(query)) return [];
-  const tokens = [...new Set(normalized.split(' '))];
+  const extractedTokens = smartSearchTokens(normalized);
+  const tokens = [...new Set((extractedTokens.length ? extractedTokens : ['شغل'])
+    .flatMap(token => normalizeDirectoryQuery(token).split(' ')).filter(Boolean))];
+
+  const tokenAliases = (token: string): string[] => [...new Set(
+    smartSearchVariants(token).map(alias => normalizeDirectoryQuery(alias)).filter(Boolean),
+  )];
+  const fieldHasToken = (field: string[], token: string): boolean => {
+    const aliases = tokenAliases(token);
+    const fieldText = field.join(' ');
+    return aliases.some(alias => {
+      if (alias.includes(' ')) return fieldText.includes(alias);
+      return field.includes(alias) || field.some(word => nearWord(alias, word) || (alias.length >= 3 && word.startsWith(alias)));
+    });
+  };
 
   // حرف واحد: مطابقة احتواء حرفية فقط داخل اسم القسم/الفرع أو مفرداته
   // المباشرة (aliases, keywords, synonyms). لا نستخدم fuzzy أو سياق الأب هنا
@@ -133,8 +162,8 @@ export function searchDirectory(index: DirectorySearchEntry[], query: string): D
   if ([...normalized].length === 1) {
     return index.flatMap(entry => {
       const itemName = normalizeDirectoryQuery(entry.child?.name ?? entry.section.name);
-      const directTerm = entry.terms.some(term => term.includes(normalized));
-      const keyword = entry.ownTokens.some(word => word.includes(normalized));
+      const directTerm = entry.terms.some(term => term.includes(normalized) || tokenAliases(normalized).some(alias => term.includes(alias)));
+      const keyword = fieldHasToken(entry.ownTokens, normalized);
       if (!directTerm && !keyword) return [];
       const score = itemName.includes(normalized) ? 140 : directTerm ? 125 : 110;
       return [{ ...entry, exact: false, fuzzy: false, score }];
@@ -143,11 +172,11 @@ export function searchDirectory(index: DirectorySearchEntry[], query: string): D
 
   const results = index.flatMap(entry => {
     const exact = entry.terms.includes(normalized);
-    const own = tokens.filter(token => entry.ownTokens.includes(token));
-    const context = tokens.filter(token => entry.contextTokens.includes(token));
-    const fuzzyTokens = tokens.filter(token => !entry.ownTokens.includes(token) && !entry.contextTokens.includes(token) && entry.ownTokens.some(word => nearWord(token, word) || (token.length >= 3 && word.startsWith(token))));
+    const own = tokens.filter(token => fieldHasToken(entry.ownTokens, token));
+    const context = tokens.filter(token => fieldHasToken(entry.contextTokens, token));
+    const fuzzyTokens = tokens.filter(token => !own.includes(token) && !context.includes(token) && entry.ownTokens.some(word => tokenAliases(token).some(alias => nearWord(alias, word) || (alias.length >= 3 && word.startsWith(alias)))));
     const matched = new Set([...own, ...context, ...fuzzyTokens]).size;
-    const serviceMatch = entry.serviceTerms.some(term => tokens.every(token => term.split(' ').includes(token)));
+    const serviceMatch = entry.serviceTerms.some(term => tokens.every(token => fieldHasToken(term.split(' '), token)));
     if (!exact && !serviceMatch && (own.length + fuzzyTokens.length === 0 || matched < tokens.length)) return [];
     const fuzzy = fuzzyTokens.length > 0;
     const score = exact ? 160 : serviceMatch && matched < tokens.length ? 80 : 100 + (own.length / tokens.length) * 20 - (fuzzy ? 25 : 0);

@@ -4,6 +4,7 @@ import { adminPinLogin, isPinRateLimited, getPinRateLimitRemainingMs, clearPinRa
 const s = (globalThis as any).__PIN_TEST_STATE as {
   invokeResult: any; invokeThrow: string | null; setSessionCalls: number;
   setSessionError: any; lastInvokeArgs: any; lastSetSessionArgs: any;
+  signOutCalls: number; signOutError: any;
   invokeCalls?: number;
 };
 
@@ -28,6 +29,7 @@ function makeHttpError(response: any) {
 function resetState() {
   s.invokeResult = null; s.invokeThrow = null; s.setSessionCalls = 0;
   s.setSessionError = null; s.lastInvokeArgs = null; s.lastSetSessionArgs = null;
+  s.signOutCalls = 0; s.signOutError = null;
   localStorage.clear();
 }
 
@@ -41,9 +43,9 @@ async function run() {
   // Test 1: Correct PIN within limit
   try {
     resetState();
-    s.invokeResult = { data: { access_token: 'tok_abc', refresh_token: 'ref_def' }, error: null, response: undefined };
+    s.invokeResult = { data: { ok: true, access_token: 'tok_abc', refresh_token: 'ref_def' }, error: null, response: undefined };
     const r = await adminPinLogin('1234');
-    if (r.ok === true && s.setSessionCalls === 1 && s.lastSetSessionArgs.access_token === 'tok_abc') {
+    if (r.ok === true && s.signOutCalls === 1 && s.setSessionCalls === 1 && s.lastSetSessionArgs.access_token === 'tok_abc') {
       report('1. Correct PIN within limit', true);
     } else {
       report('1. Correct PIN within limit', false, JSON.stringify(r) + ' setSessionCalls=' + s.setSessionCalls);
@@ -56,7 +58,7 @@ async function run() {
     const fakeResponse = makeResponse(401, { code: 'invalid_pin' });
     s.invokeResult = { data: null, error: makeHttpError(fakeResponse), response: fakeResponse };
     const r = await adminPinLogin('wrongpin');
-    if (r.ok === false && r.code === 'invalid_pin' && s.setSessionCalls === 0) {
+    if (r.ok === false && r.code === 'invalid_pin' && s.signOutCalls === 1 && s.setSessionCalls === 0) {
       report('2. Wrong PIN rejected', true);
     } else {
       report('2. Wrong PIN rejected', false, JSON.stringify(r) + ' setSessionCalls=' + s.setSessionCalls);
@@ -88,7 +90,7 @@ async function run() {
       throw new Error('Failed to trigger ban: ' + JSON.stringify(r1));
     }
     const invokeCallsBefore = s.invokeCalls || 0;
-    s.invokeResult = { data: { access_token: 'tok_after_ban', refresh_token: 'ref_after_ban' }, error: null, response: undefined };
+    s.invokeResult = { data: { ok: true, access_token: 'tok_after_ban', refresh_token: 'ref_after_ban' }, error: null, response: undefined };
     const r2 = await adminPinLogin('correct_pin_while_banned');
     const invokeCallsAfter = s.invokeCalls || 0;
     if (r2.ok === false && r2.code === 'rate_limited' && s.setSessionCalls === 0 && invokeCallsAfter === invokeCallsBefore) {
@@ -108,7 +110,7 @@ async function run() {
     if (isPinRateLimited()) {
       report('5. After ban expires', false, 'Local ban did not expire');
     } else {
-      s.invokeResult = { data: { access_token: 'tok_after_expiry', refresh_token: 'ref_after' }, error: null, response: undefined };
+      s.invokeResult = { data: { ok: true, access_token: 'tok_after_expiry', refresh_token: 'ref_after' }, error: null, response: undefined };
       const r = await adminPinLogin('correct_after_expiry');
       if (r.ok === true && s.setSessionCalls === 1) {
         report('5. After ban expires -> new attempt allowed', true);
@@ -176,7 +178,7 @@ async function run() {
     await adminPinLogin('trigger1');
     clearPinRateLimit();
     if (isPinRateLimited()) throw new Error('Ban not cleared');
-    s.invokeResult = { data: { access_token: 'tok', refresh_token: 'ref' }, error: null, response: undefined };
+    s.invokeResult = { data: { ok: true, access_token: 'tok', refresh_token: 'ref' }, error: null, response: undefined };
     const success = await adminPinLogin('correct');
     if (!success.ok) throw new Error('Login failed');
     const fake429b = makeResponse(429, { code: 'rate_limited' }, 900);
@@ -188,6 +190,33 @@ async function run() {
       report('9. Re-ban after ban cleared', false, JSON.stringify(r));
     }
   } catch (e: any) { report('9. Re-ban after ban cleared', false, e.message); }
+
+  // Test 10: Tokens alone are not an explicit server success.
+  try {
+    resetState();
+    s.invokeResult = { data: { access_token: 'untrusted', refresh_token: 'untrusted-refresh' }, error: null, response: undefined };
+    const r = await adminPinLogin('anything');
+    if (r.ok === false && r.code === 'server_error' && s.setSessionCalls === 0) {
+      report('10. Missing explicit ok=true is rejected', true);
+    } else {
+      report('10. Missing explicit ok=true is rejected', false, JSON.stringify(r) + ' setSessionCalls=' + s.setSessionCalls);
+    }
+  } catch (e: any) { report('10. Missing explicit ok=true is rejected', false, e.message); }
+
+  // Test 11: If the stale local session cannot be cleared, do not call the server.
+  try {
+    resetState();
+    const invokeCallsBefore = s.invokeCalls || 0;
+    s.signOutError = new Error('Synthetic local sign-out failure');
+    s.invokeResult = { data: { ok: true, access_token: 'must-not-install', refresh_token: 'must-not-install' }, error: null, response: undefined };
+    const r = await adminPinLogin('anything');
+    const invokeCallsAfter = s.invokeCalls || 0;
+    if (r.ok === false && r.code === 'session_clear_failed' && s.setSessionCalls === 0 && invokeCallsAfter === invokeCallsBefore) {
+      report('11. Stale session clear failure blocks login', true);
+    } else {
+      report('11. Stale session clear failure blocks login', false, JSON.stringify(r));
+    }
+  } catch (e: any) { report('11. Stale session clear failure blocks login', false, e.message); }
 
   const passCount = results.filter(x => x.passed).length;
   const failCount = results.filter(x => !x.passed).length;

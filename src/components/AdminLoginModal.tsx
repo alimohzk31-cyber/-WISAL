@@ -11,6 +11,7 @@ const LOGIN_ERRORS: Record<string, string> = {
   not_admin: 'هذا الحساب لا يملك صلاحيات إدارية.',
   server_error: 'تعذر الدخول حاليًا. حاول لاحقًا.',
   network: 'تعذر الاتصال بالخادم. تحقق من الاتصال.',
+  session_clear_failed: 'تعذر إنهاء جلسة الإدارة السابقة بأمان. أعد تشغيل التطبيق وحاول مجددًا.',
 };
 const DEFAULT_LOGIN_ERROR = 'تعذر الدخول. حاول مرة أخرى.';
 
@@ -29,6 +30,14 @@ export default function AdminLoginModal({ onClose, onSuccess }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+
+    // رفض محلي صريح لـ PIN الفارغ — لا نرسلها للخادم،
+    // لأن محاولة إرسال PIN فارغة قد تُسجّل كمحاولة فاشلة.
+    if (pin.trim() === '') {
+      setErrorMsg(LOGIN_ERRORS.invalid_pin);
+      return;
+    }
+
     setSubmitting(true);
     setErrorMsg(null);
     const result = await loginWithPin(pin);
@@ -42,8 +51,8 @@ export default function AdminLoginModal({ onClose, onSuccess }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm border rounded-2xl shadow-[var(--shadow-lg)] overflow-hidden animate-in fade-in zoom-in duration-200 relative bg-[var(--surface-elevated)] border-[var(--border)]">
+    <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4">
+      <div className="relative w-full min-w-0 max-w-sm overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)] animate-in fade-in zoom-in duration-200">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-lg transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-soft)]"
@@ -51,7 +60,7 @@ export default function AdminLoginModal({ onClose, onSuccess }: Props) {
           <X className="w-5 h-5" />
         </button>
         
-        <form onSubmit={handleSubmit} className="p-6 pt-12">
+        <form onSubmit={handleSubmit} className="min-w-0 p-4 pt-12 sm:p-6 sm:pt-12">
           <div className="space-y-2 text-center">
             <input
               type="password"

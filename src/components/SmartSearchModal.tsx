@@ -70,7 +70,7 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[70] flex items-start justify-center bg-black/40 backdrop-blur-sm px-4 pt-24"
+          className="fixed inset-0 z-[70] flex min-w-0 items-start justify-center bg-black/40 px-2 pt-20 backdrop-blur-sm sm:px-4 sm:pt-24"
           onClick={onClose}
         >
           <motion.div
@@ -78,7 +78,7 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.97 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="w-full max-w-md rounded-3xl border border-[var(--border-color)] bg-[var(--surface-elevated)] shadow-2xl overflow-hidden"
+            className="w-full min-w-0 max-w-md overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--surface-elevated)] shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             {/* العنوان */}
@@ -135,7 +135,7 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent-primary)]">
                       <CategoryIcon className="h-5 w-5" />
                     </span>
-                    <span className="flex-1 text-sm font-bold text-[var(--text-primary)]">{result.label}</span>
+                    <span className="min-w-0 flex-1 break-words text-sm font-bold text-[var(--text-primary)]">{result.label}</span>
                     <ArrowLeft className="h-4 w-4 shrink-0 text-[var(--text-secondary)] group-hover:text-[var(--accent-primary)] transition-colors" />
                   </button>
                 );

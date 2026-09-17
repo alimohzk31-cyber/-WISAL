@@ -65,7 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await adminPinLogin(pin);
       if (!result.ok) return result;
       const admin = await refreshAdmin();
-      return admin ? { ok: true } : { ok: false, code: 'not_admin' };
+      if (admin) return { ok: true };
+      // The Edge Function already checks the profile, but fail closed again
+      // if the independent database verification disagrees for any reason.
+      await supabase.auth.signOut({ scope: 'local' });
+      currentToken.current = '';
+      setSession(null);
+      setUser(null);
+      setIsAdmin(false);
+      return { ok: false, code: 'not_admin' };
     } finally { explicitLogin.current = false; }
   }, [refreshAdmin]);
 

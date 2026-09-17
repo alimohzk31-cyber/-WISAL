@@ -51,7 +51,7 @@ export default function HeaderClock() {
   }).format(now), [now.getDate(), now.getMonth(), now.getFullYear()]);
 
   return (
-    <div className="relative flex h-12 w-[200px] max-w-[54vw] items-center justify-center sm:w-[240px]" aria-live="off">
+    <div className="relative flex h-12 w-[200px] min-w-0 max-w-[48vw] items-center justify-center sm:w-[240px] sm:max-w-[54vw]" aria-live="off">
       <AnimatePresence initial={false} mode="wait">
         {!showClock ? (
           <motion.div
@@ -79,17 +79,17 @@ export default function HeaderClock() {
             aria-label={`${pad(hour)}:${pad(now.getMinutes())} ${period}، ${date}`}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.65, ease: 'easeInOut' }}
-            className="wisal-header-clock flex w-full items-center justify-center gap-2 rounded-2xl px-2 py-1.5 sm:gap-3"
+            className="wisal-header-clock flex w-full min-w-0 items-center justify-center gap-1 rounded-2xl px-1 py-1.5 min-[360px]:gap-2 min-[360px]:px-2 sm:gap-3"
             dir="ltr"
           >
-            <AnalogClock now={now} />
+            <span className="hidden shrink-0 min-[360px]:block"><AnalogClock now={now} /></span>
             <div className="min-w-0 text-center leading-none" dir="rtl">
               <div className="wisal-digital-time whitespace-nowrap font-black tabular-nums" dir="ltr">
                 {pad(hour)}:{pad(now.getMinutes())} <span>{period}</span>
               </div>
-              <div className="mt-1 flex items-center justify-center gap-1 whitespace-nowrap text-[9px] font-bold text-slate-300 sm:text-[11px]">
+              <div className="mt-1 flex min-w-0 items-center justify-center gap-1 text-[8px] font-bold text-slate-300 min-[360px]:whitespace-nowrap min-[360px]:text-[9px] sm:text-[11px]">
                 <CalendarDays className="h-3 w-3 shrink-0 text-violet-300" />
-                <span>{date}</span>
+                <span className="min-w-0 truncate">{date}</span>
               </div>
             </div>
           </motion.div>

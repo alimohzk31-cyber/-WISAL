@@ -10,7 +10,7 @@ import { useJobPresentation } from '../../features/jobs/useJobPresentation';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useSavedJobs } from '../../features/jobs/useSavedJobs';
 import type { EmploymentType } from '../../features/jobs/types';
-import { createJobSearchIndex, matchesJobSearchIndex } from '../../features/jobs/jobSearch';
+import { scoreJobSearch } from '../../features/jobs/jobSearch';
 
 const typeCards = [
   { type: 'تدريب' as const, icon: GraduationCap, color: 'bg-amber-500/12 text-amber-600', accent: 'border-amber-400/40' },
@@ -29,15 +29,20 @@ export default function JobsPage() {
   const [addType, setAddType] = useState<EmploymentType>();
   const [showAll, setShowAll] = useState(false);
 
-  const indexedJobs = useMemo(() => jobs.map(job => ({ job, searchIndex: createJobSearchIndex(job) })), [jobs]);
-  const filtered = useMemo(() => indexedJobs
-    .filter(({ job, searchIndex }) => matchesJobSearchIndex(searchIndex, debouncedQuery) && (!employmentType || job.employmentType === employmentType))
-    .map(({ job }) => job), [indexedJobs, debouncedQuery, employmentType]);
+  const filtered = useMemo(() => jobs
+    .flatMap(job => {
+      if (employmentType && job.employmentType !== employmentType) return [];
+      const score = debouncedQuery.trim() ? scoreJobSearch(job, debouncedQuery) : 0;
+      if (debouncedQuery.trim() && score <= 0) return [];
+      return [{ job, score }];
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ job }) => job), [jobs, debouncedQuery, employmentType]);
   const visibleJobs = showAll || debouncedQuery || employmentType ? filtered : filtered.slice(0, 6);
   const hasFilter = Boolean(debouncedQuery || employmentType);
 
-  return <main className="-mx-4 -my-8 min-h-screen bg-[#f3f8ff] px-3 pb-16 pt-3 text-[#12233f] sm:px-6 sm:pt-6 lg:px-8" dir="rtl">
-    <div className="mx-auto max-w-6xl space-y-5 sm:space-y-7">
+  return <main className="-mx-3 -my-8 min-h-screen min-w-0 max-w-none bg-[#f3f8ff] px-3 pb-16 pt-3 text-[#12233f] sm:-mx-4 sm:px-6 sm:pt-6 lg:px-8" dir="rtl">
+    <div className="mx-auto w-full min-w-0 max-w-6xl space-y-5 sm:space-y-7">
     <JobsSlider settings={presentation.settings} jobs={jobs} loading={loading} />
     <DirectoryNav activeView="jobs" />
 
@@ -51,7 +56,7 @@ export default function JobsPage() {
     </section>
 
     <section aria-label="أنواع الوظائف" className="space-y-3">
-      <div className="grid grid-cols-4 gap-2.5 sm:gap-4">
+      <div className="grid min-w-0 grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-4">
         {typeCards.map(({ type, icon: Icon, color, accent }) => {
           const selected = employmentType === type;
           return <article key={type} className={`relative min-w-0 overflow-hidden rounded-[20px] border bg-white px-1.5 py-3 text-center shadow-[0_8px_24px_rgba(30,86,146,0.10)] transition sm:px-3 sm:py-4 ${selected ? `${accent} -translate-y-1 ring-2 ring-[var(--accent-primary)]/15` : 'border-[#e2edf9]'}`}>
@@ -66,7 +71,7 @@ export default function JobsPage() {
     </section>
 
     <section aria-labelledby="latest-jobs-title" className="space-y-4">
-      <div className="flex items-center justify-between gap-3"><div><h2 id="latest-jobs-title" className="text-xl font-black text-[#0f2747] sm:text-2xl">{hasFilter ? 'نتائج البحث' : 'أحدث الوظائف'}</h2><p className="mt-0.5 text-[11px] font-bold text-[#8191a7]">{loading ? 'جارٍ التحميل…' : `${filtered.length} فرصة متاحة`}</p></div>{!showAll && !hasFilter ? <button type="button" onClick={() => setShowAll(true)} className="inline-flex items-center gap-1 text-sm font-black text-[var(--accent-primary)]">عرض الكل<ArrowLeft className="h-4 w-4" /></button> : null}</div>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><div className="min-w-0"><h2 id="latest-jobs-title" className="text-xl font-black text-[#0f2747] sm:text-2xl">{hasFilter ? 'نتائج البحث' : 'أحدث الوظائف'}</h2><p className="mt-0.5 text-[11px] font-bold text-[#8191a7]">{loading ? 'جارٍ التحميل…' : `${filtered.length} فرصة متاحة`}</p></div>{!showAll && !hasFilter ? <button type="button" onClick={() => setShowAll(true)} className="inline-flex shrink-0 items-center gap-1 text-sm font-black text-[var(--accent-primary)]">عرض الكل<ArrowLeft className="h-4 w-4" /></button> : null}</div>
       {loading ? <div className="grid gap-3 md:grid-cols-2"><div className="h-32 animate-pulse rounded-[22px] bg-white" /><div className="h-32 animate-pulse rounded-[22px] bg-white" /></div>
         : !configured ? <div className="rounded-3xl border border-amber-400/30 bg-amber-500/10 p-8 text-center"><BriefcaseBusiness className="mx-auto h-11 w-11 text-amber-500" /><h2 className="mt-3 text-lg font-black">قسم الوظائف جاهز بانتظار تفعيل قاعدة البيانات</h2><p className="mt-2 text-sm font-bold text-[var(--text-secondary)]">نفّذ ملفات SQL الخاصة بالوظائف لبدء استقبال وعرض الفرص.</p></div>
           : error ? <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-8 text-center"><p className="font-bold">تعذر تحميل الوظائف.</p><button onClick={reload} className="mt-3 font-black text-[var(--accent-primary)]">إعادة المحاولة</button></div>

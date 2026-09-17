@@ -321,15 +321,15 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-2xl h-[92vh] max-h-[700px] flex flex-col rounded-3xl border shadow-2xl bg-[var(--surface)] border-[var(--border)] overflow-hidden">
-        <div className="shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-[var(--surface-elevated)] border-[var(--border)]">
-          <div className="flex items-center gap-3">
+      <div className="relative flex h-[calc(100dvh-1rem)] w-full min-w-0 max-w-2xl flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl sm:h-[92vh] sm:max-h-[700px]">
+        <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[var(--accent-soft)] flex items-center justify-center">
               <Lightbulb className="w-5 h-5 text-[var(--accent-primary)]" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-base font-black text-[var(--text-primary)]">ساحة الاقتراحات</h2>
               <p className="text-xs text-[var(--text-muted)]">شارك اقتراحك مع الجميع</p>
             </div>
@@ -419,7 +419,7 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
           )}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-[var(--text-muted)]" dir="ltr">{text.length}/{SUGGESTION_MAX_LENGTH}</span>
-            <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
               <input ref={fileInputRef} type="file" accept="image/*" onChange={pickImage} disabled={submitting} className="hidden" />
               <button type="button" onClick={() => fileInputRef.current?.click()} disabled={submitting} className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm text-[var(--text-secondary)]"><ImageIcon className="h-4 w-4" />إضافة صورة</button>
               <button type="submit" disabled={!canSend} className="app-btn-accent flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-50">

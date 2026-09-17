@@ -5,6 +5,7 @@ import { mergeServiceSnapshot } from '../src/lib/serviceSnapshot';
 import { useCategoryDirectory } from '../src/hooks/useCategoryDirectory';
 import { APP_VERSION, PREVIOUS_APP_VERSION } from '../src/lib/appVersion';
 import { networkQualityStatus, OFFLINE_ACTION_MESSAGE } from '../src/lib/connectivity';
+import { buildCategoryLookup, relinkCachedServiceCategories, resolveServiceCategory } from '../src/lib/serviceCategoryLink';
 import type { Service } from '../src/types/models';
 
 test('concurrent mounts share one read, including forced reads; empty data is cached', async () => {
@@ -100,4 +101,63 @@ test('release numbering follows 1.0 with 1.1', () => {
 test('central connectivity model exposes offline fallback and the user-facing write guard message', () => {
   assert.equal(networkQualityStatus(false), 'offline');
   assert.equal(OFFLINE_ACTION_MESSAGE, 'هذه العملية تحتاج اتصالًا بالإنترنت');
+});
+
+test('category_id canonically links a service even when category_slug is missing or stale', () => {
+  const lookup = buildCategoryLookup([
+    { id: 11, slug: 'pharmacy' },
+    { id: 22, slug: 'carpentry' },
+  ]);
+  assert.deepEqual(resolveServiceCategory({ category_id: 11, category_slug: '' }, lookup), {
+    categoryId: '11', categorySlug: 'pharmacy', subCategory: undefined,
+  });
+  assert.deepEqual(resolveServiceCategory({ category_id: 22, category_slug: 'pharmacy' }, lookup), {
+    categoryId: '22', categorySlug: 'carpentry', subCategory: undefined,
+  });
+});
+
+test('online pages survive an interrupted refresh and reopen in multiple offline sections', () => {
+  const onlineCategories = [
+    { id: 11, slug: 'pharmacy', name: 'Pharmacy' },
+    { id: 22, slug: 'carpenter', name: 'Carpentry' },
+    { id: 33, slug: 'car-wash', name: 'Car wash' },
+  ];
+  const onlineLookup = buildCategoryLookup(onlineCategories);
+  const fromRow = (id: number, categoryId: number, storedSlug = ''): Service => ({
+    ...service(id),
+    ...resolveServiceCategory({ category_id: categoryId, category_slug: storedSlug }, onlineLookup),
+  });
+
+  // Equivalent to successful paginated Online reads: every page is merged
+  // without dropping services fetched by earlier pages.
+  let durableCache: Service[] = [];
+  durableCache = mergeServiceSnapshot(durableCache, [fromRow(1, 11), fromRow(2, 22)], false);
+  durableCache = mergeServiceSnapshot(durableCache, [fromRow(3, 33, 'wrong-old-slug')], false);
+  const beforeFailure = structuredClone(durableCache);
+
+  // A later network failure never applies an empty complete snapshot.
+  durableCache = mergeServiceSnapshot(durableCache, [], false);
+  assert.deepEqual(durableCache, beforeFailure);
+
+  // Equivalent to a new Offline app start: category rows and services are read
+  // only from durable cache, including repair of a legacy row with a blank slug.
+  const offlineLookup = buildCategoryLookup(onlineCategories.map(row => ({ dbId: row.id, slug: row.slug })));
+  const legacyCache = durableCache.map(row => row.id === 2 ? { ...row, categorySlug: '' } : row);
+  const offlineServices = relinkCachedServiceCategories(legacyCache, offlineLookup);
+  const directory = useCategoryDirectory(onlineCategories.map(row => ({
+    slug: row.slug, name: row.name, dbId: row.id,
+  })), offlineServices);
+
+  assert.deepEqual(directory.bySection.get('pharmacies')?.map(row => row.id), [1]);
+  assert.deepEqual(directory.bySection.get('home-services')?.map(row => row.id), [2]);
+  assert.deepEqual(directory.bySection.get('cars')?.map(row => row.id), [3]);
+  assert.equal(offlineServices.length, beforeFailure.length);
+});
+
+test('a completed reconnect refresh replaces stale approved rows with the latest snapshot', () => {
+  const oldCache = [service(1), service(2), service(3)];
+  const latest = [{ ...service(1), name: 'Fresh service' }, service(4)];
+  const refreshed = mergeServiceSnapshot(oldCache, latest, true);
+  assert.deepEqual(refreshed.map(row => row.id), [1, 4]);
+  assert.equal(refreshed[0].name, 'Fresh service');
 });

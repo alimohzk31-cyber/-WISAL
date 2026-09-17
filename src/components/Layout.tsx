@@ -114,13 +114,13 @@ export default function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen font-sans transition-colors duration-300" dir="rtl">
+    <div className="min-h-screen w-full min-w-0 max-w-full font-sans transition-colors duration-300" dir="rtl">
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-md border-b bg-[var(--header-bg)] border-[var(--border-color)]">
-        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between relative">
+      <header className="sticky top-0 z-40 w-full min-w-0 max-w-full backdrop-blur-md border-b bg-[var(--header-bg)] border-[var(--border-color)]">
+        <div className="relative mx-auto flex h-20 w-full min-w-0 max-w-7xl items-center justify-between px-3 sm:px-4">
           
           {/* Right: desktop-only admin access */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             {isDesktop ? (
               // سطح المكتب: صورة وصال — 5 ضغطات متتالية تفتح AdminLoginModal (نفس المنطق الحالي)
               <button
@@ -143,7 +143,7 @@ export default function Layout() {
               <img
                 src={`${(import.meta as any).env.BASE_URL}wisal-header-logo.png`}
                 alt={t('app_name')}
-                className="h-14 w-auto object-contain shrink-0"
+                className="h-14 w-auto max-w-[22vw] shrink-0 object-contain"
                 draggable={false}
               />
             )}
@@ -155,7 +155,7 @@ export default function Layout() {
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-full right-0 mt-2 w-72 p-4 rounded-2xl border shadow-[var(--shadow-lg)] z-50 bg-[var(--surface-elevated)] border-[var(--border)]"
+                    className="absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow-lg)]"
                   >
                     <h3 className="font-bold mb-2 flex items-center gap-2">
                       <Info className="w-4 h-4" style={{ color: primaryColor }} />
@@ -197,7 +197,7 @@ export default function Layout() {
                   initial={{ opacity: 0, y: -8, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                  className="absolute left-0 mt-2 w-60 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)] z-50"
+                  className="absolute left-0 z-50 mt-2 w-60 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
                 >
                   <button
                     type="button"
@@ -289,7 +289,7 @@ export default function Layout() {
 
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8 pb-24 min-h-[calc(100vh-200px)]">
+      <main className="mx-auto min-h-[calc(100vh-200px)] w-full min-w-0 max-w-7xl px-3 py-8 pb-24 sm:px-4">
         {/* انتقال فوري وسلس بين الصفحات:
             - كان `mode="wait"` يؤخر تركيب الصفحة الجديدة حتى اكتمال حركة خروج
               الصفحة القديمة كاملة (إحساس بأن التطبيق «معلّق» عند كل تنقّل).
@@ -303,6 +303,7 @@ export default function Layout() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="w-full min-w-0 max-w-full"
           >
             <Outlet context={{ primaryColor, theme }} />
           </motion.div>
@@ -311,13 +312,13 @@ export default function Layout() {
 
       {/* Footer */}
       <footer className={`mt-auto border-t py-12 bg-[var(--bg-secondary)] border-[var(--border)]`}>
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="mx-auto w-full min-w-0 max-w-7xl px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex flex-col items-center md:items-start gap-2">
               <div className="text-sm font-bold text-[var(--text-muted)]">{t('app_name')}</div>
             </div>
 
-            <div className="flex items-center gap-8">
+            <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-8 gap-y-3">
               <Link 
                 to="/about" 
                 className="text-sm font-bold hover:text-[var(--text-primary)] transition-colors"
@@ -330,7 +331,7 @@ export default function Layout() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)] font-medium">
+            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-center text-sm text-[var(--text-muted)] font-medium">
               <span>صنع بـ</span>
               <Heart className="w-4 h-4 text-red-500 fill-current" />
               <span>لخدمة المجتمع</span>
@@ -351,7 +352,7 @@ export default function Layout() {
 
       {/* قائمة الألوان — reused ThemeToggle in controlled mode */}
       {colorsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4">
           <ThemeToggle open={colorsOpen} onOpenChange={setColorsOpen} hideTrigger />
         </div>
       )}

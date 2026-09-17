@@ -6,6 +6,14 @@ import { notifyServiceChange } from '../lib/serviceChanges';
 import { fetchCategoryRows } from '../lib/categoryRows';
 import { mergeServiceSnapshot } from '../lib/serviceSnapshot';
 import { APP_ONLINE_EVENT, isOnlineConnection, requireOnlineConnection } from '../lib/connectivity';
+import {
+  buildCategoryLookup,
+  categoryLookupHasRows,
+  relinkCachedServiceCategories,
+  resolveServiceCategory,
+  type CategoryLookup,
+} from '../lib/serviceCategoryLink';
+import { ensureSectionCategoryRow } from '../lib/categoryProvisioning';
 // ------------------------------------------------------------------
 // Service مُعرَّف مركزياً في types/models (المصدر الوحيد للأنواع).
 // هذه إعادة تصدير للتوافق مع كل الاستيرادات الحالية من hooks/useServices.
@@ -23,20 +31,27 @@ export type { ServiceStatus, serviceStatusLabel, serviceStatusBadgeClass } from 
 // NOTE: "owner_id" does NOT exist yet. It can be added later via supabase_add_owner_id.sql.
 // The code below detects whether it exists and only sends it when available.
 
-const carSubSlugs = [
-  'car-electric', 'oil-change', 'car-wash', 'spare-parts',
-  'car-rental', 'car-tires', 'car-accessories', 'car-sonar', 'car-filters', 'car-glass'
-];
-
 // Public lists intentionally omit video_url and every unused database column.
 // Video is requested only by the dedicated detail route, when it is needed.
 export const SERVICE_LIST_COLUMNS = [
   'id', 'slug', 'title', 'description', 'phone',
+  'whatsapp_phone', 'facebook_url', 'instagram_url', 'tiktok_url',
   'category_id', 'category_slug', 'profession', 'address',
   'latitude', 'longitude', 'lat', 'lng', 'views', 'created_at',
   'updated_at', 'reviewed_at', 'status', 'rejection_reason', 'owner_id', 'user_id',
 ].join(',');
 export const SERVICE_DETAIL_COLUMNS = `${SERVICE_LIST_COLUMNS},image_url,video_url`;
+
+// الأعمدة الأساسية المضمونة في المخطط الحالي لقاعدة البيانات. تُستخدم كخطة
+// بديلة عندما لا تحتوي قاعدة البيانات بعد على أعمدة التواصل الاختيارية
+// (whatsapp_phone/facebook_url/instagram_url/tiktok_url) — فغيابها كان يفشل
+// الاستعلام بالكامل (42703) ويمنع ظهور أي خدمة في التصفح.
+const SERVICE_CORE_LIST_COLUMNS = [
+  'id', 'slug', 'title', 'description', 'phone',
+  'category_id', 'category_slug', 'profession', 'address',
+  'latitude', 'longitude', 'lat', 'lng', 'views', 'created_at',
+  'updated_at', 'reviewed_at', 'status', 'rejection_reason', 'owner_id', 'user_id',
+].join(',');
 
 function waitForBrowserIdle(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
@@ -85,25 +100,55 @@ let catIdToSlug: Map<string, string> | null = null;
 let catSlugToId: Map<string, string> | null = null;
 let categoriesRequest: Promise<void> | null = null;
 
-async function ensureCategoriesCache(): Promise<void> {
+function applyCategoryLookup(rows: unknown[]): boolean {
+  const lookup = buildCategoryLookup(rows);
+  // A failed/partial connection must never replace a useful lookup with an
+  // empty one. This also keeps cached service/category links usable offline.
+  if (!categoryLookupHasRows(lookup)) return false;
+  const nextIdToSlug = new Map(catIdToSlug ?? []);
+  const nextSlugToId = new Map(catSlugToId ?? []);
+  for (const [id, slug] of lookup.idToSlug) {
+    const previousSlug = nextIdToSlug.get(id);
+    const previousId = nextSlugToId.get(slug);
+    if (previousSlug && previousSlug !== slug && nextSlugToId.get(previousSlug) === id) {
+      nextSlugToId.delete(previousSlug);
+    }
+    if (previousId && previousId !== id && nextIdToSlug.get(previousId) === slug) {
+      nextIdToSlug.delete(previousId);
+    }
+    nextIdToSlug.set(id, slug);
+    nextSlugToId.set(slug, id);
+  }
+  catIdToSlug = nextIdToSlug;
+  catSlugToId = nextSlugToId;
+  return true;
+}
+
+function currentCategoryLookup(): CategoryLookup {
+  return {
+    idToSlug: catIdToSlug ?? new Map<string, string>(),
+    slugToId: catSlugToId ?? new Map<string, string>(),
+  };
+}
+
+async function ensureCategoriesCache(force = false): Promise<void> {
   if (categoriesRequest) return categoriesRequest;
-  categoriesRequest = loadCategoriesCache();
+  categoriesRequest = loadCategoriesCache(force);
   try { await categoriesRequest; } finally { categoriesRequest = null; }
 }
 
-async function loadCategoriesCache(): Promise<void> {
+async function loadCategoriesCache(force = false): Promise<void> {
+  // Seed the lookup from the durable category cache first. This makes old
+  // service snapshots repairable even when the app starts without a network.
+  if (!catIdToSlug) {
+    const cached = await offlineStore.getItem<unknown[]>(OFFLINE_KEYS.CATEGORIES).catch(() => null);
+    if (cached) applyCategoryLookup(cached);
+  }
+  if (!isOnlineConnection()) return;
+
   try {
-    const data = await measureAdminOperation('categories.lookup', () => fetchCategoryRows());
-    catIdToSlug = new Map();
-    catSlugToId = new Map();
-    for (const row of data || []) {
-      const id = row.id !== undefined && row.id !== null ? String(row.id) : null;
-      const slug = row.slug !== undefined && row.slug !== null ? String(row.slug) : null;
-      if (id && slug) {
-        catIdToSlug.set(id, slug);
-        catSlugToId.set(slug, id);
-      }
-    }
+    const data = await measureAdminOperation('categories.lookup', () => fetchCategoryRows(force));
+    applyCategoryLookup(data || []);
   } catch (e) {
     console.error('[useServices] ensureCategoriesCache failed:', e);
   }
@@ -115,26 +160,11 @@ function getSlugForCategoryId(categoryId: string | number | null | undefined): s
 }
 
 export function mapRowToService(item: any): Service {
-  // Resolve the UI-facing category slug WITHOUT inventing a fallback while the
-  // service has a real category_id:
-  //   1) explicit category_slug column
-  //   2) translate category_id -> slug using the categories table cache
-  //   3) keep it empty when the row has no category; never invent a category
-  const rawCategoryId =
-    item.category_id !== undefined && item.category_id !== null ? String(item.category_id) : null;
-  let rawCategory: string | undefined =
-    item.category_slug !== undefined && item.category_slug !== null ? String(item.category_slug) : undefined;
-  if (!rawCategory && rawCategoryId) {
-    rawCategory = getSlugForCategoryId(rawCategoryId);
-  }
-  rawCategory = rawCategory ?? '';
-  const isCarSub = carSubSlugs.includes(rawCategory);
+  const category = resolveServiceCategory(item, currentCategoryLookup());
   return {
     id: item.id,
     slug: item.slug ?? String(item.id),
-    categorySlug: isCarSub ? 'car-repair' : rawCategory,
-    categoryId: rawCategoryId,
-    subCategory: isCarSub ? rawCategory : undefined,
+    ...category,
     name: item.title ?? item.name ?? '',
     profession: item.profession ?? undefined,
     experience: item.description ?? item.experience ?? undefined,
@@ -191,28 +221,64 @@ async function checkOwnerIdColumn(): Promise<boolean> {
   return ownerIdColumnSupported;
 }
 
-async function checkSocialContactColumns(): Promise<boolean> {
+async function checkSocialContactColumns(): Promise<boolean | null> {
   if (socialContactColumnsSupported !== null) return socialContactColumnsSupported;
   try {
     const { error } = await supabase.from('services').select('whatsapp_phone, facebook_url, instagram_url, tiktok_url').limit(1);
-    socialContactColumnsSupported = !error;
+    // Cache a negative result only for a definitive schema error. A transient
+    // network/RLS failure must not make every later submission silently drop
+    // its links for the rest of the session.
+    socialContactColumnsSupported = error ? (isSocialSchemaError(error) ? false : null) : true;
   } catch {
-    socialContactColumnsSupported = false;
+    socialContactColumnsSupported = null;
   }
   return socialContactColumnsSupported;
 }
 
-async function appendSocialContactPayload(payload: Record<string, any>, service: Partial<Service>): Promise<void> {
+async function appendSocialContactPayload(payload: Record<string, any>, service: Partial<Service>): Promise<boolean> {
   const values = [service.whatsappPhone, service.facebookUrl, service.instagramUrl, service.tiktokUrl];
-  const hasValue = values.some(value => Boolean(value?.trim()));
-  if (!await checkSocialContactColumns()) {
-    if (hasValue) throw new Error('يجب تنفيذ ملف supabase_add_service_social_contacts.sql في Supabase قبل حفظ روابط التواصل.');
-    return;
+  const socialColumns = await checkSocialContactColumns();
+  if (socialColumns === false) {
+    if (values.some(value => Boolean(value?.trim()))) {
+      console.warn('[useServices] Social-contact columns are unavailable; saving the service without optional links. Run supabase_add_service_social_contacts.sql to enable them.');
+    }
+    return false;
   }
   payload.whatsapp_phone = service.whatsappPhone?.trim() || null;
   payload.facebook_url = service.facebookUrl?.trim() || null;
   payload.instagram_url = service.instagramUrl?.trim() || null;
   payload.tiktok_url = service.tiktokUrl?.trim() || null;
+  return true;
+}
+
+const SOCIAL_CONTACT_COLUMNS = ['whatsapp_phone', 'facebook_url', 'instagram_url', 'tiktok_url'] as const;
+
+function isSocialSchemaError(error: any): boolean {
+  if (!error) return false;
+  const text = [error?.message, error?.details, error?.hint].filter(Boolean).join(' ').toLowerCase();
+  // Only treat the error as a social-column schema issue when the message
+  // actually names one of our four columns. This prevents a genuine schema
+  // or permission error on a DIFFERENT column from being silently swallowed
+  // by the retry-without-social-columns fallback path below.
+  // PostgreSQL 42703 = undefined_column; PostgREST PGRST204 = column miss.
+  const mentionsSocialColumn = SOCIAL_CONTACT_COLUMNS.some(
+    col => text.includes(col.toLowerCase())
+  );
+  if (!mentionsSocialColumn) return false;
+  return error?.code === '42703' || error?.code === 'PGRST204' ||
+    /column .*?(whatsapp_phone|facebook_url|instagram_url|tiktok_url).*?(does not exist|not found|schema cache)/i.test(text) ||
+    /could not find the .*?(whatsapp_phone|facebook_url|instagram_url|tiktok_url).*?column/i.test(text);
+}
+
+async function insertServicePayload(payload: Record<string, any>) {
+  const first = await measureAdminOperation('services.insert', () => supabase.from('services').insert([payload]));
+  if (!first.error || !SOCIAL_CONTACT_COLUMNS.some(column => Object.prototype.hasOwnProperty.call(payload, column)) || !isSocialSchemaError(first.error)) {
+    return first;
+  }
+  const corePayload = { ...payload };
+  SOCIAL_CONTACT_COLUMNS.forEach(column => { delete corePayload[column]; });
+  console.warn('[useServices] Retrying service INSERT without optional social-contact columns because the database schema does not contain them.');
+  return measureAdminOperation('services.insert.coreFallback', () => supabase.from('services').insert([corePayload]));
 }
 
 // Resolve a category slug used by the UI to the real categories.id value,
@@ -308,6 +374,12 @@ async function buildInsertPayload(serviceData: Omit<Service, 'createdAt'>): Prom
   if (!categoryId) {
     categoryId = await resolveCategoryId(serviceData.categorySlug);
   }
+  if (!categoryId && serviceData.categorySlug) {
+    // أقسام دليل وصال المعروفة التي لا صف لها في public.categories (مثل
+    // «الأثاث والمفروشات») كانت تجعل الحفظ يفشل بالكامل رغم أن القسم معروف.
+    // نجهّز الصف المطابق مرة واحدة للقسم المعروف فقط، بلا تخمين ولا قسم وهمي.
+    categoryId = await ensureSectionCategoryRow(serviceData.categorySlug);
+  }
   if (categoryId) {
     payload.category_id = categoryId;
   } else {
@@ -374,11 +446,10 @@ export function useServices() {
     // (إضافة/تعديل/حذف) نتوقف فورًا كي لا نمسح حالته بالبيانات القديمة.
     const isStale = () => servicesRevision.current !== version;
     try {
-      // Make sure the categories cache is ready BEFORE mapping rows,
-      // so category_id -> slug translation works on the first load.
-      // Category lookup refresh runs beside the first services request. Most
-      // rows already carry category_slug, so it must not delay first content.
-      void ensureCategoriesCache();
+      // The FK lookup must finish BEFORE rows are mapped and persisted. Some
+      // service rows have no category_slug, and mapping those early used to
+      // save an empty slug that made them disappear from offline sections.
+      const categoriesReady = ensureCategoriesCache(true);
 
       // -------------------------------------------------------------------
       // تحميل تدريجي للخدمات (Lazy/Paginated loading):
@@ -394,9 +465,18 @@ export function useServices() {
       const ownerPending: Service[] = [];
       const ownerRejected: Service[] = [];
 
+      // إذا كانت أعمدة التواصل الاختيارية غير موجودة في قاعدة البيانات (لم تُشغّل
+      // supabase_add_service_social_contacts.sql بعد) نستخدم الأعمدة الأساسية فقط
+      // حتى لا يفشل الاستعلام بالكامل ويختفي التصفح. النتيجة: كل المعلومات
+      // الأساسية (الهاتف/العنوان/الإحداثيات) تعمل، وأزرار واتساب ووسائل التواصل
+      // تظهر تلقائيًا بمجرد تشغيل الهجرة. الحالة null (خطأ عابر) تعني استمرار
+      // السلوك الكامل كما كان.
+      const socialColumnsState = await checkSocialContactColumns();
+      const listColumns = socialColumnsState === false ? SERVICE_CORE_LIST_COLUMNS : SERVICE_LIST_COLUMNS;
+
       const fetchApprovedPage = (from: number) => supabase
         .from('services')
-        .select(SERVICE_LIST_COLUMNS)
+        .select(listColumns)
         .eq('status', 'approved')
         .order('reviewed_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
@@ -412,7 +492,13 @@ export function useServices() {
       };
 
       // الصفحة الأولى: تُعرض فورًا ولا ينتظر المستخدم بقية طلبات الشبكة.
-      const { data: firstPage, error: firstError } = await measureAdminOperation('services.approved', () => fetchApprovedPage(0));
+      // Fetch both tables concurrently, but do not map/persist a service until
+      // the category lookup is ready.
+      const [, firstResult] = await Promise.all([
+        categoriesReady,
+        measureAdminOperation('services.approved', () => fetchApprovedPage(0)),
+      ]);
+      const { data: firstPage, error: firstError } = firstResult;
 
       if (firstError) {
         logSupabaseError('fetchServices(approved)', firstError);
@@ -457,7 +543,7 @@ export function useServices() {
 
         const { data: ownerData, error: ownerError } = await measureAdminOperation('services.owner', () => supabase
           .from('services')
-          .select(SERVICE_LIST_COLUMNS)
+          .select(listColumns)
           .in('status', ['pending', 'rejected'])
           .eq('owner_id', ownerId)
           .order('created_at', { ascending: false }));
@@ -488,6 +574,10 @@ export function useServices() {
         approvedServices.push(...rows);
         complete = rows.length < PAGE_SIZE;
         if (!renderState()) return;
+        // Persist every successfully fetched page. If the connection drops on
+        // a later page, all approved rows already received remain available;
+        // the incomplete merge deliberately retains older cached rows too.
+        void persistServices(cached => mergeServiceSnapshot(cached, rows, false));
         if (rows.length < PAGE_SIZE) break;
       }
 
@@ -495,7 +585,9 @@ export function useServices() {
       // لتقليل كتابات IndexedDB الضخمة (الصور base64 داخل الكائنات).
       if (!isStale()) {
         renderState(complete);
-        void persistServices(cached => (isStale() ? cached : mergeServiceSnapshot(cached, [...approvedServices, ...ownerPending, ...ownerRejected], complete)));
+        // Resolve only after the complete snapshot is durable. Reconnect/manual
+        // refresh callers can then rely on the cache being current immediately.
+        await persistServices(cached => (isStale() ? cached : mergeServiceSnapshot(cached, [...approvedServices, ...ownerPending, ...ownerRejected], complete)));
       }
     } catch (error) {
       logSupabaseError('fetchServices', error);
@@ -535,7 +627,7 @@ export function useServices() {
     for (const service of pending) {
       try {
         const payload = await buildInsertPayload(service);
-        const { error } = await supabase.from('services').insert([payload]);
+        const { error } = await insertServicePayload(payload);
         if (error) {
           logSupabaseError(`syncPendingServices(${service.slug})`, error);
           remaining.push(service);
@@ -554,15 +646,21 @@ export function useServices() {
   useEffect(() => {
     let active = true;
     const init = async () => {
-      const cached = await offlineStore.getItem<Service[]>(OFFLINE_KEYS.SERVICES).catch(() => null);
+      const [cached, cachedCategories] = await Promise.all([
+        offlineStore.getItem<Service[]>(OFFLINE_KEYS.SERVICES).catch(() => null),
+        offlineStore.getItem<unknown[]>(OFFLINE_KEYS.CATEGORIES).catch(() => null),
+      ]);
       if (!active) return;
+
+      if (cachedCategories) applyCategoryLookup(cachedCategories);
 
       // Show cached data immediately (offline support only),
       // then replace it with fresh data straight from Supabase.
       if (cached) {
-        servicesSnapshot.current = cached;
-        setServices(cached);
-        if (cached.length) setLoading(false);
+        const linkedCache = relinkCachedServiceCategories(cached, currentCategoryLookup());
+        servicesSnapshot.current = linkedCache;
+        setServices(linkedCache);
+        if (linkedCache.length) setLoading(false);
       }
 
       await fetchServices();
@@ -591,9 +689,7 @@ export function useServices() {
     // INSERT بدون RETURNING: الخدمة الجديدة حالتها pending ولا تسمح سياسة SELECT
     // لـ anon بقراءة الصف الجديد، وعبارة RETURNING (‎.select()‎) تسبب خطأ 42501
     // (new row violates row-level security policy) حتى لو كان الـ INSERT نفسه صالحاً.
-    const { error } = await measureAdminOperation('services.insert', () => supabase
-      .from('services')
-      .insert([payload]));
+    const { error } = await insertServicePayload(payload);
 
     if (error) {
       // NEVER treat a failed INSERT as success. Surface the real error.

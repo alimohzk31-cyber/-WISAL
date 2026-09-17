@@ -18,12 +18,13 @@ test('long browse descriptions are shortened without changing the source', () =>
 
 test('browse card keeps inline expansion separate from category navigation', async () => {
   const source = await readFile(new URL('../src/components/SocialFeed.tsx', import.meta.url), 'utf8');
-  assert.match(source, /aria-expanded=\{expanded\}/);
-  assert.match(source, /\{expanded \? 'عرض أقل' : 'المزيد'\}/);
-  assert.match(source, /images=\{\[browseImages\[0\]\]\}/);
-  assert.match(source, /alt=\{service\.name\} compact/);
-  assert.match(source, /openServiceCategory\(navigate, location, service, placement\)/);
-  assert.match(source, /الدخول إلى القسم/);
+  const interactions = await readFile(new URL('../src/components/PostInteractions.tsx', import.meta.url), 'utf8');
+  assert.match(source, /aria-expanded=\{detailsOpen\}/);
+  assert.match(source, /\{detailsOpen \? 'أقل' : 'المزيد'\}/);
+  assert.match(source, /onOpenCategory=\{\(\) => openServiceCategory\(navigate, location, service, placement\)\}/);
+  assert.match(interactions, /aria-label="الدخول إلى القسم"/);
+  assert.match(interactions, /<LayoutGrid className="h-4 w-4" \/>/);
+  assert.doesNotMatch(source, /<button[\s\S]{0,500}?الدخول إلى القسم[\s\S]{0,500}?<\/button>/);
   assert.doesNotMatch(source, /معاينة الخدمة/);
   assert.doesNotMatch(source, /openServiceDetails/);
 });

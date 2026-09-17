@@ -14,14 +14,14 @@ export default function SavedServicesPage() {
   );
 
   return (
-    <div className="relative z-10 mx-auto max-w-2xl space-y-5">
-      <header className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-4 shadow-[var(--shadow)]">
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-primary)]">
+    <div className="relative z-10 mx-auto w-full min-w-0 max-w-2xl space-y-5">
+      <header className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-4 shadow-[var(--shadow)]">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-primary)]">
           <Bookmark className="h-5 w-5" />
         </span>
-        <div>
-          <h1 className="text-xl font-black text-[var(--text-primary)]">الخدمات المحفوظة</h1>
-          <p className="mt-0.5 text-xs font-bold text-[var(--text-muted)]">خدماتك المحفوظة على هذا الجهاز</p>
+        <div className="min-w-0">
+          <h1 className="break-words text-xl font-black text-[var(--text-primary)]">الخدمات المحفوظة</h1>
+          <p className="mt-0.5 break-words text-xs font-bold text-[var(--text-muted)]">خدماتك المحفوظة على هذا الجهاز</p>
         </div>
       </header>
 

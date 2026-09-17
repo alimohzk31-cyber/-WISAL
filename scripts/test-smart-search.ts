@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { categories } from '../src/data/categories';
-import { buildCategoryDirectory } from '../src/data/categoryDirectory';
+import { buildCategoryDirectory, directorySections } from '../src/data/categoryDirectory';
 import { buildDirectorySearchIndex, searchDirectory, getDirectDirectoryMatch } from '../src/lib/directorySearch';
 import { categoryUrl } from '../src/lib/directoryNavigation';
 
@@ -107,4 +107,19 @@ test('unclear queries never open a random section', () => {
   const ambiguous = searchDirectory(index, 'صيانة');
   assert.ok(ambiguous.length > 1);
   assert.equal(getDirectDirectoryMatch(ambiguous), undefined);
+});
+
+test('service search understands Iraqi intent phrases and profession synonyms', () => {
+  const sections = [
+    { ...directorySections.find(item => item.slug === 'accounting-finance')!, sources: [] },
+    { ...directorySections.find(item => item.slug === 'cars')!, sources: [] },
+  ];
+  const services = [
+    { name: 'مكتب حسابات', profession: 'محاسبة', location: 'كربلاء', categorySlug: 'accounting-finance', subCategory: undefined, slug: 'accounting-demo' },
+    { name: 'ورشة سيارات', profession: 'فيتر سيارات', location: 'كربلاء', categorySlug: 'cars', subCategory: 'car-repair', slug: 'fitter-demo' },
+  ] as any;
+  const serviceIndex = buildDirectorySearchIndex(sections, services);
+  for (const query of ['اريد محاسب', 'محتاج محاسب', 'اني فيتر اريد شغل', 'كربلاء']) {
+    assert.ok(searchDirectory(serviceIndex, query).length > 0, `expected service result for ${query}`);
+  }
 });

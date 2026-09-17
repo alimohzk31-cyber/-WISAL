@@ -1,4 +1,48 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react';
 import { deleteJobCategory, loadJobCategories, reorderJobCategory, saveJobCategory, type JobCategory } from './jobAdminApi';
-export default function JobCategoriesAdmin(){const[items,setItems]=useState<JobCategory[]>([]);const[draft,setDraft]=useState<Partial<JobCategory>>({name:'',icon:'briefcase'});const[message,setMessage]=useState('');const load=async()=>{try{setItems(await loadJobCategories());setMessage('');}catch{setMessage('نفّذ SQL الخاص بالوظائف أولًا.');}};useEffect(()=>{void load();},[]);const move=async(i:number,d:number)=>{const o=i+d;if(o<0||o>=items.length)return;await Promise.all([reorderJobCategory(items[i],items[o].sortOrder),reorderJobCategory(items[o],items[i].sortOrder)]);void load();};return <div className="space-y-4"><form onSubmit={async e=>{e.preventDefault();await saveJobCategory(draft);setDraft({name:'',icon:'briefcase'});void load();}} className="flex flex-wrap gap-2 rounded-2xl bg-[var(--bg-secondary)] p-4"><input required value={draft.name||''} onChange={e=>setDraft({...draft,name:e.target.value})} placeholder="اسم القسم" className="min-w-48 flex-1 rounded-xl border p-3"/><input value={draft.icon||''} onChange={e=>setDraft({...draft,icon:e.target.value})} placeholder="اسم الأيقونة" className="rounded-xl border p-3"/><button className="rounded-xl bg-[var(--accent-primary)] px-5 font-bold text-white">{draft.id?'حفظ':'إضافة قسم'}</button></form>{message&&<p>{message}</p>}{items.map((item,i)=><div key={item.id} className="flex items-center gap-3 rounded-2xl border p-4"><b className="flex-1">{item.name}</b><span className="text-xs">{item.icon}</span><button onClick={()=>setDraft(item)}><Pencil/></button><button onClick={async()=>{await saveJobCategory({...item,isVisible:!item.isVisible});void load();}} className="text-xs font-bold">{item.isVisible?'إخفاء':'إظهار'}</button><button onClick={()=>move(i,-1)}><ChevronUp/></button><button onClick={()=>move(i,1)}><ChevronDown/></button><button onClick={async()=>{await deleteJobCategory(item.id);void load();}}><Trash2 className="text-red-500"/></button></div>)}</div>}
+
+export default function JobCategoriesAdmin() {
+  const [items, setItems] = useState<JobCategory[]>([]);
+  const [draft, setDraft] = useState<Partial<JobCategory>>({ name: '', icon: 'briefcase' });
+  const [message, setMessage] = useState('');
+  const load = async () => {
+    try { setItems(await loadJobCategories()); setMessage(''); }
+    catch { setMessage('نفّذ SQL الخاص بالوظائف أولًا.'); }
+  };
+  useEffect(() => { void load(); }, []);
+  const move = async (i: number, d: number) => {
+    const o = i + d;
+    if (o < 0 || o >= items.length) return;
+    await Promise.all([
+      reorderJobCategory(items[i], items[o].sortOrder),
+      reorderJobCategory(items[o], items[i].sortOrder),
+    ]);
+    void load();
+  };
+
+  return <div className="min-w-0 space-y-4">
+    <form onSubmit={async event => {
+      event.preventDefault();
+      await saveJobCategory(draft);
+      setDraft({ name: '', icon: 'briefcase' });
+      void load();
+    }} className="grid min-w-0 gap-2 rounded-2xl bg-[var(--bg-secondary)] p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+      <input required value={draft.name || ''} onChange={event => setDraft({ ...draft, name: event.target.value })} placeholder="اسم القسم" className="w-full min-w-0 rounded-xl border p-3" />
+      <input value={draft.icon || ''} onChange={event => setDraft({ ...draft, icon: event.target.value })} placeholder="اسم الأيقونة" className="w-full min-w-0 rounded-xl border p-3" />
+      <button className="w-full min-w-0 rounded-xl bg-[var(--accent-primary)] px-5 py-3 font-bold text-white sm:col-span-2 lg:col-span-1">{draft.id ? 'حفظ' : 'إضافة قسم'}</button>
+    </form>
+    {message && <p>{message}</p>}
+    {items.map((item, i) => <div key={item.id} className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border p-3 sm:gap-3 sm:p-4">
+      <b className="min-w-0 flex-1 basis-40 break-words">{item.name}</b>
+      <span className="min-w-0 break-all text-xs">{item.icon}</span>
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
+        <button onClick={() => setDraft(item)} aria-label="تعديل"><Pencil /></button>
+        <button onClick={async () => { await saveJobCategory({ ...item, isVisible: !item.isVisible }); void load(); }} className="text-xs font-bold">{item.isVisible ? 'إخفاء' : 'إظهار'}</button>
+        <button onClick={() => move(i, -1)} aria-label="نقل للأعلى"><ChevronUp /></button>
+        <button onClick={() => move(i, 1)} aria-label="نقل للأسفل"><ChevronDown /></button>
+        <button onClick={async () => { await deleteJobCategory(item.id); void load(); }} aria-label="حذف"><Trash2 className="text-red-500" /></button>
+      </div>
+    </div>)}
+  </div>;
+}

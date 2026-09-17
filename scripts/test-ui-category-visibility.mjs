@@ -88,7 +88,7 @@ async function enterSectionForTitle(title) {
     const arts = [...document.querySelectorAll('article')];
     for (const art of arts) {
       if (!(art.textContent || '').includes(t)) continue;
-      const btn = [...art.querySelectorAll('button')].find((b) => (b.textContent || '').includes('الدخول إلى القسم'));
+      const btn = [...art.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'الدخول إلى القسم');
       if (btn) { btn.click(); return true; }
     }
     return false;

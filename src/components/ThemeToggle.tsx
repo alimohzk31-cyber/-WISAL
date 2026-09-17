@@ -59,7 +59,7 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false }:
   }, [setIsOpen]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative w-full max-w-56" ref={dropdownRef}>
       {!hideTrigger && (
         <button
           onClick={() => setIsOpen((v) => !v)}
@@ -79,8 +79,8 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false }:
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             className={
               hideTrigger
-                ? "w-56 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)] z-50 overflow-hidden"
-                : "absolute left-0 mt-2 w-56 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)] z-50 overflow-hidden"
+                ? "z-50 w-full min-w-0 max-w-56 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)]"
+                : "absolute left-0 z-50 mt-2 w-56 min-w-0 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)]"
             }
           >
             <div className="p-2 space-y-1">
@@ -99,12 +99,12 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false }:
                         : 'text-[var(--text-secondary)] hover:bg-[var(--accent-soft)]'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       <span
                         className="w-5 h-5 rounded-full border border-[var(--border)]"
                         style={{ backgroundColor: item.swatch }}
                       />
-                      <span className="font-medium text-sm">{item.label}</span>
+                      <span className="min-w-0 break-words text-sm font-medium">{item.label}</span>
                     </div>
                     {isActive && (
                       <Check className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />

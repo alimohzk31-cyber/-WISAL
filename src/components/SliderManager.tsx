@@ -1004,9 +1004,9 @@ export default function SliderManager() {
             </div>
 
             {/* المعاينة المباشرة للشريحة */}
-            <div className="rounded-2xl border bg-[var(--card)] border-[var(--border)] overflow-hidden xl:sticky xl:top-24">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-                <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] xl:sticky xl:top-24">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-3 sm:px-4">
+                <h3 className="flex min-w-0 items-center gap-2 break-words font-bold text-[var(--text-primary)]">
                   <Eye className="w-4 h-4 text-[var(--accent-primary)]" /> المعاينة المباشرة
                 </h3>
                 <span className="text-[11px] text-[var(--text-muted)] font-bold">تُحدَّث مع كل تغيير</span>
@@ -1059,7 +1059,7 @@ export default function SliderManager() {
                         >
                           <ChevronLeft className="w-5 h-5" />
                         </button>
-                        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-20 px-4">
+                        <div className="absolute bottom-3 left-0 right-0 z-20 flex max-w-full flex-wrap justify-center gap-1.5 px-4">
                           {previewAds.map((_, idx) => (
                             <button
                               key={`live-dot-${idx}`}
@@ -1191,16 +1191,16 @@ export default function SliderManager() {
       {/* ==================== نافذة: تشغيل السلايدر كاملاً ==================== */}
       <AnimatePresence>
         {fullPreviewOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto" onClick={() => setFullPreviewOpen(false)}>
+          <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center overflow-y-auto bg-black/80 p-2 backdrop-blur-sm sm:p-4" onClick={() => setFullPreviewOpen(false)}>
             <motion.div
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.96, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-4xl rounded-3xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-2xl my-auto"
+              className="my-auto w-full min-w-0 max-w-4xl overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-2xl"
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-                <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+              <div className="flex min-w-0 items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-3 sm:px-4">
+                <h3 className="flex min-w-0 items-center gap-2 break-words font-bold text-[var(--text-primary)]">
                   <Play className="w-4 h-4 text-[var(--accent-primary)]" /> معاينة السلايدر — تشغيل تلقائي
                 </h3>
                 <button onClick={() => setFullPreviewOpen(false)} className="p-1.5 rounded-lg hover:bg-[var(--surface-elevated)] text-[var(--text-secondary)] transition-colors">
@@ -1235,7 +1235,7 @@ export default function SliderManager() {
                     <button onClick={() => setLiveIndex(i => (i + 1) % previewAds.length)} className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors z-20" title="التالي">
                       <ChevronLeft className="w-5 h-5" />
                     </button>
-                    <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-20 px-4">
+                    <div className="absolute bottom-3 left-0 right-0 z-20 flex max-w-full flex-wrap justify-center gap-1.5 px-4">
                       {previewAds.map((_, idx) => (
                         <button
                           key={`full-dot-${idx}`}
@@ -1258,16 +1258,16 @@ export default function SliderManager() {
       {/* نافذة معاينة الشريحة */}
       <AnimatePresence>
         {previewAd && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto" onClick={() => setPreviewAd(null)}>
+          <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center overflow-y-auto bg-black/70 p-2 backdrop-blur-sm sm:p-4" onClick={() => setPreviewAd(null)}>
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-3xl rounded-3xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-2xl my-auto"
+              className="my-auto w-full min-w-0 max-w-3xl overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-2xl"
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-                <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+              <div className="flex min-w-0 items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-3 sm:px-4">
+                <h3 className="flex min-w-0 items-center gap-2 break-words font-bold text-[var(--text-primary)]">
                   <Eye className="w-4 h-4 text-[var(--accent-primary)]" /> معاينة الشريحة
                 </h3>
                 <button onClick={() => setPreviewAd(null)} className="p-1.5 rounded-lg hover:bg-[var(--surface-elevated)] text-[var(--text-secondary)] transition-colors">
@@ -1296,12 +1296,12 @@ export default function SliderManager() {
       {/* نافذة تأكيد الحذف */}
       <AnimatePresence>
         {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/70 p-2 backdrop-blur-sm sm:p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 space-y-5 shadow-2xl text-center"
+              className="w-full min-w-0 max-w-md space-y-5 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 text-center shadow-2xl sm:p-6"
             >
               <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center">
                 <Trash2 className="w-7 h-7" />
@@ -1312,7 +1312,7 @@ export default function SliderManager() {
                   هل أنت متأكد من حذف "شريحة {deleteTarget.title || ''}"؟ لا يمكن التراجع عن هذا الإجراء.
                 </p>
               </div>
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex min-w-0 flex-col items-stretch justify-center gap-2 min-[360px]:flex-row min-[360px]:items-center">
                 <button
                   onClick={() => setDeleteTarget(null)}
                   disabled={deleting}

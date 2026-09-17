@@ -152,11 +152,11 @@ export default function AddJobModal({ onClose, onSubmit, categories, initialEmpl
     }
   };
 
-  return <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/65 sm:items-center sm:p-4" role="presentation">
-    <section role="dialog" aria-modal="true" aria-labelledby="add-job-title" className="flex h-[100dvh] w-full flex-col overflow-hidden bg-[var(--surface-elevated)] shadow-2xl sm:max-h-[92dvh] sm:max-w-2xl sm:rounded-3xl">
-      <header className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3.5 sm:px-6 sm:py-4">
-        <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white"><BriefcaseBusiness /></span><div><h2 id="add-job-title" className="text-lg font-black text-[var(--text-primary)] sm:text-xl">نشر فرصة عمل</h2><p className="text-xs font-bold text-[var(--text-muted)]">ستُراجع الفرصة قبل ظهورها للعامة</p></div></div>
-        <button type="button" onClick={onClose} disabled={saving} aria-label="إغلاق" className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"><X /></button>
+  return <div className="fixed inset-0 z-[110] flex min-w-0 items-end justify-center bg-black/65 sm:items-center sm:p-4" role="presentation">
+    <section role="dialog" aria-modal="true" aria-labelledby="add-job-title" className="flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden bg-[var(--surface-elevated)] shadow-2xl sm:max-h-[92dvh] sm:max-w-2xl sm:rounded-3xl">
+      <header className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-3.5 sm:px-6 sm:py-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white"><BriefcaseBusiness /></span><div className="min-w-0"><h2 id="add-job-title" className="text-lg font-black text-[var(--text-primary)] sm:text-xl">نشر فرصة عمل</h2><p className="text-xs font-bold text-[var(--text-muted)]">ستُراجع الفرصة قبل ظهورها للعامة</p></div></div>
+        <button type="button" onClick={onClose} disabled={saving} aria-label="إغلاق" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"><X /></button>
       </header>
 
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">

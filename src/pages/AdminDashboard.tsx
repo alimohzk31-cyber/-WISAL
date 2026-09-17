@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass, BriefcaseBusiness } from 'lucide-react';
+import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass, BriefcaseBusiness, CheckCheck, AlertTriangle, Ban, Download } from 'lucide-react';
 import { useServices } from '../context/ServicesContext';
 import { isValidServiceId, Service } from '../hooks/useServices';
 import { serviceStatusLabel, serviceStatusBadgeClass } from '../types/models';
@@ -65,6 +65,10 @@ export default function AdminDashboard() {
   // buttons show a spinner, are disabled (no double-click), and the action
   // returns instantly instead of waiting for a full page reload.
   const [processingId, setProcessingId] = useState<string | null>(null);
+  // تحديد خدمات «مكتبة الخدمات» لتنفيذ موافقة/حذف جماعي. التحديد يعتمد على
+  // المعرّف الرقمي الحقيقي (id) فقط — لا اسم ولا slug.
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   useEffect(() => {
     setAdminCategories(prev => {
@@ -233,6 +237,84 @@ export default function AdminDashboard() {
     }
   };
 
+  // -------------------------------------------------------------------------
+  // مكتبة الخدمات: تحديد + موافقة جماعية + حذف جماعي (كلها بالـ id الرقمي فقط)
+  // -------------------------------------------------------------------------
+  const serviceRowKey = (service: Service): string => (isValidServiceId(service.id) ? String(service.id) : '');
+  const selectableServiceIds = Array.from(new Set(allServices.map(serviceRowKey).filter(Boolean)));
+  const allServicesSelected = selectableServiceIds.length > 0
+    && selectableServiceIds.every(id => selectedServiceIds.includes(id));
+  const selectedServiceRows = allServices.filter(
+    service => isValidServiceId(service.id) && selectedServiceIds.includes(String(service.id))
+  );
+
+  const toggleServiceSelection = (id: string) => {
+    setSelectedServiceIds(current => current.includes(id)
+      ? current.filter(item => item !== id)
+      : [...current, id]);
+  };
+
+  const toggleSelectAllServices = () => {
+    setSelectedServiceIds(allServicesSelected ? [] : selectableServiceIds);
+  };
+
+  const handleDeleteServiceWithConfirm = async (service: Service) => {
+    if (!confirm(`تأكيد حذف الخدمة "${service.name}" نهائيًا من قاعدة البيانات؟`)) return;
+    await handleDeleteService(service.id);
+    setSelectedServiceIds(current => current.filter(id => id !== serviceRowKey(service)));
+  };
+
+  const handleBulkApproveSelected = async () => {
+    if (isBulkProcessing || processingId !== null) return;
+    const pendingTargets = selectedServiceRows.filter(service => service.status !== 'approved');
+    if (pendingTargets.length === 0) {
+      alert('الخدمات المحددة معتمدة بالفعل وتظهر في أقسامها. حدّد خدمات قيد المراجعة أو مرفوضة فقط.');
+      return;
+    }
+    setIsBulkProcessing(true);
+    let approvedCount = 0;
+    const failures: string[] = [];
+    for (const service of pendingTargets) {
+      try {
+        // الموافقة تمر عبر نفس طبقة الخدمات adminServiceActions وتعيد الصف المؤكد.
+        const updated = await adminApproveService(service.id!);
+        applyServiceUpdate(updated);
+        approvedCount += 1;
+      } catch (error: any) {
+        console.error('[AdminDashboard] Bulk approve failed for id =', service.id, error);
+        failures.push(`${service.name}: ${error?.message || 'خطأ غير معروف'}`);
+      }
+    }
+    setSelectedServiceIds([]);
+    setIsBulkProcessing(false);
+    alert(failures.length === 0
+      ? `تمت الموافقة على ${approvedCount} خدمة وظهرت في أقسامها.`
+      : `تمت الموافقة على ${approvedCount} خدمة، وفشلت ${failures.length}:\n${failures.join('\n')}`);
+  };
+
+  const handleBulkDeleteSelected = async () => {
+    if (isBulkProcessing || processingId !== null) return;
+    if (selectedServiceRows.length === 0) return;
+    if (!confirm(`تأكيد حذف ${selectedServiceRows.length} خدمة نهائيًا من قاعدة البيانات؟`)) return;
+    setIsBulkProcessing(true);
+    let deletedCount = 0;
+    const failures: string[] = [];
+    for (const service of selectedServiceRows) {
+      try {
+        await deleteService(service.id!);
+        deletedCount += 1;
+      } catch (error: any) {
+        console.error('[AdminDashboard] Bulk delete failed for id =', service.id, error);
+        failures.push(`${service.name}: ${error?.message || 'خطأ غير معروف'}`);
+      }
+    }
+    setSelectedServiceIds([]);
+    setIsBulkProcessing(false);
+    alert(failures.length === 0
+      ? `تم حذف ${deletedCount} خدمة.`
+      : `تم حذف ${deletedCount} خدمة، وفشل حذف ${failures.length}:\n${failures.join('\n')}`);
+  };
+
   const handleEditCategory = (category: any) => {
     const updatedName = window.prompt('تعديل اسم القسم', category.name);
     if (!updatedName || !updatedName.trim()) return;
@@ -290,7 +372,7 @@ export default function AdminDashboard() {
   // (المصدر الوحيد لتسميات الحالات وأصناف شاراتها في التطبيق كله).
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 md:gap-5 min-h-[80vh] relative" dir="rtl">
+    <div className="relative flex min-h-[80vh] w-full min-w-0 max-w-full flex-col gap-4 md:flex-row md:gap-5" dir="rtl">
       {/* Ambient Background Lights */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[20%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent-soft)] blur-[120px]" />
@@ -403,7 +485,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 rounded-3xl border overflow-hidden relative bg-[var(--bg-secondary)] border-[var(--border)]`}>
+      <div className={`relative min-w-0 flex-1 overflow-hidden rounded-3xl border bg-[var(--bg-secondary)] border-[var(--border)]`}>
         <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
           {/* زر إظهار/إخفاء أيقونات القائمة (UI فقط) */}
           <button 
@@ -486,7 +568,7 @@ export default function AdminDashboard() {
           <MessagesManager />
         ) : activeTab === 'pending' ? (
           // Pending Services View
-          <div className="h-full overflow-y-auto p-6 lg:p-8 space-y-6">
+          <div className="h-full min-w-0 space-y-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
             <div className={`flex items-center gap-3 border-b pb-4 border-[var(--border)]`}>
               <Bell className="w-6 h-6 text-[var(--accent-primary)]" />
               <h2 className={`text-2xl font-bold text-[var(--text-primary)]`}>{t('pending_requests')}</h2>
@@ -562,7 +644,7 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'rejected' ? (
           // Rejected Services View
-          <div className="h-full overflow-y-auto p-6 lg:p-8 space-y-6">
+          <div className="h-full min-w-0 space-y-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
             <div className={`flex items-center gap-3 border-b pb-4 border-[var(--border)]`}>
               <XCircle className="w-6 h-6 text-red-500" />
               <h2 className={`text-2xl font-bold text-[var(--text-primary)]`}>الخدمات المرفوضة</h2>
@@ -642,14 +724,52 @@ export default function AdminDashboard() {
         ) : activeTab === 'slider' ? (
           <SliderManager />
         ) : activeTab === 'jobs' ? (
-          <div className="h-full overflow-y-auto p-6 lg:p-8"><JobsAdminPanel /></div>
+          <div className="h-full min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8"><JobsAdminPanel /></div>
         ) : activeTab === 'services' ? (
-          <div className="h-full overflow-y-auto p-6 lg:p-8 space-y-7">
+          <div className="h-full min-w-0 space-y-7 overflow-y-auto p-4 sm:p-6 lg:p-8">
             <div className="flex items-center gap-3 border-b pb-4 border-[var(--border)]">
               <FolderOpen className="w-6 h-6 text-[var(--accent-primary)]" />
               <div>
                 <h2 className="text-2xl font-bold text-[var(--text-primary)]">مكتبة الخدمات</h2>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">جميع الخدمات الموجودة حاليًا، منظمة حسب القسم.</p>
+              </div>
+            </div>
+
+            {/* أدوات التحديد الجماعي: تحديد الكل | موافقة على المحدد | حذف المحدد */}
+            <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-secondary)]">
+                <CheckCheck className="h-4 w-4 text-[var(--accent-primary)]" />
+                <span>تم تحديد {selectedServiceIds.length} من {selectableServiceIds.length} خدمة</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleSelectAllServices}
+                  disabled={selectableServiceIds.length === 0 || isBulkProcessing}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--surface-elevated)] px-3 py-2 text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-light)] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Equal className="h-4 w-4" /> {allServicesSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkApproveSelected}
+                  disabled={selectedServiceIds.length === 0 || isBulkProcessing}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/10 px-3 py-2 text-sm font-bold text-emerald-500 transition-colors hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isBulkProcessing ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-500" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )} موافقة على المحدد
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteSelected}
+                  disabled={selectedServiceIds.length === 0 || isBulkProcessing}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-red-500/10 px-3 py-2 text-sm font-bold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="h-4 w-4" /> حذف المحدد
+                </button>
               </div>
             </div>
 
@@ -668,8 +788,20 @@ export default function AdminDashboard() {
                   <span className="text-xs font-bold text-[var(--text-muted)]">{categoryServices.length} خدمة</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {categoryServices.map(service => (
-                    <article key={String(service.id ?? service.slug)} className="flex gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm">
+                  {categoryServices.map(service => {
+                    const rowId = serviceRowKey(service);
+                    const isSelected = rowId !== '' && selectedServiceIds.includes(rowId);
+                    const isApproved = service.status === 'approved';
+                    return (
+                    <article key={String(service.id ?? service.slug)} className={`flex gap-3 rounded-2xl border bg-[var(--card)] p-3 shadow-sm ${isSelected ? 'border-[var(--accent-primary)]' : 'border-[var(--border)]'}`}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        disabled={rowId === '' || isBulkProcessing}
+                        onChange={() => rowId && toggleServiceSelection(rowId)}
+                        aria-label={`تحديد الخدمة ${service.name}`}
+                        className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent-primary)] disabled:opacity-40"
+                      />
                       {service.image && <img src={service.image} alt={service.name} loading="lazy" decoding="async" className="h-20 w-20 shrink-0 rounded-xl object-cover" />}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
@@ -678,18 +810,47 @@ export default function AdminDashboard() {
                         </div>
                         {service.profession && <p className="mt-1 truncate text-xs text-[var(--text-secondary)]">{service.profession}</p>}
                         {service.location && <p className="mt-1 flex items-center gap-1 truncate text-xs text-[var(--text-muted)]"><MapPin className="h-3 w-3" />{service.location}</p>}
-                        <button type="button" onClick={() => openServiceEditor(service)} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-light)]">
-                          <Eye className="h-3.5 w-3.5" /> فتح التفاصيل والتعديل
-                        </button>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openServiceEditor(service)}
+                            disabled={processingId !== null || isBulkProcessing}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-400 transition-colors hover:bg-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Edit className="h-3.5 w-3.5" /> تعديل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(service.id)}
+                            disabled={processingId !== null || isBulkProcessing || isApproved}
+                            title={isApproved ? 'الخدمة معتمدة بالفعل وتظهر في قسمها' : 'اعتماد الخدمة لتظهر في التصفح وقسمها'}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-500 transition-colors hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {processingId === String(service.id) ? (
+                              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-500" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5" />
+                            )} موافقة
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteServiceWithConfirm(service)}
+                            disabled={processingId !== null || isBulkProcessing}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> حذف
+                          </button>
+                        </div>
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             ))}
           </div>
         ) : activeTab === 'browse' ? (
-          <div className="h-full overflow-y-auto p-6 lg:p-8 space-y-7">
+          <div className="h-full min-w-0 space-y-7 overflow-y-auto p-4 sm:p-6 lg:p-8">
             <div className="flex items-center gap-3 border-b pb-4 border-[var(--border)]">
               <Compass className="w-6 h-6 text-[var(--accent-primary)]" />
               <div>
@@ -863,7 +1024,7 @@ export default function AdminDashboard() {
           </div>
         ) : (
           // Main Dashboard View
-          <div className="h-full overflow-y-auto p-6 lg:p-8 space-y-10">
+          <div className="h-full min-w-0 space-y-10 overflow-y-auto p-4 sm:p-6 lg:p-8">
             
             {/* Section 1: General (قسم العامة) */}
             <section className="space-y-6">
@@ -1013,10 +1174,10 @@ export default function AdminDashboard() {
       </div>
 
       {isCategoryManagerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className={`w-full max-w-2xl rounded-2xl border overflow-hidden bg-[var(--card)] border-[var(--border)] shadow-2xl`}>
-            <div className={`flex items-center justify-between p-4 border-b border-[var(--border)]`}>
-              <h3 className={`text-xl font-bold text-[var(--text-primary)]`}>
+        <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4">
+          <div className={`w-full min-w-0 max-w-2xl overflow-hidden rounded-2xl border bg-[var(--card)] border-[var(--border)] shadow-2xl`}>
+            <div className={`flex min-w-0 items-center justify-between gap-2 border-b border-[var(--border)] p-4`}>
+              <h3 className={`min-w-0 break-words text-xl font-bold text-[var(--text-primary)]`}>
                 إدارة الأقسام
               </h3>
               <button
@@ -1033,7 +1194,7 @@ export default function AdminDashboard() {
                 const isCustom = cat.isCustom === true;
 
                 return (
-                  <div key={cat.slug} className={`flex items-center justify-between gap-3 rounded-xl border p-3 bg-[var(--bg-secondary)] border-[var(--border)]`}>
+                  <div key={cat.slug} className={`flex min-w-0 flex-col items-stretch justify-between gap-3 rounded-xl border p-3 min-[420px]:flex-row min-[420px]:items-center bg-[var(--bg-secondary)] border-[var(--border)]`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${colorMap[cat.color as keyof typeof colorMap]?.bg || 'bg-[var(--bg-secondary)]0'}/10`}>
                         {Icon && typeof Icon !== 'string' && <Icon className={`w-5 h-5 ${colorMap[cat.color as keyof typeof colorMap]?.text || 'text-[var(--text-muted)]'}`} />}
@@ -1044,7 +1205,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleEditCategory(cat)}

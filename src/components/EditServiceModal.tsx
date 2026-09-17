@@ -109,7 +109,7 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
       icon={<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-blue-400"><Type className="h-4 w-4" /></div>}
       onClose={onClose}
     >
-        <form onSubmit={handleSubmit} className="min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-5 space-y-4 sm:space-y-5">
+        <form onSubmit={handleSubmit} className="min-h-0 min-w-0 space-y-4 overflow-y-auto overscroll-contain p-4 sm:space-y-5 sm:p-5">
           {/* Category */}
           <div className="space-y-1.5">
             <label className={`text-sm flex items-center gap-2 font-bold text-[var(--text-secondary)]`}>
@@ -214,7 +214,7 @@ export default function EditServiceModal({ service, onClose, onSaved }: Props) {
           <SocialContactFields values={formData} onChange={(field, value) => setFormData(current => ({ ...current, [field]: value }))} />
           
           {/* Action Buttons */}
-          <div className={`sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex shrink-0 gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-3 sm:-mx-5 sm:-mb-5 sm:gap-3 sm:p-4`}>
+          <div className={`sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex shrink-0 flex-col gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-3 min-[360px]:flex-row sm:-mx-5 sm:-mb-5 sm:gap-3 sm:p-4`}>
             <button
               type="button"
               onClick={onClose}

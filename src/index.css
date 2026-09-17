@@ -14,6 +14,34 @@
    ============================================================ */
 
 @layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #root {
+    /* Long URLs, phone-like identifiers and imported content may break only
+       when needed; they must never enlarge the application viewport. */
+    overflow-wrap: anywhere;
+  }
+
+  img,
+  video,
+  canvas {
+    max-inline-size: 100%;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   :root,
   [data-theme='light'] {
     /* ---- Light 🤍 : هوية فاتحة بنفسجية هادئة ---- */

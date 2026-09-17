@@ -27,7 +27,7 @@ export default function ServiceModalShell({ title, icon, onClose, children, wrap
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/60 p-2 backdrop-blur-sm sm:p-4"
+      className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="service-modal-title"
@@ -35,7 +35,7 @@ export default function ServiceModalShell({ title, icon, onClose, children, wrap
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[min(760px,calc(100dvh-2rem))]">
+      <div className="flex w-full min-w-0 max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[min(760px,calc(100dvh-2rem))]">
         <div className="z-10 flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 sm:px-4">
           <h2 id="service-modal-title" className="flex min-w-0 items-center gap-2 text-base font-bold text-[var(--text-primary)] sm:text-lg">
             {icon}

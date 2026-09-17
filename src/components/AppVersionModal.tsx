@@ -51,7 +51,7 @@ export default function AppVersionModal({ open, onClose, hasUpdate, onUpdateAcce
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+          className="fixed inset-0 z-[70] flex min-w-0 items-center justify-center bg-black/40 px-2 backdrop-blur-sm sm:px-4"
           onClick={onClose}
         >
           <motion.div
@@ -59,7 +59,7 @@ export default function AppVersionModal({ open, onClose, hasUpdate, onUpdateAcce
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="relative w-full max-w-xs rounded-3xl border border-[var(--border-color)] bg-[var(--surface-elevated)] p-6 text-center shadow-2xl"
+            className="relative w-full min-w-0 max-w-xs rounded-3xl border border-[var(--border-color)] bg-[var(--surface-elevated)] p-4 text-center shadow-2xl sm:p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <button

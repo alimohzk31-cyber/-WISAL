@@ -27,12 +27,12 @@ export default function ServiceImagePicker({ images, min, max, onChange, onBusy 
     } catch { setError('تعذر قراءة إحدى الصور. اختر صورًا سليمة وحاول مجددًا.'); }
     finally { setBusy(false); onBusy(false); }
   };
-  return <fieldset className="space-y-3 rounded-2xl border border-[var(--border)] p-4">
+  return <fieldset className="min-w-0 space-y-3 rounded-2xl border border-[var(--border)] p-3 sm:p-4">
     <legend className="px-1 text-sm font-bold text-[var(--text-primary)]">صور الصيدلية <span aria-hidden="true">*</span></legend>
-    <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-muted)]"><span>من {min} إلى {max} صور؛ الصورة الأولى هي الغلاف.</span><span aria-live="polite">{images.length} / {max}</span></div>
-    {images.length > 0 && <div className="grid grid-cols-3 gap-2">
-      {images.map((image, index) => <div key={`${index}-${image.slice(-24)}`} className="relative aspect-square overflow-hidden rounded-xl border border-[var(--border)]">
-        <img src={image} alt={`صورة الصيدلية ${index + 1}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]"><span className="min-w-0 flex-1 break-words">من {min} إلى {max} صور؛ الصورة الأولى هي الغلاف.</span><span className="shrink-0" aria-live="polite">{images.length} / {max}</span></div>
+    {images.length > 0 && <div className="grid min-w-0 grid-cols-2 gap-2 min-[360px]:grid-cols-3">
+      {images.map((image, index) => <div key={`${index}-${image.slice(-24)}`} className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)]">
+        <img src={image} alt={`صورة الصيدلية ${index + 1}`} loading="lazy" decoding="async" className="block h-auto max-h-full w-full object-contain object-center" />
         <button type="button" disabled={busy} aria-label={`حذف الصورة ${index + 1}`} onClick={() => onChange(images.filter((_, i) => i !== index))} className="absolute left-0 top-0 flex h-11 w-11 items-center justify-center rounded-br-xl bg-black/60 text-white"><X className="h-4 w-4" /></button>
         {index === 0 && <span className="absolute bottom-0 right-0 rounded-tl-lg bg-[var(--accent-primary)] px-2 py-1 text-[10px] font-bold text-white">الغلاف</span>}
       </div>)}

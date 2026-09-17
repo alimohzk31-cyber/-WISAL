@@ -42,7 +42,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
   }, [service.id, service.slug]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+    <div className="fixed inset-0 z-[100] flex min-w-0 items-center justify-center p-2 sm:p-4 md:p-6">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -66,7 +66,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
             transition: { duration: 0.18, ease: 'easeOut' }
           }}
           exit={{ opacity: 0, y: 8, transition: { duration: 0.12 } }}
-          className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-3xl shadow-[var(--shadow-lg)] bg-[var(--surface-elevated)] [contain:layout_paint]"
+          className="relative w-full min-w-0 max-w-lg max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain rounded-3xl shadow-[var(--shadow-lg)] bg-[var(--surface-elevated)] [contain:layout_paint] sm:max-h-[calc(100dvh-2rem)]"
         >
           {/* Close Button */}
           <button
@@ -78,11 +78,11 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
           </button>
 
           {/* Hero Image */}
-          <div className="relative h-64 md:h-80 overflow-hidden">
+          <div className="relative flex min-h-64 max-h-[32rem] items-center justify-center overflow-hidden bg-[var(--bg-secondary)] md:min-h-80">
             <SafeImage
               src={service.image}
               alt={service.name}
-              className={`w-full h-full object-cover ${serviceStatusOverlayClass(service.status)}`}
+              className={`block h-auto max-h-[32rem] w-full object-contain object-center ${serviceStatusOverlayClass(service.status)}`}
             />
             <div className={`absolute inset-0 bg-gradient-to-t ${
               'from-black/40'
@@ -91,7 +91,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
             {/* Status Badge Overlay — مكوّن موحد ServiceStatusBadge */}
             <ServiceStatusBadge status={service.status ?? 'approved'} variant="detail" />
 
-            <div className="absolute bottom-6 left-6 right-6">
+            <div className="absolute inset-x-3 bottom-4 min-w-0 sm:inset-x-6 sm:bottom-6">
               {/* أيقونة نوع الخدمة — من النظام المركزي serviceIcons (نفس الأيقونة في كل التطبيق) */}
               {(() => {
                 const CategoryIcon = getServiceIcon(service.categorySlug);
@@ -101,28 +101,28 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
                   </div>
                 );
               })()}
-              <h2 className="text-3xl font-bold text-white mb-1 drop-shadow-lg">
+              <h2 className="mb-1 min-w-0 break-words text-2xl font-bold text-white drop-shadow-lg sm:text-3xl">
                 {service.name}
               </h2>
               {service.profession && (
-                <p className="text-white/80 font-medium flex items-center gap-2">
-                  <Briefcase className="w-4 h-4" />
-                  {service.profession}
+                <p className="flex min-w-0 items-start gap-2 break-words font-medium text-white/80">
+                  <Briefcase className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0">{service.profession}</span>
                 </p>
               )}
             </div>
           </div>
 
           {/* Details */}
-          <div className="p-6 space-y-6">
+          <div className="min-w-0 space-y-5 p-4 sm:space-y-6 sm:p-6">
             <ServicePublicationTime service={service} className="text-sm font-medium text-[var(--text-muted)]" />
             {/* Status Messages */}
             {service.status === 'pending' && (
-              <div className={`flex items-center gap-3 p-4 rounded-2xl border border-yellow-500/30 bg-yellow-50`}>
+              <div className={`flex min-w-0 items-start gap-3 rounded-2xl border border-yellow-500/30 bg-yellow-50 p-4`}>
                 <div className="p-2 rounded-xl bg-yellow-500/20 text-yellow-500">
                   <Hourglass className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className={`font-bold text-yellow-600`}>⏳ بانتظار موافقة الإدارة</p>
                   <p className={`text-xs font-medium text-[var(--text-muted)]`}>
                     هذه الخدمة قيد المراجعة من قبل الإدارة وستظهر للجميع بعد الموافقة عليها.
@@ -132,11 +132,11 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
             )}
 
             {service.status === 'rejected' && (
-              <div className={`flex items-center gap-3 p-4 rounded-2xl border border-red-500/30 bg-red-50`}>
+              <div className={`flex min-w-0 items-start gap-3 rounded-2xl border border-red-500/30 bg-red-50 p-4`}>
                 <div className="p-2 rounded-xl bg-red-500/20 text-red-500">
                   <XCircle className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className={`font-bold text-red-600`}>تم رفض هذه الخدمة</p>
                   {service.rejectionReason ? (
                     <p className={`text-xs font-medium text-[var(--text-muted)]`}>
@@ -165,24 +165,24 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
 
             {/* Contact & Location Info */}
             <div className="grid grid-cols-1 gap-4">
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]">
-                <div className={`p-3 rounded-xl ${colors.bg}/20 ${colors.text}`}>
+              <div className="flex min-w-0 items-center gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3 sm:gap-4 sm:p-4">
+                <div className={`shrink-0 rounded-xl p-3 ${colors.bg}/20 ${colors.text}`}>
                   <MapPin className="w-6 h-6" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-bold text-[var(--text-muted)]">الموقع</p>
-                  <p className="font-bold text-[var(--text-primary)]">{service.location}</p>
+                  <p className="break-words font-bold text-[var(--text-primary)]">{service.location}</p>
                 </div>
               </div>
 
               {service.phone && (
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]">
-                  <div className={`p-3 rounded-xl bg-green-500/20 text-green-500`}>
+                <div className="flex min-w-0 items-center gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3 sm:gap-4 sm:p-4">
+                  <div className={`shrink-0 rounded-xl bg-green-500/20 p-3 text-green-500`}>
                     <Phone className="w-6 h-6" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-bold text-[var(--text-muted)]">رقم الهاتف</p>
-                    <p dir="ltr" className="font-bold text-[var(--text-primary)]">{service.phone}</p>
+                    <p dir="ltr" className="break-all font-bold text-[var(--text-primary)]">{service.phone}</p>
                   </div>
                 </div>
               )}
@@ -207,7 +207,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
                       href={`https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all bg-[var(--bg-secondary)] hover:bg-[var(--accent-soft)] text-[var(--text-primary)]"
+                      className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-2 py-3 text-center text-sm font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--accent-soft)] sm:text-base"
                     >
                       <MapPin className="w-4 h-4" />
                       خرائط جوجل
@@ -216,7 +216,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
                       href={`https://waze.com/ul?ll=${service.latitude},${service.longitude}&navigate=yes`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)] text-[var(--accent-primary)]`}
+                      className={`flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[var(--accent-soft)] px-2 py-3 text-center text-sm font-bold text-[var(--accent-primary)] transition-all hover:bg-[var(--accent-soft)] sm:text-base`}
                     >
                       <Navigation className="w-4 h-4" />
                       ويز

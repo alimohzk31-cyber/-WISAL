@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bookmark, Eye, Send, Loader2, Trash2, MessageCircle, ThumbsUp } from 'lucide-react';
+import { Bookmark, Eye, Send, Loader2, Trash2, MessageCircle, ThumbsUp, LayoutGrid } from 'lucide-react';
 import {
   REACTIONS,
   REACTION_META,
@@ -21,6 +21,7 @@ interface PostInteractionsProps {
   views?: number;
   saved: boolean;
   onToggleSaved: () => void;
+  onOpenCategory?: () => void;
 }
 
 function formatCommentTime(value?: string | null): string {
@@ -62,6 +63,7 @@ export default function PostInteractions({
   views,
   saved,
   onToggleSaved,
+  onOpenCategory,
 }: PostInteractionsProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -156,8 +158,8 @@ export default function PostInteractions({
   return (
     <>
       {/* شريط التفاعل مباشرة أسفل صورة المنشور */}
-      <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] px-2 py-1.5 sm:px-4">
-        <div className="flex min-w-0 items-center gap-0.5">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-t border-[var(--border)] px-2 py-1.5 sm:gap-2 sm:px-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">
         {/* زر الإعجاب: ضغطة واحدة = Like، ضغط مطوّل = فتح قائمة التفاعلات */}
         <div className="relative">
           <button
@@ -171,7 +173,7 @@ export default function PostInteractions({
             aria-label="إعجاب — اضغط مطولاً لعرض التفاعلات"
             title="اضغط للإعجاب — اضغط مطولاً لعرض التفاعلات"
             draggable={false}
-            className={`flex select-none items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${myReaction ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
+            className={`flex min-w-0 select-none items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${myReaction ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
           >
             {myReactionMeta ? (
@@ -185,7 +187,7 @@ export default function PostInteractions({
           {pickerOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setPickerOpen(false)} />
-              <div className="absolute bottom-full z-40 mb-2 flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-2 py-1.5 shadow-[var(--shadow-lg)] animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-150">
+              <div className="absolute bottom-full right-0 z-40 mb-2 grid grid-cols-4 gap-0.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-2 py-1.5 shadow-[var(--shadow-lg)] animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-150">
                 {REACTIONS.map((r) => (
                   <button
                     key={r.type}
@@ -219,7 +221,7 @@ export default function PostInteractions({
           onClick={() => setCommentsOpen((v) => !v)}
           aria-expanded={commentsOpen}
           aria-label="التعليقات"
-          className={`flex items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${commentsOpen ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
+          className={`flex min-w-0 items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${commentsOpen ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
         >
           <MessageCircle className="h-4 w-4" />
           <span>تعليق</span>
@@ -234,11 +236,22 @@ export default function PostInteractions({
           onClick={onToggleSaved}
           aria-pressed={saved}
           aria-label={saved ? 'إزالة من الخدمات المحفوظة' : 'حفظ الخدمة'}
-          className={`flex items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${saved ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
+          className={`flex min-w-0 items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm ${saved ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
         >
           <Bookmark className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
           <span>{saved ? 'محفوظ' : 'حفظ'}</span>
         </button>
+        {onOpenCategory && (
+          <button
+            type="button"
+            onClick={onOpenCategory}
+            aria-label="الدخول إلى القسم"
+            title="الدخول إلى القسم"
+            className="flex min-w-0 items-center justify-center rounded-xl px-2 py-2 text-xs font-bold transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm text-[var(--text-secondary)]"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+        )}
         </div>
 
         <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--text-muted)]" aria-label={views === undefined ? 'عدد الزيارات غير متاح' : `${views} زيارة`}>

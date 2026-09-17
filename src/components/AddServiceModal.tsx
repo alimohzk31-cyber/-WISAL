@@ -15,13 +15,16 @@ import { getCurrentPositionReliable } from '../lib/geolocation';
 import { SocialContactFields } from './ServiceSocialContacts';
 import { invalidSocialContact } from '../lib/serviceSocialLinks';
 import { optimizeImageToDataUrl } from '../lib/imageOptimization';
+import { resolveServiceCategory, type ServiceJoinTarget } from '../lib/serviceCategorySelection';
 
 interface Props {
   onClose: () => void;
   initialCategorySlug?: string;
   initialProfession?: string;
   /** سياق الانضمام ثابت؛ الإضافة العامة تبقى بنفس النموذج مع اختيار القسم. */
-  joinSection?: Pick<Section, 'slug' | 'name'> & { childSlug?: string };
+  joinSection?: Pick<Section, 'slug' | 'name'> & { childSlug?: string; childName?: string };
+  /** هوية القسم/الفرع الصريحة من صفحة القسم: تُغني عن إعادة البحث بالـ slug. */
+  initialCategory?: ServiceJoinTarget;
   /** معاينة محلية فقط لحين اعتماد التخزين؛ لا تستدعي addService أو أي حفظ. */
   registrationPreview?: { onSubmit: (draft: ServiceRegistrationDraft) => void };
   isAdmin?: boolean;
@@ -29,7 +32,7 @@ interface Props {
   onSaved?: () => void;
 }
 
-export default function AddServiceModal({ onClose, initialCategorySlug, initialProfession, joinSection, registrationPreview, onSaved }: Props) {
+export default function AddServiceModal({ onClose, initialCategorySlug, initialProfession, joinSection, initialCategory, registrationPreview, onSaved }: Props) {
     const { theme } = useTheme();
   const { addService } = useServices();
   const { categories } = useCategories();
@@ -59,10 +62,26 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
     [categories]
   );
 
-  const categorySlug = joinSection ? initialCategorySlug ?? '' : formData.categorySlug;
-  const selectedCategory = selectableCategories.find(category => category.slug === categorySlug);
+  // A section entry can arrive before its DB-backed source category is known
+  // (notably for child routes such as home-services/carpenter). Resolve the
+  // source by its directory placement as a fallback so the INSERT receives a
+  // real categories.id instead of an empty/parent slug.
+  // القسم الحالي معروف من صفحة القسم (initialCategory): يفوز دائمًا على أي
+  // بحث داخل قائمة الأقسام العامة قد تكون لم تُحمّل بعد أو تحتوي slug مختلفًا.
+  // وإذا لم يوجد صف DB مطابق نبني الخيار التركيبي من هوية القسم نفسها حتى لا
+  // يتعطل الحفظ — مسار الحفظ (useServices → ensureSectionCategoryRow) هو
+  // الذي يجهّز صف categories المطابق للـ FK. بهذا يتزامن مصدر القسم بين
+  // حقول النموذج (categorySlug/categorySource) وزر الحفظ (canSubmit):
+  // مصدر واحد بدل مصدرين متناقضين.
+  const selectedCategory =
+    resolveServiceCategory(selectableCategories, initialCategorySlug, joinSection, initialCategory) ??
+    (initialCategory
+      ? { slug: initialCategory.slug, name: initialCategory.name, dbId: initialCategory.dbId }
+      : undefined);
+  const categorySlug = joinSection ? selectedCategory?.slug ?? initialCategorySlug ?? '' : formData.categorySlug;
+  const categorySource = selectedCategory ?? categories.find(category => category.slug === categorySlug);
   const fieldConfig = getServiceFormConfig(
-    categories.find(category => category.slug === categorySlug) ?? { slug: categorySlug, name: joinSection?.name ?? '' },
+    categorySource ?? { slug: categorySlug, name: joinSection?.name ?? '' },
     joinSection?.slug,
     joinSection?.childSlug,
   );
@@ -312,7 +331,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
       icon={<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-primary)]"><Upload className="h-4 w-4" /></div>}
       onClose={onClose}
     >
-        <form onSubmit={handleSubmit} className="min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-5 space-y-4 sm:space-y-5">
+        <form onSubmit={handleSubmit} className="min-h-0 min-w-0 space-y-4 overflow-y-auto overscroll-contain p-4 sm:space-y-5 sm:p-5">
           {registration && <p className="rounded-xl bg-[var(--accent-soft)] p-3 text-xs leading-6 text-[var(--text-primary)]">معاينة النموذج الجديد — الإرسال الفعلي ينتظر اعتماد التخزين. الحقول المعلّمة بـ * مطلوبة.</p>}
           {/* Category */}
           {!joinSection && <div className="space-y-1.5">
@@ -499,8 +518,8 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
             </label>
             <div className="flex flex-col gap-3">
               {formData.image ? (
-                <div className={`relative w-full h-48 rounded-xl overflow-hidden border group border-[var(--border)]`}>
-                  <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                <div className={`relative flex min-h-48 max-h-[32rem] w-full items-center justify-center overflow-hidden rounded-xl border bg-[var(--bg-secondary)] group border-[var(--border)]`}>
+                  <img src={formData.image} alt="Preview" className="block h-auto max-h-[32rem] w-full object-contain object-center" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                     <button
                       type="button"
@@ -594,18 +613,18 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
           
           {/* Action Buttons */}
           {registrationError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{registrationError}</p>}
-          <div className={`sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex shrink-0 gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-3 sm:-mx-5 sm:-mb-5 sm:gap-3 sm:p-4`}>
+          <div className={`sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex shrink-0 flex-col gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-3 min-[360px]:flex-row sm:-mx-5 sm:-mb-5 sm:gap-3 sm:p-4`}>
             <button
               type="button"
               onClick={onClose}
-              className={`flex-1 font-bold py-3.5 rounded-xl transition-all bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]`}
+              className={`w-full min-w-0 flex-1 rounded-xl bg-[var(--surface-elevated)] py-3.5 font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--bg-secondary)]`}
             >
               {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || imagesBusy || attachmentBusy || (!registration && !selectedCategory)}
-                            className="flex-1 app-btn-accent font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="app-btn-accent flex w-full min-w-0 flex-1 items-center justify-center gap-2 rounded-xl py-3.5 font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

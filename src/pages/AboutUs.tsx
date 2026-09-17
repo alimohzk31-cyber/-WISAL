@@ -10,7 +10,7 @@ export default function AboutUs() {
   const primaryColor = getPrimaryColor(theme);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 py-8">
+    <div className="mx-auto w-full min-w-0 max-w-4xl space-y-12 py-8">
       {/* Header Section */}
       <div className="text-center space-y-4">
         <motion.div
@@ -24,7 +24,7 @@ export default function AboutUs() {
         <motion.h1 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-4xl md:text-5xl font-black"
+          className="break-words text-3xl font-black sm:text-4xl md:text-5xl"
         >
           {t('about_us')}
         </motion.h1>
@@ -32,19 +32,19 @@ export default function AboutUs() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="text-xl text-[var(--text-secondary)] max-w-2xl mx-auto"
+          className="mx-auto max-w-2xl break-words text-lg text-[var(--text-secondary)] sm:text-xl"
         >
           {t('project_description')}
         </motion.p>
       </div>
 
       {/* Goal & Team Grid */}
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid min-w-0 gap-5 md:grid-cols-2 md:gap-8">
         <motion.div
           initial={{ x: 20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="p-8 rounded-3xl border bg-[var(--card)] border-[var(--border)] shadow-[var(--shadow-lg)]"
+          className="min-w-0 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-lg)] sm:p-8"
         >
           <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-6" style={{ backgroundColor: `${primaryColor}20` }}>
             <Target className="w-6 h-6" style={{ color: primaryColor }} />
@@ -59,7 +59,7 @@ export default function AboutUs() {
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="p-8 rounded-3xl border bg-[var(--card)] border-[var(--border)] shadow-[var(--shadow-lg)]"
+          className="min-w-0 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-lg)] sm:p-8"
         >
           <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-6" style={{ backgroundColor: `${primaryColor}20` }}>
             <Users className="w-6 h-6" style={{ color: primaryColor }} />
@@ -75,7 +75,7 @@ export default function AboutUs() {
       <div className="text-center pt-8">
         <Link 
           to="/"
-          className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105"
+          className="inline-flex max-w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-center font-bold transition-all hover:scale-105 sm:px-8"
           style={{ backgroundColor: primaryColor, color: '#fff' }}
         >
           <ArrowRight className="w-5 h-5" />

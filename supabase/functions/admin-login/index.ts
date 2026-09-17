@@ -1,5 +1,5 @@
 /**
- * admin-pin-login — تحويل رمز PIN إلى جلسة Supabase Auth حقيقية (Server-side).
+ * admin-login — تحويل رمز PIN إلى جلسة Supabase Auth حقيقية (Server-side).
  *
  * الأمان:
  * - العميل يرسل { pin } فقط، ولا يرسل email/password أبداً.
@@ -12,6 +12,7 @@
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { pinsMatch } from './pin-security.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -51,13 +52,6 @@ function clientIp(req: Request): string {
   return req.headers.get('cf-connecting-ip') ?? req.headers.get('x-real-ip') ?? 'unknown';
 }
 
-function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
 /**
  * يعدّ محاولة فاشلة لهذا الـ IP داخل النافذة الزمنية.
  * Fail-closed: إذا تعذّر الوصول إلى KV نعتبر المحاولة تجاوزاً للحد —
@@ -67,7 +61,7 @@ async function countFailure(ip: string): Promise<number> {
   try {
     const kv = await Deno.openKv();
     const windowStart = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
-    const key = ['admin-pin-login', 'failures', String(windowStart), ip];
+    const key = ['admin-login', 'failures', String(windowStart), ip];
     for (let attempt = 0; attempt < 3; attempt++) {
       const current = await kv.get<number>(key);
       const next = (current.value ?? 0) + 1;
@@ -117,39 +111,39 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return respond({ code: 'method_not_allowed', error: 'Method not allowed' }, 405, corsOrigin);
+    return respond({ ok: false, code: 'method_not_allowed', error: 'Method not allowed' }, 405, corsOrigin);
   }
 
   let pin = '';
   try {
     const body = (await req.json()) as { pin?: unknown };
-    pin = typeof body.pin === 'string' ? body.pin.trim() : '';
+    pin = typeof body.pin === 'string' ? body.pin : '';
   } catch {
-    return respond({ code: 'bad_request', error: 'Bad request' }, 400, corsOrigin);
+    return respond({ ok: false, code: 'bad_request', error: 'Bad request' }, 400, corsOrigin);
   }
 
   if (!pin) {
-    return respond({ code: 'bad_request', error: 'PIN is required' }, 400, corsOrigin);
+    return respond({ ok: false, code: 'bad_request', error: 'PIN is required' }, 400, corsOrigin);
+  }
+
+  if (!ADMIN_PIN || !ADMIN_EMAIL || !ADMIN_PASSWORD || !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+    return respond({ ok: false, code: 'server_error', error: 'Admin login is not configured' }, 500, corsOrigin);
   }
 
   const ip = clientIp(req);
 
   // 1) التحقق من الـ PIN (خادم فقط، بمقارنة ثابتة الزمن).
-  if (!constantTimeEqual(pin, ADMIN_PIN)) {
+  if (!pinsMatch(pin, ADMIN_PIN)) {
     const failures = await countFailure(ip);
-    if (failures > RATE_LIMIT_MAX_FAILURES) {
-      return respond({ code: 'rate_limited', error: 'Too many attempts' }, 429, corsOrigin, {
+    if (failures >= RATE_LIMIT_MAX_FAILURES) {
+      return respond({ ok: false, code: 'rate_limited', error: 'Too many attempts' }, 429, corsOrigin, {
         'Retry-After': String(RATE_LIMIT_WINDOW_MS / 1000),
       });
     }
-    return respond({ code: 'invalid_pin', error: 'Invalid PIN' }, 401, corsOrigin);
+    return respond({ ok: false, code: 'invalid_pin', error: 'Invalid PIN' }, 401, corsOrigin);
   }
 
   // 2) إنشاء جلسة حقيقية بحساب الإدارة من Secrets (لا شيء من العميل).
-  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-    return respond({ code: 'server_error', error: 'Admin account is not configured' }, 500, corsOrigin);
-  }
-
   const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
   const { data: authData, error: authError } = await anonClient.auth.signInWithPassword({
     email: ADMIN_EMAIL,
@@ -158,12 +152,12 @@ Deno.serve(async (req) => {
 
   if (authError || !authData.session) {
     const failures = await countFailure(ip);
-    if (failures > RATE_LIMIT_MAX_FAILURES) {
-      return respond({ code: 'rate_limited', error: 'Too many attempts' }, 429, corsOrigin, {
+    if (failures >= RATE_LIMIT_MAX_FAILURES) {
+      return respond({ ok: false, code: 'rate_limited', error: 'Too many attempts' }, 429, corsOrigin, {
         'Retry-After': String(RATE_LIMIT_WINDOW_MS / 1000),
       });
     }
-    return respond({ code: 'server_error', error: 'Login failed' }, 500, corsOrigin);
+    return respond({ ok: false, code: 'server_error', error: 'Login failed' }, 500, corsOrigin);
   }
 
   const session = authData.session;
@@ -185,17 +179,18 @@ Deno.serve(async (req) => {
       // تجاهل — محاولة إضافية فقط.
     }
     const failures = await countFailure(ip);
-    if (failures > RATE_LIMIT_MAX_FAILURES) {
-      return respond({ code: 'rate_limited', error: 'Too many attempts' }, 429, corsOrigin, {
+    if (failures >= RATE_LIMIT_MAX_FAILURES) {
+      return respond({ ok: false, code: 'rate_limited', error: 'Too many attempts' }, 429, corsOrigin, {
         'Retry-After': String(RATE_LIMIT_WINDOW_MS / 1000),
       });
     }
-    return respond({ code: 'not_admin', error: 'Account is not an admin' }, 403, corsOrigin);
+    return respond({ ok: false, code: 'not_admin', error: 'Account is not an admin' }, 403, corsOrigin);
   }
 
   // 4) النجاح — إعادة التوكنات فقط (لا كلمة مرور، لا PIN، لا service_role).
   return respond(
     {
+      ok: true,
       access_token: session.access_token,
       refresh_token: session.refresh_token,
     },

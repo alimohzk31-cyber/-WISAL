@@ -67,9 +67,9 @@ export async function uploadContactMessageImage(file: File): Promise<string> {
 }
 
 // Fetch all suggestions (newest first) for the admin panel.
-// The admin panel opens with a PIN (no Supabase Auth session), so it reads via
-// the SECURITY DEFINER admin RPC — the same pattern already used for services.
-// The SELECT policy on contact_messages stays untouched (authenticated + is_admin()).
+// The PIN Edge Function creates a real Supabase Auth session. This RPC runs as
+// SECURITY INVOKER and RLS requires public.is_admin(); the PIN or UI alone never
+// authorizes access.
 export async function fetchContactMessages(): Promise<ContactMessage[]> {
   const { data, error } = await supabase.rpc('admin_list_contact_messages');
 

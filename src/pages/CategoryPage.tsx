@@ -17,6 +17,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { serviceStatusOverlayClass } from '../types/models';
 import { categoryUrl, directoryEntryState, getDirectoryNavigationState, directoryBackAction, readCategoryUrl, openServiceDetails } from '../lib/directoryNavigation';
 import ServicePublicationTime from '../components/ServicePublicationTime';
+import { pickJoinTarget } from '../lib/serviceCategorySelection';
 
 // ---------------------------------------------------------------------------
 // تحميل تدريجي (Progressive Rendering) لبطاقات الخدمات داخل القسم:
@@ -66,13 +67,13 @@ function ServicesGrid({ services, locateService, renderCard, pageSize }: {
 
   return (
     <div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+      <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
         {visibleServices.map(renderCard)}
       </div>
       {hasMore && (
         <div ref={sentinelRef} className="py-8 space-y-4">
           {/* Loading Skeleton خفيف أثناء إضافة الدفعة التالية (لا يظهر للشبكة ولا طلبات — عرض محلي فقط) */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6" aria-hidden="true">
+          <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-3 md:gap-6 lg:grid-cols-4" aria-hidden="true">
             {Array.from({ length: Math.min(pageSize, services.length - visibleCount) }).map((_, index) => (
               <div key={index} className="border rounded-2xl overflow-hidden bg-[var(--card)] border-[var(--border)]">
                 <div className="aspect-square animate-pulse bg-[var(--bg-secondary)]" />
@@ -178,21 +179,23 @@ export default function CategoryPage() {
   const categoryServices = (bySection.get(category.slug) ?? []).filter(service =>
     activeSubCategory === 'all' || locateService(service)?.childSlug === activeSubCategory
   );
-  const joinCategory = category.sources.find(source => source.dbId != null && locateCategory(source.slug)?.childSlug === activeSubCategory)
-    ?? category.sources.find(source => source.dbId != null && (!activeChild ||
-      locateService({ categorySlug: source.slug, categoryId: source.dbId, profession: activeChild.name })?.childSlug === activeChild.slug))
-    // بعض أقسام العرض الجديدة (مثل الألمنيوم) لا تملك صفاً مستقلاً في قواعد
-    // البيانات القديمة. استخدم صف التخزين الحقيقي المتوافق فقط عندما يعيد
-    // locateService نفس القسم/التخصص؛ تبقى هوية DB صحيحة ولا تُخزَّن slug وهمية.
-    ?? categories.find(source => {
-      if (source.dbId == null) return false;
-      const placement = locateService({
-        categorySlug: source.slug,
-        categoryId: source.dbId,
-        profession: activeChild?.name ?? category.name,
-      });
-      return placement?.sectionSlug === category.slug && (!activeChild || placement.childSlug === activeChild.slug);
-    });
+  const joinSection = {
+    slug: category.slug,
+    name: activeChild ? `${category.name} (${activeChild.name})` : category.name,
+    childSlug: activeChild?.slug,
+    childName: activeChild?.name,
+  };
+  // هدف الانضمام: هوية القسم/الفرع تُمرَّر مباشرة إلى النموذج (id/slug)،
+  // فلا نُعيد البحث عنه داخل قائمة قد لا تكون محمّلة أو تحتوي slug مختلفاً.
+  // وإذا كان القسم معروفاً في الدليل لكن بلا صف في public.categories فلا نمنع
+  // الإضافة: مسار الحفظ هو الذي يجهّز الصف المطابق للـ FK.
+  const joinTarget = pickJoinTarget(
+    category.sources.map(source => ({ slug: String(source.slug), name: source.name, dbId: source.dbId })),
+    categories,
+    joinSection,
+    locateCategory,
+    locateService,
+  );
   // The directory resolves icons locally, including legacy custom categories.
   const Icon = category.icon;
   // Buttons/functional elements keep the theme accent palette (unchanged).
@@ -201,32 +204,32 @@ export default function CategoryPage() {
   const iconColors = colorMapRedWhite[category.color as keyof typeof colorMapRedWhite] || colorMapRedWhite['green'];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 relative">
+    <div className="relative w-full min-w-0 max-w-full space-y-8 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-4 border-b pb-6 relative border-[var(--border)]">
-        <button type="button" onClick={goBack} aria-label={activeChild && !category.hideAll ? 'الرجوع إلى القسم الرئيسي' : 'الرجوع إلى مصدر الدخول'} className="p-2 rounded-full transition-colors hover:bg-[var(--accent-soft)] text-[var(--text-primary)]">
+      <div className="relative flex min-w-0 flex-wrap items-center gap-3 border-b border-[var(--border)] pb-6 sm:gap-4">
+        <button type="button" onClick={goBack} aria-label={activeChild && !category.hideAll ? 'الرجوع إلى القسم الرئيسي' : 'الرجوع إلى مصدر الدخول'} className="shrink-0 rounded-full p-2 text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-soft)]">
           <ArrowRight className="w-6 h-6" />
         </button>
-        <div className="w-12 h-12 rounded-xl bg-white border-2 border-[#D90429] flex items-center justify-center">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-[#D90429] bg-white sm:h-12 sm:w-12">
           {Icon && typeof Icon !== 'string' && <Icon className={`w-6 h-6 ${iconColors.text}`} />}
         </div>
-        <h1 className="text-3xl font-bold flex items-center gap-3 text-[var(--text-primary)]">
-          <span style={{ color: 'var(--accent-primary)' }}>{category.name}{activeChild ? ` — ${activeChild.name}` : ''}</span>
-          <MapPin className={`w-6 h-6 ${iconColors.text} animate-bounce`} />
+        <h1 className="flex min-w-0 flex-1 items-center gap-2 text-xl font-bold text-[var(--text-primary)] sm:gap-3 sm:text-3xl">
+          <span className="min-w-0 break-words" style={{ color: 'var(--accent-primary)' }}>{category.name}{activeChild ? ` — ${activeChild.name}` : ''}</span>
+          <MapPin className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${iconColors.text} animate-bounce`} />
         </h1>
         <span className="px-3 py-1 rounded-full text-sm font-bold bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
           {categoryServices.filter(s => s.status === 'approved').length} {t('approved_services')}
         </span>
 
         {category.children.length > 0 && (
-          <div className="relative" ref={subcategoryMenuRef}>
+          <div className="relative w-full min-w-0 sm:w-auto" ref={subcategoryMenuRef}>
             <button
               type="button"
               onClick={() => setIsSubcategoryMenuOpen(open => !open)}
               aria-expanded={isSubcategoryMenuOpen}
               aria-controls="subcategory-menu"
               aria-label="عرض الأقسام الفرعية"
-              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--accent-soft)]"
+              className="flex w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--accent-soft)] sm:w-auto"
             >
               <Menu className="h-5 w-5 text-[var(--accent-primary)]" aria-hidden="true" />
               <span className="max-w-32 truncate">{activeChild?.name ?? 'كل الأقسام'}</span>
@@ -241,7 +244,7 @@ export default function CategoryPage() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -6, scale: 0.98 }}
                   transition={{ duration: 0.16 }}
-                  className="absolute right-0 top-full z-30 mt-2 max-h-[60vh] w-64 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
+                  className="absolute inset-x-0 top-full z-30 mt-2 max-h-[60dvh] w-full min-w-0 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)] sm:left-auto sm:right-0 sm:w-64 sm:max-w-[calc(100vw-2rem)]"
                 >
 <button
                     type="button"
@@ -254,7 +257,7 @@ export default function CategoryPage() {
                         : 'text-[var(--text-secondary)] hover:bg-[var(--accent-soft)]'
                     }`}
                   >
-                    <span>كل الأقسام</span>
+                    <span className="min-w-0 break-words">كل الأقسام</span>
                     {activeSubCategory === 'all' && <span className="h-2 w-2 shrink-0 rounded-full bg-current" aria-hidden="true" />}
                   </button>
                   {subCategories.map(sub => {
@@ -272,7 +275,7 @@ export default function CategoryPage() {
                             : 'text-[var(--text-primary)] hover:bg-[var(--accent-soft)]'
                         }`}
                       >
-                        <span>{sub.name}</span>
+                        <span className="min-w-0 break-words">{sub.name}</span>
                         {isActive && <span className="h-2 w-2 shrink-0 rounded-full bg-current" aria-hidden="true" />}
                       </button>
                     );
@@ -285,7 +288,7 @@ export default function CategoryPage() {
         
         <button
           onClick={() => setIsAddingService(true)}
-          className={`mr-auto flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all ${colors.bg} text-[var(--accent-contrast)] ${colors.shadow} hover:scale-105`}
+          className={`flex w-full min-w-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-bold transition-all sm:mr-auto sm:w-auto ${colors.bg} text-[var(--accent-contrast)] ${colors.shadow} hover:scale-105`}
         >
           <UserPlus className="w-5 h-5" />
           {t('join_section')}
@@ -313,7 +316,7 @@ export default function CategoryPage() {
               onClick={() => Number.isSafeInteger(Number(service.id)) && Number(service.id) > 0
                 ? openServiceDetails(navigate, location, service, { sectionSlug: category.slug, childSlug: activeChild?.slug })
                 : setSelectedService(service)}
-              className={`group relative border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 flex flex-col z-10 cursor-pointer bg-[var(--card)] border-[var(--border)] shadow-[var(--shadow)] ${serviceStatusOverlayClass(service.status)}`}
+              className={`group relative z-10 flex min-w-0 max-w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] transition-all duration-300 hover:-translate-y-1 ${serviceStatusOverlayClass(service.status)}`}
             >
               {/* Status Badges — مكوّن موحد ServiceStatusBadge */}
               {service.isOffline && (
@@ -326,8 +329,8 @@ export default function CategoryPage() {
               <ServiceStatusBadge status={service.status ?? 'approved'} variant="card" />
 
               {/* Simple Image Section */}
-              <div className="aspect-square overflow-hidden relative">
-                <LazyServiceCardImage service={service} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-[var(--bg-secondary)]">
+                <LazyServiceCardImage service={service} className="h-full w-full object-contain object-center" />
                 <div className={`absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent`} />
                 
                 {/* Quick Call Action Overlay */}
@@ -342,7 +345,7 @@ export default function CategoryPage() {
               </div>
               
               {/* Compact Info Section */}
-              <div className="p-3 flex-1 flex flex-col justify-between gap-1">
+              <div className="flex min-w-0 flex-1 flex-col justify-between gap-1 p-3">
                 <h3 className="text-sm md:text-base font-bold line-clamp-1 text-[var(--text-primary)]">
                   {service.name}
                 </h3>
@@ -356,7 +359,7 @@ export default function CategoryPage() {
 
                 {/* Pending Status Message */}
                 {service.status === 'pending' && (
-                  <p className="text-[10px] md:text-xs font-bold text-yellow-500 flex items-center gap-1">
+                  <p className="flex min-w-0 items-start gap-1 break-words text-[10px] font-bold text-yellow-500 md:text-xs">
                     <Hourglass className="w-3 h-3 shrink-0" />
                     ⏳ بانتظار موافقة الإدارة
                   </p>
@@ -364,7 +367,7 @@ export default function CategoryPage() {
 
                 {/* Rejected Status Message */}
                 {service.status === 'rejected' && (
-                  <p className="text-[10px] md:text-xs font-bold text-red-500 flex items-center gap-1">
+                  <p className="flex min-w-0 items-start gap-1 break-words text-[10px] font-bold text-red-500 md:text-xs">
                     <XCircle className="w-3 h-3 shrink-0" />
                     مرفوضة {service.rejectionReason ? `- ${service.rejectionReason}` : ''}
                   </p>
@@ -372,7 +375,7 @@ export default function CategoryPage() {
 
                 {/* Navigation Links (Compact) - Only for approved services */}
                 {service.latitude && service.longitude && service.status === 'approved' && (
-                  <div className="flex gap-1 mt-1">
+                  <div className="mt-1 flex min-w-0 gap-1">
                     <a 
                       href={`https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`}
                       target="_blank"
@@ -400,8 +403,9 @@ export default function CategoryPage() {
       {isAddingService && (
         <Suspense fallback={null}>
         <AddServiceModal 
-          joinSection={{ slug: category.slug, name: activeChild ? `${category.name} (${activeChild.name})` : category.name, childSlug: activeChild?.slug }}
-          initialCategorySlug={joinCategory?.slug ?? ''}
+          joinSection={joinSection}
+          initialCategory={joinTarget}
+          initialCategorySlug={joinTarget.slug}
           initialProfession={activeChild?.name}
           onClose={() => setIsAddingService(false)} 
         />

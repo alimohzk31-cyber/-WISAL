@@ -187,7 +187,7 @@ export default function Home() {
   useEffect(() => () => recognitionRef.current?.stop(), []);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 relative">
+    <div className="relative w-full min-w-0 max-w-full space-y-6 animate-in fade-in duration-500">
       {/* Ambient Background Lights — ثابتة بدون حركة JS (كانت تسبب لاقاً حاداً
           على الهاتف: 3 عناصر بـ blur ضخم تُعاد رسمها كل إطار بلا نهاية). الشكل
           البصري (توهج محيطي) محفوظ لكن بتكلفة رسم واحدة فقط. */}
@@ -211,7 +211,7 @@ export default function Home() {
       {activeView === 'browse' ? <SocialFeed onAddService={openAddService} /> : <>
 
       {/* Search Bar */}
-      <section className="relative max-w-2xl mx-auto space-y-3 z-10" aria-label="بحث الأقسام وإحصائياتها">
+      <section className="relative z-10 mx-auto w-full min-w-0 max-w-2xl space-y-3" aria-label="بحث الأقسام وإحصائياتها">
       <form onSubmit={submitSearch} role="search" className="relative group">
         {/* Search Bar Glow */}
         <div className="absolute -inset-1 rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 -z-10" style={{ backgroundColor: primaryColor }} />
@@ -266,7 +266,7 @@ export default function Home() {
       {voiceError && <p className="mx-auto mt-2 max-w-2xl text-sm font-bold text-red-500">{voiceError}</p>}
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-4">
+      <div className="grid min-w-0 grid-cols-2 gap-3 pt-4 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {filteredCategories.map((cat) => {
           // Each main field uses its directory icon, including React forward refs.
           const Icon = cat.icon;
@@ -278,14 +278,14 @@ export default function Home() {
               key={cat.slug}
               to={categoryUrl(cat.slug)}
               state={directoryEntryState(location)}
-              className={`group relative border rounded-2xl p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:-translate-y-1 z-10 bg-[var(--card)] border-[var(--border)] hover:shadow-[var(--shadow-lg)]`}
+              className={`group relative z-10 flex min-w-0 flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] sm:gap-4 sm:p-6`}
             >
               {/* Icon frame: white background + red border + red icon (no neon / no glow) */}
               <div className="w-14 h-14 rounded-full bg-white border-2 border-[#D90429] shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 {Icon && typeof Icon !== 'string' && <Icon className={`w-7 h-7 ${colors.text}`} />}
               </div>
               <div className="text-center">
-                <span className="font-bold block text-[var(--text-primary)]">{cat.name}</span>
+                <span className="block break-words font-bold text-[var(--text-primary)]">{cat.name}</span>
                 {cat.children.length > 0 && <span className="text-xs mt-1 block text-[var(--text-muted)]">{cat.children.length} أقسام فرعية</span>}
                 <span className="text-xs mt-1 block font-medium text-[var(--text-secondary)]">{categoryServices.length} {t('services_count')}</span>
               </div>

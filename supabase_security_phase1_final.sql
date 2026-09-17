@@ -299,7 +299,7 @@ USING (
 
     OR
 
-    auth.role() = 'authenticated'
+    public.is_admin()
 
 );
 
@@ -342,13 +342,13 @@ FOR UPDATE
 
 USING (
 
-    auth.role() = 'authenticated'
+    public.is_admin()
 
 )
 
 WITH CHECK (
 
-    auth.role() = 'authenticated'
+    public.is_admin()
 
 );
 
@@ -366,7 +366,7 @@ FOR DELETE
 
 USING (
 
-    auth.role() = 'authenticated'
+    public.is_admin()
 
 );
 
@@ -408,7 +408,7 @@ ON public.categories
 FOR INSERT
 
 WITH CHECK (
-    auth.role() = 'authenticated'
+    public.is_admin()
 );
 
 
@@ -418,11 +418,11 @@ ON public.categories
 FOR UPDATE
 
 USING (
-    auth.role() = 'authenticated'
+    public.is_admin()
 )
 
 WITH CHECK (
-    auth.role() = 'authenticated'
+    public.is_admin()
 );
 
 
@@ -432,7 +432,7 @@ ON public.categories
 FOR DELETE
 
 USING (
-    auth.role() = 'authenticated'
+    public.is_admin()
 );
 
 
@@ -466,7 +466,7 @@ FOR SELECT
 USING (
     is_active = true
     OR
-    auth.role() = 'authenticated'
+    public.is_admin()
 );
 
 
@@ -477,7 +477,7 @@ ON public.slider_images
 FOR INSERT
 
 WITH CHECK (
-    auth.role() = 'authenticated'
+    public.is_admin()
 );
 
 
@@ -487,11 +487,11 @@ ON public.slider_images
 FOR UPDATE
 
 USING (
-    auth.role() = 'authenticated'
+    public.is_admin()
 )
 
 WITH CHECK (
-    auth.role() = 'authenticated'
+    public.is_admin()
 );
 
 
@@ -501,7 +501,7 @@ ON public.slider_images
 FOR DELETE
 
 USING (
-    auth.role() = 'authenticated'
+    public.is_admin()
 );
 
 

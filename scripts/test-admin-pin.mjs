@@ -16,6 +16,8 @@ const state = {
   invokeThrow: null,
   setSessionCalls: 0,
   setSessionError: null,
+  signOutCalls: 0,
+  signOutError: null,
   lastInvokeArgs: null,
   lastSetSessionArgs: null,
 };
@@ -37,6 +39,10 @@ function createClient() {
       },
     },
     auth: {
+      async signOut() {
+        s.signOutCalls++;
+        return { error: s.signOutError };
+      },
       async setSession(tokens) {
         s.lastSetSessionArgs = tokens;
         s.setSessionCalls++;

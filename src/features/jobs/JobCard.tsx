@@ -24,9 +24,9 @@ export default function JobCard({ job, saved, onToggleSaved }: {
   onToggleSaved?: (jobId: number) => void;
 }) {
   const location = [job.governorate, job.area].filter(Boolean).join('، ') || 'عن بُعد';
-  return <article className="group relative flex min-h-[126px] gap-3 overflow-hidden rounded-[22px] border border-[#e0ebf7] bg-white p-2.5 shadow-[0_8px_26px_rgba(31,83,142,0.10)] transition hover:-translate-y-0.5 hover:border-[#9fcaff] hover:shadow-[0_14px_34px_rgba(31,100,180,0.16)] sm:min-h-[142px] sm:p-3">
+  return <article className="group relative flex min-h-[126px] min-w-0 max-w-full gap-2 overflow-hidden rounded-[22px] border border-[#e0ebf7] bg-white p-2.5 shadow-[0_8px_26px_rgba(31,83,142,0.10)] transition hover:-translate-y-0.5 hover:border-[#9fcaff] hover:shadow-[0_14px_34px_rgba(31,100,180,0.16)] sm:min-h-[142px] sm:gap-3 sm:p-3">
     <Link to={`/jobs/${job.id}`} className="absolute inset-0 z-0 rounded-[inherit]" aria-label={`تفاصيل وظيفة ${job.title} في ${job.company}`} />
-    <div className="relative z-[1] flex w-[104px] shrink-0 items-center justify-center overflow-hidden rounded-[17px] bg-[#e9f3ff] sm:w-[128px]">
+    <div className="relative z-[1] flex w-[36%] max-w-[104px] shrink-0 items-center justify-center overflow-hidden rounded-[17px] bg-[#e9f3ff] sm:w-[128px] sm:max-w-none">
       {job.image ? <SafeImage src={job.image} alt={`صورة ${job.company}`} className="h-full w-full object-cover" /> : <BriefcaseBusiness className="h-9 w-9 text-[var(--accent-primary)]" />}
     </div>
     <div className="pointer-events-none relative z-[1] min-w-0 flex-1">

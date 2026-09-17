@@ -285,7 +285,7 @@ export default function BrowseServiceGallery({ images, alt, compact = false }: B
           <>
             <button type="button" onClick={showPrevious} className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-md hover:bg-black/65" aria-label="الصورة السابقة"><ChevronLeft className="h-5 w-5" /></button>
             <button type="button" onClick={showNext} className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-md hover:bg-black/65" aria-label="الصورة التالية"><ChevronRight className="h-5 w-5" /></button>
-            <div className="pointer-events-none absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5" aria-hidden="true">
+            <div className="pointer-events-none absolute bottom-2 left-1/2 flex max-w-[calc(100%-1rem)] -translate-x-1/2 flex-wrap justify-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5" aria-hidden="true">
               {galleryImages.map((image, imageIndex) => <span key={`${image}-${imageIndex}`} className={`h-1.5 rounded-full transition-all ${imageIndex === index ? 'w-4 bg-white' : 'w-1.5 bg-white/55'}`} />)}
             </div>
           </>

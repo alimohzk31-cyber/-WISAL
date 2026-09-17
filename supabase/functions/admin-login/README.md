@@ -1,4 +1,4 @@
-# admin-pin-login
+# admin-login
 
 Edge Function (Server-side) لتحويل PIN الإدارة إلى جلسة Supabase Auth حقيقية.
 
@@ -7,7 +7,7 @@ Edge Function (Server-side) لتحويل PIN الإدارة إلى جلسة Supa
 2. تتحقق من الـ PIN ضد Secret `ADMIN_PIN` (خادم فقط، بمقارنة ثابتة الزمن).
 3. تسجّل الدخول بحساب الإدارة باستخدام `ADMIN_EMAIL` + `ADMIN_PASSWORD` (Secrets فقط).
 4. تتحقق أن `public.profiles.id = session.user.id` و `role = 'admin'` (بالمعرّف، لا بالبريد).
-5. عند النجاح تعيد `access_token` + `refresh_token` فقط.
+5. عند النجاح تعيد `ok: true` صراحةً مع `access_token` + `refresh_token` فقط.
 
 ## Secrets المطلوبة
 | الاسم | الوصف |
@@ -21,8 +21,8 @@ Edge Function (Server-side) لتحويل PIN الإدارة إلى جلسة Supa
 
 ## النشر (يدوي — مرة واحدة)
 ```bash
-supabase functions deploy admin-pin-login --no-verify-jwt
-supabase secrets set --env-file supabase/functions/admin-pin-login/.env.local
+supabase functions deploy admin-login --no-verify-jwt
+supabase secrets set --env-file supabase/functions/admin-login/.env.local
 ```
 
 > - `--no-verify-jwt` ضروري: الواجهة تستدعي الدالة قبل وجود أي جلسة.
@@ -33,7 +33,7 @@ supabase secrets set --env-file supabase/functions/admin-pin-login/.env.local
 
 ## اختبار بعد النشر
 ```bash
-curl -X POST 'https://<project-ref>.supabase.co/functions/v1/admin-pin-login' \
+curl -X POST 'https://<project-ref>.supabase.co/functions/v1/admin-login' \
   -H 'apikey: <ANON_KEY>' \
   -H 'Content-Type: application/json' \
   -d '{"pin":"<PIN>"}'

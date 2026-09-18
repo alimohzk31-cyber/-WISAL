@@ -149,7 +149,7 @@ function SocialFeed({
                         aria-controls={`browse-details-${serviceKey}`}
                         className="inline rounded px-1 font-bold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                       >
-                        {detailsOpen ? 'أقل' : 'المزيد'}
+                        {detailsOpen ? 'عرض أقل' : 'المزيد'}
                       </button>
                     )}
                   </p>

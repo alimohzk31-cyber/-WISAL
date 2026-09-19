@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PackageCheck, PartyPopper, RefreshCw, X } from 'lucide-react';
-import { APP_VERSION, PREVIOUS_APP_VERSION, getLatestVersion, isNewerVersion } from '../lib/appVersion';
+import { APP_RELEASES, APP_VERSION, PREVIOUS_APP_VERSION, getLatestVersion, isNewerVersion } from '../lib/appVersion';
 
 interface AppVersionModalProps {
   open: boolean;
@@ -80,7 +80,22 @@ export default function AppVersionModal({ open, onClose, hasUpdate, onUpdateAcce
               الإصدار الحالي: <span className="text-[var(--accent-primary)]" dir="ltr">{APP_VERSION}</span>
             </p>
             <p className="mt-1 text-xs font-bold text-[var(--text-muted)]">الإصدار السابق: <span dir="ltr">{PREVIOUS_APP_VERSION}</span></p>
-
+            {/* سجل إصدارات وصال — مرتب من الأحدث إلى الأقدم (البيانات من APP_RELEASES في src/lib/appVersion.ts) */}
+            <div className="mt-3 border-t border-[var(--border-color)] pt-3 text-right">
+              <ul className="space-y-1">
+                {APP_RELEASES.map((release) => (
+                  <li key={release.version} className="flex items-center justify-between gap-2 rounded-xl px-3 py-1.5">
+                    <span
+                      className={`text-sm font-extrabold ${release.version === APP_VERSION ? 'text-[var(--accent-primary)]' : 'text-[var(--text-primary)]'}`}
+                      dir="ltr"
+                    >
+                      {release.version}
+                    </span>
+                    <span className="text-xs font-bold text-[var(--text-muted)]">{release.date}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="mt-4">
               {checking ? (
                 <p className="text-xs font-bold text-[var(--text-secondary)]">جارٍ التحقق من التحديث...</p>

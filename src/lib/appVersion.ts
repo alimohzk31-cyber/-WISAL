@@ -9,8 +9,34 @@
 /** الإصدار الحالي المثبَّت لدى المستخدم. */
 export const APP_VERSION = '1.1';
 /** تاريخ إصدار الواجهة الحالي (قيمة ثابتة مرتبطة بالإصدار، لا يتغير يوميًا). */
-export const APP_VERSION_DATE = '15/9/2026';
+export const APP_VERSION_DATE = '15/09/2026';
 export const PREVIOUS_APP_VERSION = '1.0';
+
+/**
+ * سجل إصدارات وصال — المصدر الوحيد الذي تعرضه نافذة «الإصدار».
+ *
+ * مصدر التواريخ (موثّق من Git، وليس تخمينًا):
+ *  - 1.1: نُقل إليه بتاريخ 14/09/2026 (Commit 450ea17)، والتاريخ المعلن
+ *    رسميًا في التطبيق نفسه (APP_VERSION_DATE) هو 15/09/2026.
+ *  - 1.0: أول Commit في المستودع بتاريخ 08/09/2026 (Commit 259a8f0
+ *    «Initial complete Wisal project»)، وفيه android/app/build.gradle
+ *    يُظهر versionName "1.0.0" وappVersion.ts يُظهر APP_VERSION = '1.0.0'.
+ *
+ * لإضافة إصدار جديد مستقبلًا: أضف سطرًا واحدًا أعلى القائمة فقط:
+ *   { version: '1.2', date: 'يوم/شهر/سنة' },
+ * والقائمة تبقى مرتبة من الأحدث إلى الأقدم كما هي مكتوبة.
+ */
+export interface AppRelease {
+  /** رقم الإصدار، مثل '1.1'. */
+  version: string;
+  /** تاريخ نزول الإصدار بصيغة يوم/شهر/سنة، مثل '15/09/2026'. */
+  date: string;
+}
+
+export const APP_RELEASES: readonly AppRelease[] = [
+  { version: '1.1', date: '15/09/2026' },
+  { version: '1.0', date: '08/09/2026' },
+] as const;
 
 /** وصف مصدر التحقق من التحديث (للعرض داخل نافذة الإصدار مستقبلًا). */
 export type UpdateCheckSource = 'none' | 'remote' | 'store';

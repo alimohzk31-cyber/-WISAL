@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, LayoutGrid, MapPin, MessageCircle, Plus, Phone, ExternalLink, Video, Navigation } from 'lucide-react';
+import { Briefcase, Eye, MapPin, MessageCircle, Plus, Phone, ExternalLink, Video, Navigation } from 'lucide-react';
 import { useServices } from '../context/ServicesContext';
 import { useCategories } from '../hooks/useCategories';
 import { useFeedInteractions } from '../hooks/useFeedInteractions';
@@ -11,7 +11,7 @@ import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
 import ServicePublicationTime from './ServicePublicationTime';
 import { getServicePublicationTimestamp } from '../lib/servicePublicationTime';
 import { LazyServiceGallery } from './LazyServiceMedia';
-import { getBrowseDescriptionPreview } from '../lib/browseServiceCard';
+import { getBrowseDescriptionPreview, getBrowseExtraImages, getBrowseImages, hasBrowseDetails } from '../lib/browseServiceCard';
 import { useSavedServices } from '../hooks/useSavedServices';
 import type { Service } from '../types/models';
 
@@ -21,11 +21,6 @@ interface SocialFeedProps {
   showAddButton?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
-}
-
-function getBrowseImages(service: { image?: string; images?: string[] }): string[] {
-  return Array.from(new Set([service.image, ...(service.images ?? [])]
-    .filter((image): image is string => typeof image === 'string' && image.trim().length > 0)));
 }
 
 function SocialFeed({
@@ -98,9 +93,12 @@ function SocialFeed({
             ?? categories.find((category) => category.slug === service.categorySlug)?.name
             ?? service.categorySlug;
           const browseImages = getBrowseImages(service);
+          const extraImages = getBrowseExtraImages(service);
           const serviceKey = String(service.id ?? service.slug);
           const detailsOpen = isDetailsExpanded(serviceKey);
           const description = getBrowseDescriptionPreview(service.experience);
+          // «المزيد» تظهر فقط عند وجود تفاصيل غير ظاهرة في الحالة المختصرة.
+          const canExpandDetails = description.truncated || hasBrowseDetails(service);
 
           return (
             <article key={serviceKey} className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)]">
@@ -118,7 +116,16 @@ function SocialFeed({
                     )}
                   </div>
                 </div>
-                <ServicePublicationTime service={service} className="shrink-0 text-xs text-[var(--text-muted)]" />
+                <span className="flex shrink-0 items-center gap-2">
+                  <span
+                    className="flex items-center gap-1 text-xs font-bold text-[var(--text-muted)]"
+                    aria-label={service.views === undefined ? 'عدد الزيارات غير متاح' : `${service.views} زيارة`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    {service.views === undefined ? '—' : service.views.toLocaleString('ar-IQ')}
+                  </span>
+                  <ServicePublicationTime service={service} className="text-xs text-[var(--text-muted)]" />
+                </span>
               </div>
 
               <LazyServiceGallery service={service} images={browseImages} />
@@ -134,71 +141,44 @@ function SocialFeed({
                   </p>
                 )}
 
-                {description.text && (
-                  /* النص المختصر يبقى مختصرًا دائمًا؛ التفاصيل الكاملة تظهر في لوحة
-                     التفاصيل داخل نفس البطاقة عند الضغط على «المزيد» (بلا تكرار). */
-                  <p className={`text-sm leading-6 text-[var(--text-muted)] flex min-w-0 items-center gap-1`}>
-                    <span className="min-w-0 flex-1 truncate">
-                      {description.text}
-                    </span>{' '}
-                    {description.truncated && (
+                {/* الحالة المختصرة: نبذة قصيرة واحدة تنتهي بكلمة «المزيد» مرة واحدة،
+                    وعند التوسيع تختفي النبذة القصيرة وتظهر التفاصيل الكاملة كقطعة واحدة. */}
+                {!detailsOpen && (description.text || canExpandDetails) && (
+                  <p className="flex min-w-0 items-center gap-1 text-sm leading-6 text-[var(--text-muted)]">
+                    {description.text && (
+                      <span className="min-w-0 flex-1 truncate">{description.text}</span>
+                    )}
+                    {canExpandDetails && (
                       <button
                         type="button"
                         onClick={() => toggleDetailsExpanded(serviceKey)}
                         aria-expanded={detailsOpen}
                         aria-controls={`browse-details-${serviceKey}`}
-                        className="inline rounded px-1 font-bold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                        className="shrink-0 rounded px-1 font-bold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                       >
-                        {detailsOpen ? 'عرض أقل' : 'المزيد'}
+                        المزيد
                       </button>
                     )}
                   </p>
                 )}
               </div>
 
-              {/* شريط التفاعل والتعليقات — مباشرة أسفل صورة المنشور */}
-              {service.id !== undefined && (
-                <PostInteractions
-                  serviceId={service.id}
-                  summary={summaries[String(service.id)] ?? { total: 0, byType: {}, top: null }}
-                  myReaction={myReactions[String(service.id)] ?? null}
-                  comments={commentsByService[String(service.id)] ?? []}
-                  onToggleReaction={(type) => toggleReaction(service.id!, type)}
-                  onAddComment={async (content) => { await addComment(service.id!, content); }}
-                  onDeleteComment={deleteComment}
-                  views={service.views}
-                  saved={savedIds.has(String(service.id))}
-                  onToggleSaved={() => toggleSaved(service.id!)}
-                  onOpenCategory={() => openServiceCategory(navigate, location, service, placement)}
-                />
-              )}
-
               {isDetailsExpanded(serviceKey) && (
                 <div id={`browse-details-${serviceKey}`} className="border-t border-[var(--border)] bg-[var(--surface-elevated)] px-3.5 py-4 space-y-3">
-                  {/* القسم/الفرع والمهنة والتخصص — لا تُعرض إلا عند توفرها */}
-                  {(categoryName || service.profession || service.subCategory) && (
+                  {/* التخصص — القسم والمهنة ظاهران أصلًا في رأس البطاقة، فلا يُكرران هنا */}
+                  {service.subCategory && (
                     <div className="flex flex-wrap gap-2 text-xs">
-                      {categoryName && (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--bg-secondary)] px-3 py-1.5 font-bold text-[var(--text-secondary)]">
-                          <LayoutGrid className="h-3 w-3 text-[var(--accent-primary)]" /> القسم: {categoryName}
-                        </span>
-                      )}
-                      {service.profession && (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--bg-secondary)] px-3 py-1.5 font-bold text-[var(--text-secondary)]">
-                          <Briefcase className="h-3 w-3 text-[var(--accent-primary)]" /> {service.profession}
-                        </span>
-                      )}
-                      {service.subCategory && (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--bg-secondary)] px-3 py-1.5 font-bold text-[var(--text-secondary)]">
-                          التخصص: {service.subCategory}
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--bg-secondary)] px-3 py-1.5 font-bold text-[var(--text-secondary)]">
+                        التخصص: {service.subCategory}
+                      </span>
                     </div>
                   )}
 
                   {service.experience && (
                     <div className="space-y-1.5">
-                      <p className="text-xs font-bold text-[var(--text-muted)]">النبذة كاملة</p>
+                      <p className="text-xs font-bold text-[var(--text-muted)]">
+                        {description.truncated ? 'النبذة كاملة' : 'نبذة عن الخدمة'}
+                      </p>
                       <p className="text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">
                         {service.experience}
                       </p>
@@ -298,12 +278,12 @@ function SocialFeed({
                     </div>
                   )}
 
-                  {/* الصور الإضافية */}
-                  {service.images && service.images.length > 0 && (
+                  {/* صور إضافية — الصورة الرئيسية مستبعدة لأن معرض البطاقة يعرضها */}
+                  {extraImages.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-[var(--text-muted)]">صور إضافية</p>
                       <div className="grid grid-cols-3 gap-2">
-                        {service.images.slice(0, 6).map((img, idx) => (
+                        {extraImages.slice(0, 6).map((img, idx) => (
                           <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden bg-[var(--bg-secondary)]">
                             <img src={img} alt={`${service.name} - صورة ${idx + 1}`} loading="lazy" decoding="async" className="h-full w-full object-cover hover:scale-105 transition-transform" />
                           </a>
@@ -325,7 +305,36 @@ function SocialFeed({
                       <ExternalLink className="h-5 w-5 shrink-0 text-[var(--accent-primary)]" />
                     </a>
                   )}
+
+                  {/* نهاية التفاصيل: كلمة «عرض أقل» مرة واحدة لإرجاع البطاقة للحالة المختصرة */}
+                  <div className="pt-1 text-center">
+                    <button
+                      type="button"
+                      onClick={() => toggleDetailsExpanded(serviceKey)}
+                      aria-expanded={detailsOpen}
+                      aria-controls={`browse-details-${serviceKey}`}
+                      className="inline rounded px-2 py-1 text-sm font-bold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    >
+                      عرض أقل
+                    </button>
+                  </div>
                 </div>
+              )}
+
+              {/* شريط التفاعل والتعليقات — آخر البطاقة، بعد كل تفاصيل الخدمة */}
+              {service.id !== undefined && (
+                <PostInteractions
+                  serviceId={service.id}
+                  summary={summaries[String(service.id)] ?? { total: 0, byType: {}, top: null }}
+                  myReaction={myReactions[String(service.id)] ?? null}
+                  comments={commentsByService[String(service.id)] ?? []}
+                  onToggleReaction={(type) => toggleReaction(service.id!, type)}
+                  onAddComment={async (content) => { await addComment(service.id!, content); }}
+                  onDeleteComment={deleteComment}
+                  saved={savedIds.has(String(service.id))}
+                  onToggleSaved={() => toggleSaved(service.id!)}
+                  onOpenCategory={() => openServiceCategory(navigate, location, service, placement)}
+                />
               )}
             </article>
           );

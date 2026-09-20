@@ -13,8 +13,7 @@ const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 1000 });
 const errors = [];
 page.on('console', (m) => {
-  const type = m.type();
-  if (type === 'error' || type === 'warning') errors.push(`[console.${type}] ${m.text().slice(0, 600)}`);
+ ؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤؤر                                if (type === 'error' || type === 'warning') errors.push(`[console.${type}] ${m.text().slice(0, 600)}`);
 });
 page.on('pageerror', (e) => errors.push('[pageerror] ' + String(e).slice(0, 1500)));
 page.on('requestfailed', (r) => errors.push(`[requestfailed] ${r.url().slice(-90)} → ${r.failure()?.errorText}`));

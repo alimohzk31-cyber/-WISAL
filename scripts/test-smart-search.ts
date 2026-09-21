@@ -94,8 +94,35 @@ test('simple misspellings and dialect variants stay searchable', () => {
   }
 });
 
+test('requested Iraqi phrases resolve to existing service groups', () => {
+  const requests: Array<[string, string, string?]> = [
+    ['طبيب', 'doctors'], ['دكتور', 'doctors'], ['اني مريض', 'doctors'],
+    ['اسنان', 'doctors', 'dentist'], ['اريد اسوي اسناني', 'doctors', 'dentist'],
+    ['بنشرجي', 'cars', 'car-tires'], ['فنشرجي', 'cars', 'car-tires'], ['بنجرجي', 'cars', 'car-tires'],
+    ['تايرات', 'cars', 'car-tires'], ['إطارات', 'cars', 'car-tires'], ['بنچر', 'cars', 'car-tires'], ['بنجر', 'cars', 'car-tires'],
+    ['فيترجي', 'cars', 'car-mechanic'], ['فيترچي', 'cars', 'car-mechanic'], ['فيتر', 'cars', 'car-mechanic'],
+    ['ميكانيكي', 'cars', 'car-mechanic'],
+    ['أريد أصلح تلفوني', 'mobile-electronics', 'phone-repair'], ['سباك', 'plumbing'], ['الماي يهرب', 'plumbing'],
+    ['كهربائي', 'electrical'], ['الكهرباء طافية', 'electrical'],
+    ['أريد أبني بيت', 'construction'], ['محاسب', 'accounting-finance'], ['محاسبة', 'accounting-finance'],
+  ];
+  for (const [query, section, child] of requests) {
+    assert.equal(top(query), categoryUrl(section, child), query);
+  }
+
+  const brokenCar = searchDirectory(index, 'سيارتي خربانة');
+  assert.ok(brokenCar.some(result => result.url === categoryUrl('cars', 'car-mechanic')));
+  assert.ok(brokenCar.some(result => result.url === categoryUrl('cars', 'car-repair')));
+
+  const medical = searchDirectory(index, 'أريد علاج').map(result => result.section.slug);
+  assert.ok(medical.includes('doctors'));
+  assert.ok(medical.includes('pharmacies'));
+  assert.ok(searchDirectory(index, 'أريد أفحص').some(result => result.url === categoryUrl('laboratories', 'medical-tests')));
+  assert.ok(searchDirectory(index, 'محاس').some(result => result.section.slug === 'accounting-finance'));
+});
+
 test('administrative UI never appears in public search', () => {
-  for (const query of ['الإدارة', 'admin', 'Admin Dashboard', 'إعدادات الإدارة', 'الموافقات']) {
+  for (const query of ['الإدارة', 'ادارة', 'قسم الإدارة', 'لوحة الإدارة', 'admin', 'Admin Dashboard', 'إعدادات الإدارة', 'الموافقات']) {
     assert.deepEqual(searchDirectory(index, query), [], query);
   }
 });

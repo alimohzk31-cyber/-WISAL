@@ -186,6 +186,65 @@ export default function Home() {
 
   useEffect(() => () => recognitionRef.current?.stop(), []);
 
+  const filteredBrowseServices = useMemo(() => {
+    if (!settledQuery.trim()) return searchServices;
+    return searchServices.filter(service => searchResults.some(result =>
+      result.section.slug === service.categorySlug
+      && (!result.child || result.child.slug === service.subCategory)
+    ));
+  }, [searchServices, searchResults, settledQuery]);
+
+  const directorySearchPanel = (
+    <>
+      <section className="relative z-10 mx-auto w-full min-w-0 max-w-2xl space-y-3" aria-label="بحث الأقسام وإحصائياتها">
+        <form onSubmit={submitSearch} role="search" className="relative group">
+          <div className="absolute -inset-1 rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 -z-10" style={{ backgroundColor: primaryColor }} />
+          <button type="submit" aria-label="بحث وفتح القسم المطابق" className="absolute inset-y-2 right-2 flex w-10 items-center justify-center rounded-xl hover:bg-[var(--accent-soft)]">
+            <Search className="w-5 h-5 transition-colors" style={{ color: searchQuery ? `var(--accent-primary)` : `var(--text-muted)` }} />
+          </button>
+          <input
+            ref={searchInputRef}
+            type="text"
+            aria-label="ابحث عن قسم أو تخصص أو خدمة"
+            aria-describedby="directory-search-help"
+            autoComplete="off"
+            enterKeyHint="search"
+            value={searchQuery}
+            onChange={event => setSearchQuery(event.target.value)}
+            className="w-full border rounded-2xl pl-14 pr-12 py-4 text-lg focus:outline-none transition-all bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--focus-ring)] shadow-[var(--shadow)]"
+            style={{ borderColor: searchQuery ? primaryColor : undefined, boxShadow: searchQuery ? `0 0 20px ${primaryColor}30` : undefined }}
+            placeholder={t('search_placeholder')}
+          />
+          <button type="button" onClick={toggleVoiceSearch} aria-label={isListening ? 'إيقاف البحث الصوتي' : 'بدء البحث الصوتي'} title={isListening ? 'إيقاف الاستماع' : 'بحث صوتي'} className={`absolute inset-y-2 left-2 flex w-11 items-center justify-center rounded-xl transition-colors ${isListening ? 'bg-red-500/10 text-red-500' : 'text-[var(--text-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-primary)]'}`}>
+            {isListening ? <MicOff className="h-5 w-5 animate-pulse" /> : <Mic className="h-5 w-5" />}
+          </button>
+        </form>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+          <p aria-live="polite" aria-atomic="true" className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 font-bold">
+            الأقسام: {sections.length.toLocaleString('ar-IQ')} <span className="mx-2" aria-hidden="true">|</span>
+            {servicesLoading && publicServices.length === 0 && !servicesError
+              ? <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ تحميل الخدمات…</span>
+              : <>الخدمات: {publicServices.length.toLocaleString('ar-IQ')}</>}
+          </p>
+          <p id="directory-search-help">ابحث عن قسم أو تخصص، ثم افتح النتيجة المناسبة.</p>
+        </div>
+        {servicesError && publicServices.length === 0 && <ErrorState onRetry={() => { void refreshServices(); }} />}
+        {searchQuery.trim() && (searchResults.length > 0 ? (
+          <ul className="max-h-64 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2" aria-label="اقتراحات الأقسام">
+            {searchResults.slice(0, 8).map(result => (
+              <li key={result.url}>
+                <Link to={result.url} state={directoryEntryState(location)} className="block rounded-xl px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--accent-soft)] focus-visible:bg-[var(--accent-soft)]">
+                  {result.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : <p role="status" className="py-3 text-sm text-[var(--text-muted)]">لم يتم العثور على قسم مطابق</p>)}
+      </section>
+      {voiceError && <p className="mx-auto mt-2 max-w-2xl text-sm font-bold text-red-500">{voiceError}</p>}
+    </>
+  );
+
   return (
     <div className="relative w-full min-w-0 max-w-full space-y-6 animate-in fade-in duration-500">
       {/* Ambient Background Lights — ثابتة بدون حركة JS (كانت تسبب لاقاً حاداً
@@ -208,62 +267,16 @@ export default function Home() {
       {/* Primary navigation: three destinations below the slider — التصفح | الخدمات | البحث عن وظيفة */}
       <DirectoryNav activeView={activeView} onHomeViewChange={setActiveView} />
 
-      {activeView === 'browse' ? <SocialFeed onAddService={openAddService} /> : <>
+      {directorySearchPanel}
 
-      {/* Search Bar */}
-      <section className="relative z-10 mx-auto w-full min-w-0 max-w-2xl space-y-3" aria-label="بحث الأقسام وإحصائياتها">
-      <form onSubmit={submitSearch} role="search" className="relative group">
-        {/* Search Bar Glow */}
-        <div className="absolute -inset-1 rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 -z-10" style={{ backgroundColor: primaryColor }} />
-        
-        <button type="submit" aria-label="بحث وفتح القسم المطابق" className="absolute inset-y-2 right-2 flex w-10 items-center justify-center rounded-xl hover:bg-[var(--accent-soft)]">
-          <Search className="w-5 h-5 transition-colors" style={{ color: searchQuery ? `var(--accent-primary)` : `var(--text-muted)` }} />
-        </button>
-        <input
-          ref={searchInputRef}
-          type="text"
-          aria-label="ابحث عن قسم أو تخصص"
-          aria-describedby="directory-search-help"
-          autoComplete="off"
-          enterKeyHint="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className={`w-full border rounded-2xl pl-14 pr-12 py-4 text-lg focus:outline-none transition-all bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--focus-ring)] shadow-[var(--shadow)]`}
-          style={{ 
-            borderColor: searchQuery ? primaryColor : undefined,
-            boxShadow: searchQuery ? `0 0 20px ${primaryColor}30` : undefined
-          }}
-          placeholder={t('search_placeholder')}
+      {activeView === 'browse' ? (
+        <SocialFeed
+          onAddService={openAddService}
+          services={searchQuery.trim() ? filteredBrowseServices : undefined}
+          emptyTitle={searchQuery.trim() ? 'لم يتم العثور على خدمات مطابقة' : undefined}
+          emptyDescription={searchQuery.trim() ? 'جرّب عبارة أخرى أو اختر أحد الأقسام المقترحة أعلاه.' : undefined}
         />
-        <button type="button" onClick={toggleVoiceSearch} aria-label={isListening ? 'إيقاف البحث الصوتي' : 'بدء البحث الصوتي'} title={isListening ? 'إيقاف الاستماع' : 'بحث صوتي'} className={`absolute inset-y-2 left-2 flex w-11 items-center justify-center rounded-xl transition-colors ${isListening ? 'bg-red-500/10 text-red-500' : 'text-[var(--text-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-primary)]'}`}>
-          {isListening ? <MicOff className="h-5 w-5 animate-pulse" /> : <Mic className="h-5 w-5" />}
-        </button>
-      </form>
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
-        <p aria-live="polite" aria-atomic="true" className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 font-bold">
-          الأقسام: {sections.length.toLocaleString('ar-IQ')} <span className="mx-2" aria-hidden="true">|</span>
-          {servicesLoading && publicServices.length === 0 && !servicesError
-            ? <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ تحميل الخدمات…</span>
-            : <>الخدمات: {publicServices.length.toLocaleString('ar-IQ')}</>}
-        </p>
-        <p id="directory-search-help">ابحث عن قسم أو تخصص، ثم اضغط بحث.</p>
-      </div>
-      {servicesError && publicServices.length === 0 && (
-        <ErrorState onRetry={() => { void refreshServices(); }} />
-      )}
-      {searchQuery.trim() && (searchResults.length > 0 ? (
-        <ul className="max-h-64 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2" aria-label="اقتراحات الأقسام">
-          {searchResults.slice(0, 8).map(result => (
-            <li key={result.url}>
-              <Link to={result.url} state={directoryEntryState(location)} className="block rounded-xl px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--accent-soft)] focus-visible:bg-[var(--accent-soft)]">
-                {result.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : <p role="status" className="py-3 text-sm text-[var(--text-muted)]">لم يتم العثور على قسم مطابق</p>)}
-      </section>
-      {voiceError && <p className="mx-auto mt-2 max-w-2xl text-sm font-bold text-red-500">{voiceError}</p>}
+      ) : <>
 
       {/* Categories Grid */}
       <div className="grid min-w-0 grid-cols-2 gap-3 pt-4 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

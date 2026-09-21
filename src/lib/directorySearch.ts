@@ -1,7 +1,7 @@
 import type { DirectoryChild, DisplaySection } from '../data/categoryDirectory';
 import { normalizeCategoryKey, resolveDirectoryCategory } from '../data/categoryDirectory';
 import { directorySearchAliases } from '../data/directorySearchAliases';
-import { SMART_SEARCH_VOCABULARY, SMART_SEARCH_STOPWORDS } from '../data/smartSearchVocabulary';
+import { SMART_SEARCH_KNOWN_VARIANTS, SMART_SEARCH_VOCABULARY, SMART_SEARCH_STOPWORDS } from '../data/smartSearchVocabulary';
 import { getCategorySynonyms } from '../data/categorySynonyms';
 import { getCategoryFieldConfig } from '../data/categoryFields';
 import type { Service } from '../hooks/useServices';
@@ -18,12 +18,6 @@ const filler = new Set([
   ...SMART_SEARCH_STOPWORDS.map(normalizeCategoryKey),
   ...[...SHARED_SEARCH_STOPWORDS].map(normalizeSmartSearch),
 ]);
-// كلمات عامية شائعة تُحوَّل إلى الصيغة القياسية الواردة في قاموس الفئات.
-const variants: Record<string, string> = {
-  سيارات: 'سياره', مستشفيات: 'مستشفي', صيدليات: 'صيدليه', جامعات: 'جامعه',
-  اهليه: 'اهلي', حكوميه: 'حكومي', هواتف: 'هاتف', موبايلات: 'موبايل',
-  مكيفات: 'مكيف', ميكانيكي: 'ميكانيك', زيوت: 'زيت', بنجري: 'بنجرجي',
-};
 export function normalizeDirectoryQuery(value: string): string {
   const raw = normalizeSmartSearch(value);
   const result = raw
@@ -34,7 +28,7 @@ export function normalizeDirectoryQuery(value: string): string {
     // معاً فتبقى المطابقة متسقة، والكلمات القصيرة (< 4 أحرف) لا تُمسّ.
     .map(word => {
       const stripped = word.length >= 4 ? word.replace(/^(?:[وفبك])?ال(?=[\p{L}]{2,})/u, '') : word;
-      return variants[stripped] ?? variants[word] ?? stripped;
+      return SMART_SEARCH_KNOWN_VARIANTS[stripped] ?? SMART_SEARCH_KNOWN_VARIANTS[word] ?? stripped;
     }).join(' ');
   // Keep the employment section discoverable for a query made only of intent
   // words, e.g. "أريد شغل"; profession intent words are still removed below.
@@ -179,7 +173,9 @@ export function searchDirectory(index: DirectorySearchEntry[], query: string): D
     const serviceMatch = entry.serviceTerms.some(term => tokens.every(token => fieldHasToken(term.split(' '), token)));
     if (!exact && !serviceMatch && (own.length + fuzzyTokens.length === 0 || matched < tokens.length)) return [];
     const fuzzy = fuzzyTokens.length > 0;
-    const score = exact ? 160 : serviceMatch && matched < tokens.length ? 80 : 100 + (own.length / tokens.length) * 20 - (fuzzy ? 25 : 0);
+    const normalizedItemName = normalizeDirectoryQuery(entry.child?.name ?? entry.section.name);
+    const nameScore = exact ? 0 : normalizedItemName.startsWith(normalized) ? 18 : normalizedItemName.includes(normalized) ? 4 : 0;
+    const score = (exact ? 160 : serviceMatch && matched < tokens.length ? 80 : 100 + (own.length / tokens.length) * 20 - (fuzzy ? 25 : 0)) + nameScore;
     return [{ ...entry, exact, fuzzy, score }];
   }).sort((a, b) => b.score - a.score || Number(Boolean(a.child)) - Number(Boolean(b.child)) || a.label.localeCompare(b.label, 'ar'));
   const best = results[0]?.score ?? 0;

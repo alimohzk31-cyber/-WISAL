@@ -1,10 +1,9 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Bookmark, Info, Heart, MessageSquareWarning, Menu, Search, Palette, Bell, PackageCheck } from 'lucide-react';
+import { Info, Heart, MessageSquareWarning, Menu, Palette, Bell, PackageCheck } from 'lucide-react';
 import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
 const SuggestionsFeedModal = lazy(() => import('./SuggestionsFeedModal'));
 import NotificationsPopup from './NotificationsPopup';
-const SmartSearchModal = lazy(() => import('./SmartSearchModal'));
 const AppVersionModal = lazy(() => import('./AppVersionModal'));
 import { APP_VERSION, checkForUpdate } from '../lib/appVersion';
 import { useNotifications } from '../hooks/useNotifications';
@@ -25,7 +24,6 @@ export default function Layout() {
   const closeNotifications = useCallback(() => setShowNotifications(false), []);
   const [showProjectBrief, setShowProjectBrief] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(false);
-  const [showSmartSearch, setShowSmartSearch] = useState(false);
   const [showAppVersion, setShowAppVersion] = useState(false);
   const [hasUpdate, setHasUpdate] = useState(false);
 
@@ -225,24 +223,6 @@ export default function Layout() {
                     <MessageSquareWarning className="h-5 w-5 text-teal-500" />
                     الاقتراحات
                   </button>
-                  <Link
-                    to="/saved"
-                    onClick={() => setShowMainMenu(false)}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-amber-500/10"
-                  >
-                    <Bookmark className="h-5 w-5 text-amber-500" />
-                    الخدمات المحفوظة
-                  </Link>
-                  {/* 3. 🔎 البحث الذكي — نافذة عائمة صغيرة داخل نفس الصفحة */}
-                  <button
-                    type="button"
-                    onClick={() => { setShowSmartSearch(true); setShowMainMenu(false); }}
-                    aria-haspopup="dialog"
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-violet-500/10"
-                  >
-                    <Search className="h-5 w-5 text-violet-500" />
-                    البحث الذكي
-                  </button>
                   {/* 5. 📦 الإصدار — نافذة صغيرة تعرض رقم الإصدار وحالة التحديث */}
                   <button
                     type="button"
@@ -367,8 +347,6 @@ export default function Layout() {
         />
       )}
 
-      {/* نافذة البحث الذكي العائمة (صغيرة، لا تغطي الشاشة) */}
-      {showSmartSearch && <SmartSearchModal open onClose={() => setShowSmartSearch(false)} />}
       {/* نافذة إصدار التطبيق */}
       {showAppVersion && <AppVersionModal
         open={showAppVersion}

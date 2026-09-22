@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 
 // This boundary must resolve before AdminDashboard (and its queries) mounts.
 export default function AdminRoute() {
-  const { session, user, loading } = useAuth();
+  const { session, user, loading, hasFreshPinVerification } = useAuth();
   const outletContext = useOutletContext();
   const token = session?.access_token ?? '';
   const userId = session?.user.id ?? '';
@@ -14,7 +14,7 @@ export default function AdminRoute() {
   const [verification, setVerification] = useState<{ key: string; allowed: boolean } | null>(null);
 
   useEffect(() => {
-    if (loading || !token || !userId || !Number.isFinite(expiresAt) || expiresAt * 1000 <= Date.now()) return;
+    if (loading || !hasFreshPinVerification || !token || !userId || !Number.isFinite(expiresAt) || expiresAt * 1000 <= Date.now()) return;
 
     let cancelled = false;
     const controller = new AbortController();
@@ -55,9 +55,9 @@ export default function AdminRoute() {
       window.clearTimeout(timeout);
       window.clearTimeout(expiryTimer);
     };
-  }, [loading, token, userId, expiresAt, key]);
+  }, [loading, hasFreshPinVerification, token, userId, expiresAt, key]);
 
-  if (!loading && (!token || !user || user.id !== userId || !Number.isFinite(expiresAt) || expiresAt * 1000 <= Date.now())) {
+  if (!loading && (!hasFreshPinVerification || !token || !user || user.id !== userId || !Number.isFinite(expiresAt) || expiresAt * 1000 <= Date.now())) {
     return <Navigate to="/" replace />;
   }
   if (loading || verification?.key !== key) {

@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Info, Heart, MessageSquareWarning, Menu, Palette, Bell, PackageCheck } from 'lucide-react';
+import { Heart, MessageSquareWarning, Menu, Palette, Bell, PackageCheck, UserRound } from 'lucide-react';
 import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
 const SuggestionsFeedModal = lazy(() => import('./SuggestionsFeedModal'));
@@ -13,6 +13,7 @@ import { useTheme, getPrimaryColor } from '../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 import HeaderClock from './HeaderClock';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
   const { theme } = useTheme();
@@ -20,9 +21,9 @@ export default function Layout() {
   const [adminClickCount, setAdminClickCount] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const { beginAdminPinAttempt } = useAuth();
   const notifications = useNotifications();
   const closeNotifications = useCallback(() => setShowNotifications(false), []);
-  const [showProjectBrief, setShowProjectBrief] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [showAppVersion, setShowAppVersion] = useState(false);
   const [hasUpdate, setHasUpdate] = useState(false);
@@ -51,7 +52,6 @@ export default function Layout() {
     return () => { cancelled = true; };
   }, []);
   const [colorsOpen, setColorsOpen] = useState(false);
-  const briefRef = useRef<HTMLDivElement>(null);
   const mainMenuRef = useRef<HTMLDivElement>(null);
   const adminClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
@@ -66,6 +66,7 @@ export default function Layout() {
 
     const newCount = adminClickCount + 1;
     if (newCount === 5) {
+      beginAdminPinAttempt();
       setShowAdminLogin(true);
       setAdminClickCount(0);
     } else {
@@ -86,9 +87,6 @@ export default function Layout() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (briefRef.current && !briefRef.current.contains(event.target as Node)) {
-        setShowProjectBrief(false);
-      }
       if (mainMenuRef.current && !mainMenuRef.current.contains(event.target as Node)) {
         setShowMainMenu(false);
       }
@@ -96,7 +94,7 @@ export default function Layout() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
+
   const { t, isRTL } = useLanguage();
   const primaryColor = getPrimaryColor(theme);
   
@@ -146,26 +144,7 @@ export default function Layout() {
               />
             )}
 
-            <div className="relative" ref={briefRef}>
-              <AnimatePresence>
-                {showProjectBrief && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow-lg)]"
-                  >
-                    <h3 className="font-bold mb-2 flex items-center gap-2">
-                      <Info className="w-4 h-4" style={{ color: primaryColor }} />
-                      {t('project_brief')}
-                    </h3>
-                    <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-                      {t('project_description')}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+
           </div>
 
           {/* Center: App Logo */}
@@ -199,9 +178,18 @@ export default function Layout() {
                 >
                   <button
                     type="button"
+                    onClick={() => { navigate('/profile'); setShowMainMenu(false); }}
+                    aria-label="الملف الشخصي"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-soft)]"
+                  >
+                    <UserRound className="h-5 w-5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
+                    الملف الشخصي
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => { notifications.refresh(); setShowNotifications(true); setShowMainMenu(false); }}
                     aria-haspopup="dialog"
-                    aria-label={notifications.unreadCount > 0 ? `الإشعارات، ${notifications.unreadCount} غير مقروءة` : 'الإشعارات'}
+                    aria-label={notifications.unreadCount > 0 ? 'الإشعارات، ' + notifications.unreadCount + ' غير مقروءة' : 'الإشعارات'}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-blue-500/10"
                   >
                     <span className="relative shrink-0">
@@ -214,16 +202,22 @@ export default function Layout() {
                     </span>
                     الإشعارات
                   </button>
-                  {/* Suggestions use the existing contact_messages source. */}
                   <button
                     type="button"
                     onClick={() => { setShowSuggestions(true); setShowMainMenu(false); }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-teal-500/10"
                   >
                     <MessageSquareWarning className="h-5 w-5 text-teal-500" />
-                    الاقتراحات
+                    التعليقات والشكاوى
                   </button>
-                  {/* 5. 📦 الإصدار — نافذة صغيرة تعرض رقم الإصدار وحالة التحديث */}
+                  <button
+                    type="button"
+                    onClick={() => { setColorsOpen(true); setShowMainMenu(false); }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-soft)]"
+                  >
+                    <Palette className="h-5 w-5" style={{ color: 'var(--accent-primary)' }} />
+                    الألوان
+                  </button>
                   <button
                     type="button"
                     onClick={() => { setShowAppVersion(true); setShowMainMenu(false); }}
@@ -241,24 +235,6 @@ export default function Layout() {
                     الإصدار
                     <span className="mr-auto text-[10px] font-bold text-[var(--text-muted)]" dir="ltr">{APP_VERSION}</span>
                   </button>
-                  {/* 4. 🎨 قائمة الألوان */}
-                  <button
-                    type="button"
-                    onClick={() => { setColorsOpen(true); setShowMainMenu(false); }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-soft)]"
-                  >
-                    <Palette className="h-5 w-5" style={{ color: 'var(--accent-primary)' }} />
-                    قائمة الألوان
-                  </button>
-                  {/* 6. ℹ️ نبذة عن المشروع — reuses the existing project brief popup (no duplicate system) */}
-                  <button
-                    type="button"
-                    onClick={() => { setShowProjectBrief(true); setShowMainMenu(false); }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-soft)]"
-                  >
-                    <Info className="h-5 w-5" style={{ color: primaryColor }} />
-                    نبذة عن المشروع
-                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -269,7 +245,7 @@ export default function Layout() {
 
 
       {/* Main Content */}
-      <main className="mx-auto min-h-[calc(100vh-200px)] w-full min-w-0 max-w-7xl px-3 py-8 pb-24 sm:px-4">
+      <main className={`${location.pathname === '/profile' ? 'max-w-none px-0 pt-0' : 'max-w-7xl px-3 py-8 sm:px-4'} mx-auto min-h-[calc(100vh-200px)] w-full min-w-0 pb-24`}>
         {/* انتقال فوري وسلس بين الصفحات:
             - كان `mode="wait"` يؤخر تركيب الصفحة الجديدة حتى اكتمال حركة خروج
               الصفحة القديمة كاملة (إحساس بأن التطبيق «معلّق» عند كل تنقّل).

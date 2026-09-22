@@ -131,6 +131,12 @@ function setPinRateLimit(retryAfterSeconds?: number): void {
 export async function adminPinLogin(
   pin: string
 ): Promise<{ ok: true } | { ok: false; code: string }> {
+  // Defensive validation at the network boundary too: no empty or whitespace
+  // PIN should ever reach the Edge Function if another caller bypasses the UI.
+  if (typeof pin !== 'string' || pin.trim() === '') {
+    return { ok: false, code: 'invalid_pin' };
+  }
+
     // A PIN attempt always starts from a blank local auth state. Otherwise a
     // previously persisted admin refresh token can make a failed PIN appear
     // successful when the user later opens /admin directly.

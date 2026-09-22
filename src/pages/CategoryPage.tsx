@@ -1,12 +1,13 @@
 import { lazy, Suspense, useMemo, useRef, useState, useEffect } from 'react';
 import { useParams, useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { Phone, XCircle, Hourglass, Plus, Search } from 'lucide-react';
+import { Phone, XCircle, Hourglass, Plus, Search, Loader2 } from 'lucide-react';
 import { colorMap } from '../data/categories';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
 import { useServices } from '../context/ServicesContext';
 import { Service } from '../hooks/useServices';
-const AddServiceModal = lazy(() => import('../components/AddServiceModal'));
+const loadAddServiceModal = () => import('../components/AddServiceModal');
+const AddServiceModal = lazy(loadAddServiceModal);
 import ServiceDetailModal from '../components/ServiceDetailModal';
 import { LazyServiceCardImage } from '../components/LazyServiceMedia';
 import ServiceStatusBadge from '../components/ServiceStatusBadge';
@@ -15,6 +16,7 @@ import LoadingState from '../components/ui/LoadingState';
 import CategoryPageHero from '../components/CategoryPageHero';
 import CategoryToolbar from '../components/CategoryToolbar';
 import CategoryPhoto from '../components/CategoryPhoto';
+import ServiceModalShell from '../components/ServiceModalShell';
 import { getCategoryVisual } from '../data/categoryVisuals';
 import { motion, AnimatePresence } from 'motion/react';
 import { serviceStatusOverlayClass } from '../types/models';
@@ -37,7 +39,7 @@ const PAGE_SIZE = 12;
 function ServicesGrid({ services, locateService, renderCard, pageSize }: {
   services: Service[];
   locateService: (service: Pick<Service, 'categorySlug' | 'categoryId' | 'subCategory' | 'profession'>) => { sectionSlug: string; childSlug?: string } | undefined;
-  renderCard: (service: Service) => React.ReactNode;
+  renderCard: (service: Service, index: number) => React.ReactNode;
   pageSize: number;
 }) {
   const [visibleCount, setVisibleCount] = useState(pageSize);
@@ -126,6 +128,27 @@ export default function CategoryPage() {
   // sub=all أو بلا sub => view كل الأقسام؛ مع sub صريح => view ذلك الفرع فقط.
   const activeSubCategory = hasExplicitSubCategory ? (routePlacement?.childSlug ?? 'all') : 'all';
   const { primaryColor, theme } = useOutletContext<{ primaryColor: string, theme: string }>();
+
+  // Warm the small, route-specific join form after the section has painted so
+  // its first use does not wait for the lazy JavaScript chunk.
+  useEffect(() => {
+    let active = true;
+    const preload = () => {
+      if (active) void loadAddServiceModal().catch(() => undefined);
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(preload, { timeout: 1800 });
+      return () => {
+        active = false;
+        window.cancelIdleCallback(idleId);
+      };
+    }
+    const timeoutId = window.setTimeout(preload, 500);
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
   
   // Modal details belong to the current directory entry only.
   useEffect(() => {
@@ -211,7 +234,10 @@ export default function CategoryPage() {
         hideAll={category.hideAll}
         onChildSelect={chooseSubCategory}
         onBack={goBack}
-        onAdd={() => setIsAddingService(true)}
+        onAdd={() => {
+          void loadAddServiceModal().catch(() => undefined);
+          setIsAddingService(true);
+        }}
       />
 
       <CategoryToolbar
@@ -252,7 +278,7 @@ export default function CategoryPage() {
           services={visibleCategoryServices}
           locateService={locateService}
           pageSize={PAGE_SIZE}
-          renderCard={service => (
+          renderCard={(service, index) => (
             <motion.div
               key={service.slug}
               layoutId={`service-${service.slug}`}
@@ -273,7 +299,7 @@ export default function CategoryPage() {
 
               {/* Simple Image Section */}
               <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-[var(--bg-secondary)]">
-                <LazyServiceCardImage service={service} className="h-full w-full object-contain object-center" />
+                <LazyServiceCardImage service={service} priority={index < 4} className="h-full w-full object-contain object-center" />
                 <div className={`absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent`} />
                 
                 {/* Quick Call Action Overlay */}
@@ -344,7 +370,14 @@ export default function CategoryPage() {
       )}
 
       {isAddingService && (
-        <Suspense fallback={null}>
+        <Suspense fallback={(
+          <ServiceModalShell title="إضافة خدمة" icon={<Plus className="h-5 w-5" />} onClose={() => setIsAddingService(false)}>
+            <div role="status" className="flex min-h-48 items-center justify-center gap-3 text-sm font-bold text-[var(--text-muted)]">
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+              جاري فتح واجهة الإضافة…
+            </div>
+          </ServiceModalShell>
+        )}>
         <AddServiceModal 
           joinSection={joinSection}
           initialCategory={joinTarget}

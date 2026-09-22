@@ -24,6 +24,7 @@ export interface Job {
   phone: string;
   whatsapp?: string;
   email?: string;
+  socialLinks?: string;
   applicationDeadline?: string;
   trainingDuration?: string;
   trainingPaid?: boolean;
@@ -38,8 +39,8 @@ export interface Job {
 export type NewJob = Omit<Job, 'id' | 'createdAt' | 'status'>;
 
 export interface NewJobMedia {
-  imageFiles: File[];
-  videoFile?: File;
+  imageFile?: File;
+  removeImage?: boolean;
 }
 
 export interface JobApplicationDraft {

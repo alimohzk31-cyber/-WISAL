@@ -15,6 +15,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  hasFreshPinVerification: boolean;
+  beginAdminPinAttempt: () => void;
   loginWithPin: (pin: string) => Promise<{ ok: boolean; code?: string }>;
   refreshAdmin: () => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -29,9 +31,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [pinVerifiedUserId, setPinVerifiedUserId] = useState('');
   const explicitLogin = useRef(false);
   const currentToken = useRef('');
   const roleRequest = useRef<{ token: string; promise: Promise<boolean> } | null>(null);
+  const pinVerifiedUserIdRef = useRef('');
+
+  const clearPinVerification = useCallback(() => {
+    pinVerifiedUserIdRef.current = '';
+    setPinVerifiedUserId('');
+  }, []);
+
+  // A persisted Supabase session is never proof that a PIN was entered in
+  // this page load. Opening a new PIN prompt revokes any in-memory grant.
+  const beginAdminPinAttempt = useCallback(() => {
+    clearPinVerification();
+    setIsAdmin(false);
+  }, [clearPinVerification]);
 
   // The only source of truth for "is admin" is the database.
   const refreshAdmin = useCallback(async (): Promise<boolean> => {
@@ -60,12 +76,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // which mints a real Supabase Auth session for the admin account. We install
   // it here and re-confirm the admin role from the database.
   const loginWithPin = useCallback(async (pin: string): Promise<{ ok: boolean; code?: string }> => {
+    beginAdminPinAttempt();
+    if (typeof pin !== 'string' || pin.trim() === '') return { ok: false, code: 'invalid_pin' };
+
     explicitLogin.current = true;
     try {
       const result = await adminPinLogin(pin);
       if (!result.ok) return result;
+
+      // Bind the temporary PIN grant to an Auth session returned by this
+      // attempt and independently confirm the user before enabling the route.
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const freshSession = sessionData.session;
+      if (sessionError || !freshSession || freshSession.expires_at * 1000 <= Date.now()) {
+        throw new Error('Admin PIN login did not produce a live session.');
+      }
+      const { data: userData, error: userError } = await supabase.auth.getUser(freshSession.access_token);
+      if (userError || userData.user?.id !== freshSession.user.id) {
+        throw new Error('Admin PIN session identity verification failed.');
+      }
+      currentToken.current = freshSession.access_token;
+      setSession(freshSession);
+      setUser(freshSession.user);
+
       const admin = await refreshAdmin();
-      if (admin) return { ok: true };
+      if (admin) {
+        pinVerifiedUserIdRef.current = freshSession.user.id;
+        setPinVerifiedUserId(freshSession.user.id);
+        return { ok: true };
+      }
       // The Edge Function already checks the profile, but fail closed again
       // if the independent database verification disagrees for any reason.
       await supabase.auth.signOut({ scope: 'local' });
@@ -74,8 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setIsAdmin(false);
       return { ok: false, code: 'not_admin' };
+    } catch (error) {
+      clearPinVerification();
+      setIsAdmin(false);
+      try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* deny even if local cleanup fails */ }
+      currentToken.current = '';
+      setSession(null);
+      setUser(null);
+      console.error('[Auth] PIN verification failed closed:', error);
+      return { ok: false, code: 'server_error' };
     } finally { explicitLogin.current = false; }
-  }, [refreshAdmin]);
+  }, [beginAdminPinAttempt, clearPinVerification, refreshAdmin]);
 
   useEffect(() => {
     let mounted = true;
@@ -89,13 +137,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session?.user) void refreshAdmin();
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
       const nextToken = newSession?.access_token ?? '';
       if (currentToken.current !== nextToken) setIsAdmin(false);
       currentToken.current = nextToken;
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      const identityChanged = Boolean(newSession && pinVerifiedUserIdRef.current && pinVerifiedUserIdRef.current !== newSession.user.id);
+      const sessionReplacedOutsidePin = Boolean(newSession && !explicitLogin.current && event !== 'TOKEN_REFRESHED' && event !== 'INITIAL_SESSION' && pinVerifiedUserIdRef.current);
+      if (!newSession || identityChanged || sessionReplacedOutsidePin) {
+        clearPinVerification();
+      }
       if (newSession?.user) {
         // Run database calls after the auth callback releases its session lock.
         // PIN login already awaits its own fresh DB verification after setSession.
@@ -109,13 +162,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [refreshAdmin]);
+  }, [clearPinVerification, refreshAdmin]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    beginAdminPinAttempt();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) await refreshAdmin();
     return { error: error?.message ?? null };
-  }, [refreshAdmin]);
+  }, [beginAdminPinAttempt, refreshAdmin]);
 
   const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
     const { error } = await supabase.auth.signUp({
@@ -127,12 +181,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    beginAdminPinAttempt();
     await supabase.auth.signOut();
     setIsAdmin(false);
-  }, []);
+  }, [beginAdminPinAttempt]);
+
+  const hasFreshPinVerification = Boolean(user?.id && pinVerifiedUserId === user.id);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, loginWithPin, refreshAdmin, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, hasFreshPinVerification, beginAdminPinAttempt, loginWithPin, refreshAdmin, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     return respond({ ok: false, code: 'bad_request', error: 'Bad request' }, 400, corsOrigin);
   }
 
-  if (!pin) {
+  if (pin.trim() === '') {
     return respond({ ok: false, code: 'bad_request', error: 'PIN is required' }, 400, corsOrigin);
   }
 

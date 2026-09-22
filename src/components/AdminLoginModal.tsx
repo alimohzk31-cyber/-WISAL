@@ -40,14 +40,21 @@ export default function AdminLoginModal({ onClose, onSuccess }: Props) {
 
     setSubmitting(true);
     setErrorMsg(null);
-    const result = await loginWithPin(pin);
-    if (result.ok) {
-      onSuccess();
-    } else {
-      setErrorMsg(LOGIN_ERRORS[result.code ?? ''] ?? DEFAULT_LOGIN_ERROR);
+    try {
+      const result = await loginWithPin(pin);
+      if (result.ok) {
+        onSuccess();
+      } else {
+        setErrorMsg(LOGIN_ERRORS[result.code ?? ''] ?? DEFAULT_LOGIN_ERROR);
+        setPin('');
+      }
+    } catch {
+      // Unexpected auth failures must leave the modal closed to success.
+      setErrorMsg(DEFAULT_LOGIN_ERROR);
       setPin('');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   return (

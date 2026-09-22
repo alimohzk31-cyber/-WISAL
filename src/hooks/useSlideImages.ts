@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ContentSlide } from '../lib/contentSlides';
 import { resolveSlideImageSrc } from '../lib/slideImageSource';
-import { fetchServiceImage, getCachedServiceImage } from '../lib/serviceMedia';
+import { fetchServiceImage } from '../lib/serviceMedia';
 
 export interface SlideImageResolver {
   /** المصدر النهائي للصورة ('' = لا يوجد مصدر بعد أو إطلاقاً). */
@@ -65,12 +65,9 @@ export function useSlideImages(slides: readonly ContentSlide[], activeIndex: num
       if (id == null) return;
       let request = requests.current.get(slide.id);
       if (!request) {
-        // قراءة فورية من كاش IndexedDB ثم تحديث من الشبكة (صف واحد فقط).
-        request = (async () => {
-          const cached = await getCachedServiceImage(id);
-          const fresh = await fetchServiceImage(id);
-          return fresh || cached;
-        })();
+        // fetchServiceImage returns cached media immediately and only refreshes
+        // stale entries in the background.
+        request = fetchServiceImage(id);
         requests.current.set(slide.id, request);
       }
       try {

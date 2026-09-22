@@ -4,14 +4,16 @@ import { mapJob, newJobRow } from './jobData';
 import type { Job, NewJob } from './types';
 import { offlineStore, OFFLINE_KEYS } from '../../lib/offlineStore';
 import { APP_ONLINE_EVENT, requireOnlineConnection } from '../../lib/connectivity';
-import { removeUploadedJobMedia, uploadJobImage, uploadJobVideo } from '../../lib/jobMediaUpload';
+import { removeUploadedJobMedia, uploadJobImage } from '../../lib/jobMediaUpload';
 import type { NewJobMedia } from './types';
+import { ensureUserSession } from '../../lib/userIdentity';
 
 const JOBS_CACHE_TTL = 60_000;
 let jobsCache: { jobs: Job[]; at: number; configured: boolean; error: boolean } | null = null;
 let jobsRequest: Promise<typeof jobsCache> | null = null;
 let jobMediaColumnsSupported: boolean | null = null;
 let jobDetailColumnsSupported: boolean | null = null;
+let jobOwnerUidColumnSupported: boolean | null = null;
 
 const JOBS_BASE_COLUMNS = 'id,title,company,specialty,category_id,description,governorate,area,employment_type,salary,experience,qualification,phone,image_url,created_at,status,job_categories(name)';
 const JOBS_MEDIA_COLUMNS = 'image_urls,video_url';
@@ -26,6 +28,30 @@ function isMissingDetailColumns(error: any): boolean {
   const detail = `${error?.message || ''} ${error?.details || ''}`;
   return /company_about|requirements|benefits|salary_negotiable|application_deadline|training_duration|training_paid|training_hiring_possible|whatsapp|address/i.test(detail)
     && ['42703', 'PGRST100', 'PGRST204'].includes(String(error?.code || ''));
+}
+
+function isMissingOwnerUidColumn(error: any): boolean {
+  const detail = `${error?.message || ''} ${error?.details || ''}`;
+  return ['42703', 'PGRST204', 'PGRST200'].includes(String(error?.code || ''))
+    && /owner_uid/i.test(detail);
+}
+
+async function hasJobOwnerUidColumn(): Promise<boolean> {
+  if (jobOwnerUidColumnSupported === true) return true;
+  const { error } = await supabase.from('jobs').select('owner_uid').limit(0);
+  if (!error) {
+    jobOwnerUidColumnSupported = true;
+    return true;
+  }
+  if (isMissingOwnerUidColumn(error)) {
+    jobOwnerUidColumnSupported = false;
+    return false;
+  }
+  throw error;
+}
+
+function missingOwnerUidError() {
+  return new Error('لا يمكن حفظ الوظيفة في ملفك قبل إضافة العمود jobs.owner_uid إلى قاعدة البيانات.');
 }
 
 function selectedJobColumns() {
@@ -73,7 +99,7 @@ async function fetchApprovedJobs(force = false) {
   try { return await jobsRequest; } finally { jobsRequest = null; }
 }
 
-export function useJobs() {
+export function useJobs(enabled = true) {
   const [jobs, setJobs] = useState<Job[]>(() => jobsCache?.jobs ?? []);
   const [loading, setLoading] = useState(() => jobsCache === null);
   const [configured, setConfigured] = useState(() => jobsCache?.configured ?? true);
@@ -88,6 +114,7 @@ export function useJobs() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     const initialize = async () => {
       if (!jobsCache) {
@@ -109,39 +136,46 @@ export function useJobs() {
       window.removeEventListener('online', refreshOnline);
       window.removeEventListener(APP_ONLINE_EVENT, refreshOnline);
     };
-  }, [load]);
+  }, [enabled, load]);
   useEffect(() => {
+    if (!enabled) return;
     const channel = supabase.channel(`public-jobs-live-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { void load(true); })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [load]);
-  const addJob = async (job: NewJob, media: NewJobMedia = { imageFiles: [] }) => {
+  }, [enabled, load]);
+  const addJob = useCallback(async (job: NewJob, media: NewJobMedia = {}, options: { requireOwner?: boolean } = {}) => {
     requireOnlineConnection();
-    if ((media.imageFiles.length || media.videoFile) && jobMediaColumnsSupported === false) {
-      throw new Error('يلزم تنفيذ supabase_jobs_media_upgrade.sql لتفعيل صور وفيديو الوظائف.');
-    }
+    const user = await ensureUserSession();
+    const ownerUidSupported = await hasJobOwnerUidColumn();
+    if (options.requireOwner && !ownerUidSupported) throw missingOwnerUidError();
     const uploadedPaths: string[] = [];
     try {
-      const uploadedImages = await Promise.all(media.imageFiles.map(uploadJobImage));
-      uploadedPaths.push(...uploadedImages.map(item => item.path));
-      const uploadedVideo = media.videoFile ? await uploadJobVideo(media.videoFile) : undefined;
-      if (uploadedVideo) uploadedPaths.push(uploadedVideo.path);
+      const uploadedImage = media.imageFile ? await uploadJobImage(media.imageFile) : undefined;
+      if (uploadedImage) uploadedPaths.push(uploadedImage.path);
       const savedJob: NewJob = {
         ...job,
-        image: uploadedImages[0]?.publicUrl,
-        images: uploadedImages.map(item => item.publicUrl),
-        video: uploadedVideo?.publicUrl,
+        company: job.company.trim() || job.title.trim(),
+        description: (job.requirements || job.description || '').trim(),
+        image: uploadedImage?.publicUrl,
+        images: uploadedImage ? [uploadedImage.publicUrl] : [],
+        video: undefined,
       };
-      let { error } = await supabase.from('jobs').insert(newJobRow(savedJob, true, true));
+      let ownerUid = ownerUidSupported ? user.id : undefined;
+      let { error } = await supabase.from('jobs').insert(newJobRow(savedJob, true, true, ownerUid));
+      if (error && isMissingOwnerUidColumn(error)) {
+        jobOwnerUidColumnSupported = false;
+        if (options.requireOwner) throw missingOwnerUidError();
+        ownerUid = undefined;
+        ({ error } = await supabase.from('jobs').insert(newJobRow(savedJob, true, true, ownerUid)));
+      }
       if (error && isMissingDetailColumns(error)) {
         jobDetailColumnsSupported = false;
-        ({ error } = await supabase.from('jobs').insert(newJobRow(savedJob, true, false)));
+        ({ error } = await supabase.from('jobs').insert(newJobRow(savedJob, true, false, ownerUid)));
       }
       if (error && isMissingMediaColumns(error)) {
         jobMediaColumnsSupported = false;
-        if (uploadedPaths.length) throw new Error('يلزم تنفيذ supabase_jobs_media_upgrade.sql لتفعيل صور وفيديو الوظائف.');
-        ({ error } = await supabase.from('jobs').insert(newJobRow(savedJob, false, jobDetailColumnsSupported !== false)));
+        ({ error } = await supabase.from('jobs').insert(newJobRow(savedJob, false, jobDetailColumnsSupported !== false, ownerUid)));
       }
       if (error) throw error;
       if (jobMediaColumnsSupported !== false) jobMediaColumnsSupported = true;
@@ -150,6 +184,6 @@ export function useJobs() {
       await removeUploadedJobMedia(uploadedPaths);
       throw error;
     }
-  };
+  }, []);
   return { jobs, loading, configured, error, reload: () => load(true), addJob };
 }

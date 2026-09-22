@@ -40,6 +40,20 @@ function report(name: string, passed: boolean, detail?: string) {
 }
 
 async function run() {
+  // Test 0: Empty and whitespace-only PINs never call the Edge Function.
+  try {
+    const cases = ['', '   ', '\t\n'];
+    for (const value of cases) {
+      resetState();
+      const invokeCallsBefore = s.invokeCalls || 0;
+      const r = await adminPinLogin(value);
+      if (r.ok !== false || r.code !== 'invalid_pin' || (s.invokeCalls || 0) !== invokeCallsBefore || s.setSessionCalls !== 0) {
+        throw new Error(`PIN=${JSON.stringify(value)} result=${JSON.stringify(r)} invokeCalls=${s.invokeCalls || 0}`);
+      }
+    }
+    report('0. Empty and whitespace-only PINs rejected locally without request', true);
+  } catch (e: any) { report('0. Empty and whitespace-only PINs rejected locally without request', false, e.message); }
+
   // Test 1: Correct PIN within limit
   try {
     resetState();
@@ -64,6 +78,19 @@ async function run() {
       report('2. Wrong PIN rejected', false, JSON.stringify(r) + ' setSessionCalls=' + s.setSessionCalls);
     }
   } catch (e: any) { report('2. Wrong PIN rejected', false, e.message); }
+
+  // Test 2b: Repeated wrong PINs never install or preserve an admin session.
+  try {
+    resetState();
+    const fakeResponse = makeResponse(401, { code: 'invalid_pin' });
+    s.invokeResult = { data: null, error: makeHttpError(fakeResponse), response: fakeResponse };
+    const attempts = await Promise.all(Array.from({ length: 5 }, () => adminPinLogin('wrong-pin')));
+    if (attempts.every(r => r.ok === false && r.code === 'invalid_pin') && s.setSessionCalls === 0) {
+      report('2b. Repeated wrong PINs stay denied without session', true);
+    } else {
+      report('2b. Repeated wrong PINs stay denied without session', false, JSON.stringify(attempts));
+    }
+  } catch (e: any) { report('2b. Repeated wrong PINs stay denied without session', false, e.message); }
 
   // Test 3: 429 received -> immediate stop, no session
   try {

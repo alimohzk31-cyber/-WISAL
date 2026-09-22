@@ -206,7 +206,6 @@ export default function Home() {
             ref={searchInputRef}
             type="text"
             aria-label="ابحث عن قسم أو تخصص أو خدمة"
-            aria-describedby="directory-search-help"
             autoComplete="off"
             enterKeyHint="search"
             value={searchQuery}
@@ -226,7 +225,6 @@ export default function Home() {
               ? <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ تحميل الخدمات…</span>
               : <>الخدمات: {publicServices.length.toLocaleString('ar-IQ')}</>}
           </p>
-          <p id="directory-search-help">ابحث عن قسم أو تخصص، ثم افتح النتيجة المناسبة.</p>
         </div>
         {servicesError && publicServices.length === 0 && <ErrorState onRetry={() => { void refreshServices(); }} />}
         {searchQuery.trim() && (searchResults.length > 0 ? (

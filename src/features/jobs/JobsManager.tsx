@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BriefcaseBusiness, Check, Eye, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { employmentTypes, mapJob } from './jobData';
-import type { EmploymentType, Job, JobStatus } from './types';
+import { employmentTypes, mapJob, whatsappFromSocialLinks } from './jobData';
+import type { EmploymentType, Job, JobStatus, NewJob, NewJobMedia } from './types';
 import { loadJobCategories, type JobCategory } from './admin/jobAdminApi';
 import SafeImage from '../../components/SafeImage';
+import AddJobModal from './AddJobModal';
+import { removeUploadedJobMedia, uploadJobImage } from '../../lib/jobMediaUpload';
 
 const ADMIN_JOBS_BASE_COLUMNS = 'id,title,company,specialty,category_id,description,governorate,area,employment_type,salary,experience,qualification,phone,image_url,created_at,status,rejection_reason,reviewed_at,reviewed_by,job_categories(name)';
 const ADMIN_JOBS_MEDIA_COLUMNS = `${ADMIN_JOBS_BASE_COLUMNS},image_urls,video_url`;
@@ -21,14 +23,42 @@ async function loadAdminJobs() {
   return result;
 }
 
-async function updateAdminJob(form: Job, id: number) {
-  const base = { title: form.title, company: form.company, specialty: form.specialty, description: form.description, governorate: form.governorate, area: form.area, employment_type: form.employmentType, salary: form.salary || null, experience: form.experience || null, qualification: form.qualification || null, phone: form.phone, image_url: form.image || null, category_id: form.categoryId || null };
-  const detailed = { ...base, company_about: form.companyAbout || null, requirements: form.requirements || null, benefits: form.benefits || null, address: form.address || null, salary_negotiable: Boolean(form.salaryNegotiable), whatsapp: form.whatsapp || null, email: form.email || null, application_deadline: form.applicationDeadline || null, training_duration: form.trainingDuration || null, training_paid: form.trainingPaid, training_hiring_possible: form.trainingHiringPossible };
-  let result = await supabase.from('jobs').update(detailed).eq('id', id);
-  if (result.error && /company_about|requirements|benefits|salary_negotiable|training_duration|application_deadline/i.test(`${result.error.message} ${result.error.details || ''}`)) {
-    result = await supabase.from('jobs').update(base).eq('id', id);
+async function updateAdminJob(form: NewJob, current: Job, media: NewJobMedia) {
+  const uploadedPaths: string[] = [];
+  try {
+    const uploadedImage = media.imageFile ? await uploadJobImage(media.imageFile) : undefined;
+    if (uploadedImage) uploadedPaths.push(uploadedImage.path);
+    const image = uploadedImage?.publicUrl || (media.removeImage ? null : current.image || null);
+    const base = {
+      title: form.title.trim(), company: form.company.trim() || form.title.trim(),
+      specialty: form.specialty.trim(),
+      governorate: form.governorate.trim(), area: form.area.trim(),
+      employment_type: form.employmentType, salary: form.salary?.trim() || null,
+      experience: form.experience?.trim() || null, phone: form.phone.trim(),
+      image_url: image, category_id: form.categoryId || null,
+    };
+    const socialLinks = form.socialLinks?.trim() || '';
+    const detailed = {
+      ...base,
+      requirements: form.requirements?.trim() || null,
+      whatsapp: whatsappFromSocialLinks(socialLinks) || null,
+      email: socialLinks || null,
+    };
+    const mediaColumns = uploadedImage || media.removeImage ? { image_urls: image ? [image] : [] } : {};
+    let result = await supabase.from('jobs').update({ ...detailed, ...mediaColumns } as any).eq('id', current.id);
+    const errorText = `${result.error?.message || ''} ${result.error?.details || ''}`;
+    if (result.error && /image_urls/i.test(errorText)) {
+      result = await supabase.from('jobs').update(detailed).eq('id', current.id);
+    }
+    const detailErrorText = `${result.error?.message || ''} ${result.error?.details || ''}`;
+    if (result.error && /requirements|whatsapp|email/i.test(detailErrorText)) {
+      result = await supabase.from('jobs').update(base).eq('id', current.id);
+    }
+    if (result.error) throw result.error;
+  } catch (error) {
+    await removeUploadedJobMedia(uploadedPaths);
+    throw error;
   }
-  return result;
 }
 
 function JobMediaGallery({ job }: { job: Job }) {
@@ -45,9 +75,16 @@ function Preview({ job, close }: { job: Job; close: () => void }) {
 }
 
 function Editor({ job, categories, close, saved }: { job: Job; categories: JobCategory[]; close: () => void; saved: () => void }) {
-  const [form,setForm]=useState(job); const [saving,setSaving]=useState(false);
-  const field=(key:keyof Job,label:string)=><input value={String(form[key]??'')} onChange={e=>setForm({...form,[key]:e.target.value})} placeholder={label} className="w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3"/>;
-  return <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4"><form className="max-h-[92dvh] w-full max-w-xl space-y-3 overflow-y-auto rounded-3xl bg-[var(--surface-elevated)] p-6" onSubmit={async e=>{e.preventDefault();setSaving(true);const{error}=await updateAdminJob(form,job.id);setSaving(false);if(!error){saved();close();}}}><button type="button" onClick={close} className="float-left"><X/></button><h3 className="text-xl font-black">تعديل الوظيفة</h3>{field('title','اسم الوظيفة')}{field('company','الجهة')}{field('specialty','الاختصاص')}<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="وصف الوظيفة" className="min-h-28 w-full rounded-xl border p-3"/><textarea value={form.requirements||''} onChange={e=>setForm({...form,requirements:e.target.value})} placeholder="المتطلبات" className="min-h-24 w-full rounded-xl border p-3"/><textarea value={form.benefits||''} onChange={e=>setForm({...form,benefits:e.target.value})} placeholder="المميزات" className="min-h-20 w-full rounded-xl border p-3"/><div className="grid gap-2 sm:grid-cols-2">{field('governorate','المحافظة')}{field('area','المنطقة')}{field('address','العنوان')}{field('salary','الراتب')}{field('experience','الخبرة')}{field('qualification','المؤهل')}{field('phone','الهاتف')}{field('whatsapp','واتساب')}{field('email','البريد الإلكتروني')}{field('applicationDeadline','آخر موعد للتقديم')}</div><select value={form.categoryId||''} onChange={e=>setForm({...form,categoryId:Number(e.target.value)||undefined})} className="w-full rounded-xl border p-3"><option value="">بدون قسم</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><select value={form.employmentType} onChange={e=>setForm({...form,employmentType:e.target.value as EmploymentType})} className="w-full rounded-xl border p-3">{employmentTypes.map(type=><option key={type}>{type}</option>)}</select><button disabled={saving} className="w-full rounded-xl bg-[var(--accent-primary)] p-3 font-black text-white">{saving?'جارٍ الحفظ…':'حفظ التعديلات'}</button></form></div>;
+  return <AddJobModal
+    mode="edit"
+    initialJob={job}
+    categories={categories}
+    onClose={close}
+    onSubmit={async (form, media) => {
+      await updateAdminJob(form, job, media);
+      saved();
+    }}
+  />;
 }
 
 export default function JobsManager() {

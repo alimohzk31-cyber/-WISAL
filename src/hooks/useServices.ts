@@ -14,6 +14,7 @@ import {
   type CategoryLookup,
 } from '../lib/serviceCategoryLink';
 import { ensureSectionCategoryRow } from '../lib/categoryProvisioning';
+import { ensureUserSession } from '../lib/userIdentity';
 // ------------------------------------------------------------------
 // Service مُعرَّف مركزياً في types/models (المصدر الوحيد للأنواع).
 // هذه إعادة تصدير للتوافق مع كل الاستيرادات الحالية من hooks/useServices.
@@ -50,7 +51,7 @@ const SERVICE_CORE_LIST_COLUMNS = [
   'id', 'slug', 'title', 'description', 'phone',
   'category_id', 'category_slug', 'profession', 'address',
   'latitude', 'longitude', 'lat', 'lng', 'views', 'created_at',
-  'updated_at', 'reviewed_at', 'status', 'rejection_reason', 'owner_id', 'user_id',
+  'updated_at', 'reviewed_at', 'status', 'rejection_reason', 'user_id',
 ].join(',');
 
 function waitForBrowserIdle(): Promise<void> {
@@ -221,6 +222,10 @@ async function checkOwnerIdColumn(): Promise<boolean> {
   return ownerIdColumnSupported;
 }
 
+export async function hasServiceOwnerColumn(): Promise<boolean> {
+  return checkOwnerIdColumn();
+}
+
 async function checkSocialContactColumns(): Promise<boolean | null> {
   if (socialContactColumnsSupported !== null) return socialContactColumnsSupported;
   try {
@@ -228,6 +233,11 @@ async function checkSocialContactColumns(): Promise<boolean | null> {
     // Cache a negative result only for a definitive schema error. A transient
     // network/RLS failure must not make every later submission silently drop
     // its links for the rest of the session.
+    if (error) {
+      console.warn('[useServices] Optional social-contact column probe failed.', {
+        message: error.message, code: error.code, details: error.details, hint: error.hint,
+      });
+    }
     socialContactColumnsSupported = error ? (isSocialSchemaError(error) ? false : null) : true;
   } catch {
     socialContactColumnsSupported = null;
@@ -395,9 +405,10 @@ async function buildInsertPayload(serviceData: Omit<Service, 'createdAt'>): Prom
   }
 
   // owner tracking column (only sent when the column exists in the DB).
-  // services.owner_id عمود نصي (text) — يُحفظ دائماً بمعرف الجهاز النصي getOwnerId().
+  // Prefer the authenticated Supabase identity so the profile can list this user's services.
   if (await checkOwnerIdColumn()) {
-    payload.owner_id = serviceData.ownerId ?? getOwnerId();
+    const { data: authData } = await supabase.auth.getSession();
+    payload.owner_id = authData.session?.user.id ?? serviceData.ownerId ?? getOwnerId();
   }
 
   if (serviceData.rejectionReason !== undefined) {
@@ -472,7 +483,9 @@ export function useServices() {
       // تظهر تلقائيًا بمجرد تشغيل الهجرة. الحالة null (خطأ عابر) تعني استمرار
       // السلوك الكامل كما كان.
       const socialColumnsState = await checkSocialContactColumns();
-      const listColumns = socialColumnsState === false ? SERVICE_CORE_LIST_COLUMNS : SERVICE_LIST_COLUMNS;
+      // Approved public rows never need an ownership column. Keeping owner_id
+      // out of this request avoids a schema probe and a 400 on older databases.
+      const listColumns = socialColumnsState === false ? SERVICE_CORE_LIST_COLUMNS : SERVICE_LIST_COLUMNS.replace(',owner_id', '');
 
       const fetchApprovedPage = (from: number) => supabase
         .from('services')
@@ -684,6 +697,7 @@ export function useServices() {
 
   const addService = async (serviceData: Omit<Service, 'createdAt'>) => {
     requireOnlineConnection();
+    await ensureUserSession();
     const payload = await buildInsertPayload(serviceData);
 
     // INSERT بدون RETURNING: الخدمة الجديدة حالتها pending ولا تسمح سياسة SELECT
@@ -707,7 +721,7 @@ export function useServices() {
       ...serviceData,
       createdAt: Date.now(),
       // احتفاظ صريح بمالك الخدمة: معرف الجهاز النصي getOwnerId().
-      ownerId: serviceData.ownerId ?? getOwnerId(),
+      ownerId: String(payload.owner_id ?? serviceData.ownerId ?? getOwnerId()),
       isOffline: false,
     };
 

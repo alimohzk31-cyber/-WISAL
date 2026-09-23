@@ -18,4 +18,4 @@ function copyDirectory(source, target) {
   }
 }
 copyDirectory(dist, output);
-console.log('Wisal 1.1 web release: release/web — upload the entire directory, including assets.');
+console.log('Wisal 1.2 web release: release/web — upload the entire directory, including assets.');

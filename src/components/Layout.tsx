@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Heart, MessageSquareWarning, Menu, Palette, Bell, PackageCheck, UserRound } from 'lucide-react';
+import { Heart, MessageSquareWarning, Menu, Palette, Bell, PackageCheck } from 'lucide-react';
 import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
 const SuggestionsFeedModal = lazy(() => import('./SuggestionsFeedModal'));
@@ -178,15 +178,6 @@ export default function Layout() {
                 >
                   <button
                     type="button"
-                    onClick={() => { navigate('/profile'); setShowMainMenu(false); }}
-                    aria-label="الملف الشخصي"
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-soft)]"
-                  >
-                    <UserRound className="h-5 w-5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
-                    الملف الشخصي
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => { notifications.refresh(); setShowNotifications(true); setShowMainMenu(false); }}
                     aria-haspopup="dialog"
                     aria-label={notifications.unreadCount > 0 ? 'الإشعارات، ' + notifications.unreadCount + ' غير مقروءة' : 'الإشعارات'}
@@ -208,7 +199,7 @@ export default function Layout() {
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-teal-500/10"
                   >
                     <MessageSquareWarning className="h-5 w-5 text-teal-500" />
-                    التعليقات والشكاوى
+                    الاقتراحات والشكاوى
                   </button>
                   <button
                     type="button"
@@ -245,7 +236,7 @@ export default function Layout() {
 
 
       {/* Main Content */}
-      <main className={`${location.pathname === '/profile' ? 'max-w-none px-0 pt-0' : 'max-w-7xl px-3 py-8 sm:px-4'} mx-auto min-h-[calc(100vh-200px)] w-full min-w-0 pb-24`}>
+      <main className="max-w-7xl px-3 py-8 sm:px-4 mx-auto min-h-[calc(100vh-200px)] w-full min-w-0 pb-24">
         {/* انتقال فوري وسلس بين الصفحات:
             - كان `mode="wait"` يؤخر تركيب الصفحة الجديدة حتى اكتمال حركة خروج
               الصفحة القديمة كاملة (إحساس بأن التطبيق «معلّق» عند كل تنقّل).

@@ -21,7 +21,6 @@ const AboutUs = lazy(() => import('./pages/AboutUs'));
 const JobsPage = lazy(() => import('./pages/jobs/JobsPage'));
 const JobDetailPage = lazy(() => import('./pages/jobs/JobDetailPage'));
 const SavedServicesPage = lazy(() => import('./pages/SavedServicesPage'));
-const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
 
 import { ServicesProvider } from './context/ServicesContext';
 import { CategoriesProvider } from './hooks/useCategories';
@@ -164,7 +163,6 @@ export default function App() {
                   <Route path="jobs" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><JobsPage /></ErrorBoundary></Suspense>} />
                   <Route path="jobs/:jobId" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><JobDetailPage /></ErrorBoundary></Suspense>} />
                   <Route path="saved" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><SavedServicesPage /></ErrorBoundary></Suspense>} />
-                  <Route path="profile" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><ProfilePage /></ErrorBoundary></Suspense>} />
                 </Route>
               </Routes>
             </HashRouter>

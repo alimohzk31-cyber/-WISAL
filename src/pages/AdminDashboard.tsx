@@ -11,6 +11,7 @@ import { useCategories } from '../hooks/useCategories';
 import { colorMap } from '../data/categories';
 import { resolveCategoryIcon, getIconColorStyles, FALLBACK_SERVICE_ICON } from '../data/serviceIcons';
 import { useStats } from '../hooks/useStats';
+import { useAdminDashboardCounts } from '../hooks/useAdminDashboardCounts';
 import EditServiceModal from '../components/EditServiceModal';
 import AddServiceModal from '../components/AddServiceModal';
 import AddCategoryModal from '../components/AddCategoryModal';
@@ -36,6 +37,16 @@ function ServiceCategoryChip({ category, label }: { category: any; label: string
   );
 }
 
+function AdminCountBadge({ count }: { count: number | null | undefined }) {
+  if (count === null || count === undefined || count <= 0) return null;
+  const label = count > 99 ? '99+' : String(count);
+  return (
+    <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white">
+      {label}
+    </span>
+  );
+}
+
 export default function AdminDashboard() {
   const { services, publicServices, deleteService, editService, applyServiceUpdate, fetchAllPendingServices, fetchAllRejectedServices, refreshServices } = useServices();
   const {
@@ -45,6 +56,7 @@ export default function AdminDashboard() {
   const { categories, addCategory, deleteCategory, editCategory } = useCategories();
   const [adminCategories, setAdminCategories] = useState<any[]>(categories);
   const { stats } = useStats();
+  const { pendingJobs, messages, notifications } = useAdminDashboardCounts();
   const { t } = useLanguage();
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'overview' | 'pending' | 'rejected' | 'slider' | 'services' | 'browse' | 'messages' | 'notifications' | 'jobs'>('overview');
@@ -406,11 +418,7 @@ export default function AdminDashboard() {
               <Bell className={navIconCls} />
               <span>{t('new_services_review')}</span>
             </div>
-            {pendingServices.length > 0 && (
-              <span className="bg-[var(--accent-primary)] text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {pendingServices.length}
-              </span>
-            )}
+            <AdminCountBadge count={pendingServices.length} />
           </button>
 
           <button
@@ -418,11 +426,7 @@ export default function AdminDashboard() {
             className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'rejected' ? 'bg-red-500/10 text-red-400' : `hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}`}
           >
             <span>الخدمات المرفوضة</span>
-            {rejectedServices.length > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {rejectedServices.length}
-              </span>
-            )}
+            <AdminCountBadge count={rejectedServices.length} />
           </button>
 
           <button
@@ -441,8 +445,9 @@ export default function AdminDashboard() {
             <span>الخدمات</span>
           </button>
 
-          <button onClick={() => { goToTab('jobs'); setSelectedCategory(null); }} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'jobs' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-            <BriefcaseBusiness className={navIconCls} /><span>الوظائف</span>
+          <button onClick={() => { goToTab('jobs'); setSelectedCategory(null); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'jobs' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+            <div className="flex items-center gap-2"><BriefcaseBusiness className={navIconCls} /><span>الوظائف</span></div>
+            <AdminCountBadge count={pendingJobs} />
           </button>
 
           <button
@@ -464,15 +469,19 @@ export default function AdminDashboard() {
           <button
             onClick={() => { goToTab('messages'); setSelectedCategory(null); }}
             title="اقتراحات المستخدمين"
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'messages' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'messages' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
           >
-            <Lightbulb className={navIconCls} style={{ filter: `drop-shadow(0 0 5px rgba(0,207,255,0.4))` }} />
-            <span>اقتراحات المستخدمين</span>
+            <div className="flex items-center gap-2">
+              <Lightbulb className={navIconCls} style={{ filter: `drop-shadow(0 0 5px rgba(0,207,255,0.4))` }} />
+              <span>اقتراحات المستخدمين</span>
+            </div>
+            <AdminCountBadge count={messages} />
           </button>
           
           <button type="button" onClick={() => { goToTab('notifications'); setSelectedCategory(null); }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'notifications' ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--accent-soft)]'}`}>
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'notifications' ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--accent-soft)]'}`}>
             <span>إدارة الإشعارات</span>
+            <AdminCountBadge count={notifications} />
           </button>
 
           <div className={`pt-1.5 mt-1.5 border-t border-[var(--border)]`}>
@@ -503,11 +512,9 @@ export default function AdminDashboard() {
             aria-label={t('new_services_review')}
           >
             <Bell className="w-5 h-5" />
-            {pendingServices.length > 0 && (
-              <span className="absolute -top-1.5 -left-1.5 min-w-5 h-5 flex items-center justify-center rounded-full bg-[var(--accent-primary)] text-[10px] font-bold text-white px-1">
-                {pendingServices.length}
-              </span>
-            )}
+            <span className="absolute -top-1.5 -left-1.5">
+              <AdminCountBadge count={pendingServices.length} />
+            </span>
           </button>
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -527,19 +534,11 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2">
                 <Bell className={navIconCls} /> {t('pending_requests')}
               </div>
-              {pendingServices.length > 0 && (
-                <span className="bg-[var(--accent-primary)] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {pendingServices.length}
-                </span>
-              )}
+              <AdminCountBadge count={pendingServices.length} />
             </button>
             <button onClick={() => { goToTab('rejected'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center justify-between font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
                 الخدمات المرفوضة
-              {rejectedServices.length > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {rejectedServices.length}
-                </span>
-              )}
+              <AdminCountBadge count={rejectedServices.length} />
             </button>
             <button onClick={() => { goToTab('slider'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
               <ImageIcon className={navIconCls} /> {t('slider_management')}
@@ -547,8 +546,9 @@ export default function AdminDashboard() {
             <button onClick={() => { goToTab('services'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
               <FolderOpen className={navIconCls} /> الخدمات
             </button>
-            <button onClick={() => { goToTab('jobs'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
-              <BriefcaseBusiness className={navIconCls} /> الوظائف
+            <button onClick={() => { goToTab('jobs'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center justify-between font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
+              <span className="flex items-center gap-2"><BriefcaseBusiness className={navIconCls} /> الوظائف</span>
+              <AdminCountBadge count={pendingJobs} />
             </button>
             <button onClick={() => { goToTab('browse'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
               <Compass className={navIconCls} /> التصفح
@@ -556,8 +556,9 @@ export default function AdminDashboard() {
             <button onClick={() => { setIsCategoryManagerOpen(true); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
               <FolderOpen className={navIconCls} /> إدارة الأقسام
             </button>
-            <button onClick={() => { goToTab('messages'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
-              <Lightbulb className={navIconCls} /> اقتراحات المستخدمين
+            <button onClick={() => { goToTab('messages'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center justify-between font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
+              <span className="flex items-center gap-2"><Lightbulb className={navIconCls} /> اقتراحات المستخدمين</span>
+              <AdminCountBadge count={messages} />
             </button>
           </div>
         )}

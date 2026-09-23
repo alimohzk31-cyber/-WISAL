@@ -23,6 +23,7 @@ import { serviceStatusOverlayClass } from '../types/models';
 import { categoryUrl, directoryEntryState, getDirectoryNavigationState, directoryBackAction, readCategoryUrl, openServiceDetails } from '../lib/directoryNavigation';
 import ServicePublicationTime from '../components/ServicePublicationTime';
 import { pickJoinTarget } from '../lib/serviceCategorySelection';
+import { getGoogleMapsUrl, getServiceCoordinates, getWazeUrl } from '../lib/serviceLocation';
 
 // ---------------------------------------------------------------------------
 // تحميل تدريجي (Progressive Rendering) لبطاقات الخدمات داخل القسم:
@@ -278,7 +279,9 @@ export default function CategoryPage() {
           services={visibleCategoryServices}
           locateService={locateService}
           pageSize={PAGE_SIZE}
-          renderCard={(service, index) => (
+          renderCard={(service, index) => {
+            const coordinates = getServiceCoordinates(service);
+            return (
             <motion.div
               key={service.slug}
               layoutId={`service-${service.slug}`}
@@ -343,10 +346,11 @@ export default function CategoryPage() {
                 )}
 
                 {/* Navigation Links (Compact) - Only for approved services */}
-                {service.latitude && service.longitude && service.status === 'approved' && (
+                {coordinates && service.status === 'approved' && (
                   <div className="mt-1 flex min-w-0 gap-1">
                     <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`}
+                      href={getGoogleMapsUrl(coordinates)}
+                      onClick={event => event.stopPropagation()}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center py-1 rounded-md text-[9px] font-bold bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)]"
@@ -354,7 +358,8 @@ export default function CategoryPage() {
                       خرائط
                     </a>
                     <a 
-                      href={`https://waze.com/ul?ll=${service.latitude},${service.longitude}&navigate=yes`}
+                      href={getWazeUrl(coordinates)}
+                      onClick={event => event.stopPropagation()}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center py-1 rounded-md text-[9px] font-bold bg-[var(--bg-secondary)] text-[#33ccff] border border-[var(--border)]"
@@ -365,7 +370,8 @@ export default function CategoryPage() {
                 )}
               </div>
             </motion.div>
-          )}
+            );
+          }}
         />
       )}
 

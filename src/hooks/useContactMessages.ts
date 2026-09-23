@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { uploadServiceMediaFile } from '../lib/serviceMediaStorage';
+import { uploadComplaintImage, removeComplaintImage } from '../lib/complaintMediaStorage';
 import { requireOnlineConnection } from '../lib/connectivity';
 
 // Message types accepted by the contact_messages table.
@@ -24,6 +24,8 @@ export interface ContactMessage {
   message_type: string;
   message: string;
   image_url?: string | null;
+  owner_id?: string | null;
+  owner_uid?: string | null;
   status: string;
   created_at?: string | null;
 }
@@ -63,7 +65,21 @@ export async function sendContactMessage(input: {
 }
 
 export async function uploadContactMessageImage(file: File): Promise<string> {
-  return (await uploadServiceMediaFile(file, 'contact', 'jpg')).publicUrl;
+  return uploadComplaintImage(file);
+}
+
+export async function removeContactMessageImage(path: string | null | undefined): Promise<void> {
+  await removeComplaintImage(path);
+}
+
+async function requireAdminAccessToken(): Promise<string> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) {
+    const sessionError: any = error ?? new Error('Admin session is missing or expired.');
+    sessionError.code = sessionError.code || 'ADMIN_SESSION_MISSING';
+    throw sessionError;
+  }
+  return data.session.access_token;
 }
 
 // Fetch all suggestions (newest first) for the admin panel.
@@ -71,7 +87,11 @@ export async function uploadContactMessageImage(file: File): Promise<string> {
 // SECURITY INVOKER and RLS requires public.is_admin(); the PIN or UI alone never
 // authorizes access.
 export async function fetchContactMessages(): Promise<ContactMessage[]> {
-  const { data, error } = await supabase.rpc('admin_list_contact_messages');
+  const accessToken = await requireAdminAccessToken();
+
+  const { data, error } = await supabase
+    .rpc('admin_list_contact_messages')
+    .setHeader('Authorization', `Bearer ${accessToken}`);
 
   if (error) {
     console.error('[Contact] fetch failed:', {
@@ -103,9 +123,11 @@ export async function updateContactMessageStatus(
 
 export async function deleteContactMessage(id: number): Promise<void> {
   requireOnlineConnection();
+  const accessToken = await requireAdminAccessToken();
   const { data, error } = await supabase.rpc('admin_delete_contact_message', {
     p_id: id,
-  });
+  }).setHeader('Authorization', `Bearer ${accessToken}`);
   if (error) throw error;
-  if (!data) throw new Error('لم يتم حذف الاقتراح من قاعدة البيانات.');
+  if (!data) throw new Error('لم يتم حذف الشكوى من قاعدة البيانات.');
+  await removeComplaintImage((data as ContactMessage).image_url);
 }

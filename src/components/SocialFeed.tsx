@@ -15,6 +15,7 @@ import { getBrowseDescriptionPreview, getBrowseExtraImages, getBrowseImages, has
 import { ServiceSocialLinks } from './ServiceSocialContacts';
 import { useSavedServices } from '../hooks/useSavedServices';
 import type { Service } from '../types/models';
+import { getGoogleMapsUrl, getServiceCoordinates, getServiceLocationParts, getWazeUrl } from '../lib/serviceLocation';
 
 interface SocialFeedProps {
   onAddService?: () => void;
@@ -98,6 +99,9 @@ function SocialFeed({
           const serviceKey = String(service.id ?? service.slug);
           const detailsOpen = isDetailsExpanded(serviceKey);
           const description = getBrowseDescriptionPreview(service.experience);
+          const coordinates = getServiceCoordinates(service);
+          const profession = service.profession?.trim();
+          const locationParts = getServiceLocationParts(service.location);
           // «المزيد» تظهر فقط عند وجود تفاصيل غير ظاهرة في الحالة المختصرة.
           const canExpandDetails = description.truncated || hasBrowseDetails(service);
 
@@ -134,11 +138,22 @@ function SocialFeed({
               <div className="space-y-2.5 px-3.5 pb-3 pt-3">
                 <h2 className="break-words text-base font-bold text-[var(--text-primary)]">{service.name}</h2>
 
-                {(service.profession || service.location) && (
-                  <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-[var(--text-muted)]">
-                    {service.profession && <><Briefcase className="h-3.5 w-3.5 shrink-0 text-[var(--accent-primary)]" /><span className="truncate">{service.profession}</span></>}
-                    {service.profession && service.location && <span aria-hidden="true">•</span>}
-                    {service.location && <><MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--accent-primary)]" /><span className="truncate">{service.location}</span></>}
+                {(profession || locationParts.length > 0) && (
+                  <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs leading-5 text-[var(--text-muted)]">
+                    {profession && (
+                      <span className="inline-flex min-w-0 max-w-full items-center gap-1">
+                        <Briefcase className="h-3.5 w-3.5 shrink-0 text-[var(--accent-primary)]" />
+                        <span className="break-words">{profession}</span>
+                      </span>
+                    )}
+                    {profession && locationParts.length > 0 && <span aria-hidden="true">•</span>}
+                    {locationParts.map((part, index) => (
+                      <span key={`${part}-${index}`} className="inline-flex min-w-0 max-w-full items-center gap-1">
+                        {index > 0 && <span aria-hidden="true">•</span>}
+                        {index === 0 && <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--accent-primary)]" />}
+                        <span className="break-words">{part}</span>
+                      </span>
+                    ))}
                   </p>
                 )}
 
@@ -204,32 +219,12 @@ function SocialFeed({
                     </a>
                   )}
 
-                  {service.location && (
-                    /* العنوان قابل للفتح في الخرائط: بالإحداثيات إن وُجدت، وإلا بالبحث النصي */
-                    <a
-                      href={service.latitude && service.longitude
-                        ? `https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`
-                        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(service.location)}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-start gap-3 rounded-2xl bg-[var(--bg-secondary)] px-4 py-3 transition-colors hover:bg-[var(--accent-soft)]"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent-primary)]">
-                        <MapPin className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-[var(--text-muted)]">الموقع/العنوان (المحافظة والمنطقة)</p>
-                        <p className="text-sm font-bold text-[var(--text-primary)]">{service.location}</p>
-                      </div>
-                      <ExternalLink className="h-5 w-5 shrink-0 text-[var(--accent-primary)]" />
-                    </a>
-                  )}
-
-                  {service.latitude && service.longitude && (
+                  {coordinates && (
                     <div className="flex flex-wrap gap-2">
-                      <a href={`https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-light)] transition-colors">
+                      <a href={getGoogleMapsUrl(coordinates)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-light)] transition-colors">
                         <MapPin className="h-3 w-3" /> خرائط جوجل
                       </a>
-                      <a href={`https://waze.com/ul?ll=${service.latitude},${service.longitude}&navigate=yes`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--accent-soft)] transition-colors">
+                      <a href={getWazeUrl(coordinates)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--accent-soft)] transition-colors">
                         <Navigation className="h-3 w-3" /> ويز
                       </a>
                     </div>

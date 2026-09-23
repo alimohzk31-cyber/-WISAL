@@ -10,6 +10,7 @@ import ServiceStatusBadge from './ServiceStatusBadge';
 import { useServiceVisits } from '../hooks/useServiceVisits';
 import ServicePublicationTime from './ServicePublicationTime';
 import { ServiceSocialLinks } from './ServiceSocialContacts';
+import { getGoogleMapsUrl, getServiceCoordinates, getWazeUrl } from '../lib/serviceLocation';
 
 interface ServiceDetailModalProps {
   service: Service;
@@ -36,6 +37,7 @@ const ServiceVisitCount = memo(function ServiceVisitCount({ service }: { service
 
 export default function ServiceDetailModal({ service, onClose, theme, colors }: ServiceDetailModalProps) {
   const { t } = useLanguage();
+  const coordinates = getServiceCoordinates(service);
   const contentRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -201,10 +203,10 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
                   </a>
                 )}
 
-                {service.latitude && service.longitude && (
+                {coordinates && (
                   <div className="grid grid-cols-2 gap-3">
                     <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`}
+                      href={getGoogleMapsUrl(coordinates)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-2 py-3 text-center text-sm font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--accent-soft)] sm:text-base"
@@ -213,7 +215,7 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
                       خرائط جوجل
                     </a>
                     <a
-                      href={`https://waze.com/ul?ll=${service.latitude},${service.longitude}&navigate=yes`}
+                      href={getWazeUrl(coordinates)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[var(--accent-soft)] px-2 py-3 text-center text-sm font-bold text-[var(--accent-primary)] transition-all hover:bg-[var(--accent-soft)] sm:text-base`}

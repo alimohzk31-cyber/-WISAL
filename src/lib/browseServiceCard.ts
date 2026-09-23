@@ -1,3 +1,5 @@
+import { getServiceCoordinates } from './serviceLocation';
+
 export const BROWSE_DESCRIPTION_PREVIEW_LENGTH = 90;
 
 export function getBrowseDescriptionPreview(value?: string): { text: string; truncated: boolean } {
@@ -60,8 +62,7 @@ export function hasBrowseDetails(service: BrowseDetailSource): boolean {
     isFilled(service.subCategory)
     || isFilled(service.phone)
     || isFilled(service.whatsappPhone)
-    || isFilled(service.location)
-    || (service.latitude && service.longitude)
+    || Boolean(getServiceCoordinates(service))
     || isFilled(service.facebookUrl)
     || isFilled(service.instagramUrl)
     || isFilled(service.tiktokUrl)

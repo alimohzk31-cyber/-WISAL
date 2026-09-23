@@ -22,7 +22,7 @@ function NotificationEditor({ onSignOut }: { onSignOut: () => void }) {
   const load = useCallback(async () => {
     setLoading(true);
     try { setItems(await fetchNotifications(true)); setError(''); }
-    catch { setError('تعذر تحميل الإشعارات. تحقق من الاتصال وإعداد نظام الإشعارات.'); }
+    catch (loadError) { console.error('[NotificationsManager] Notifications could not be loaded:', loadError); setError('تعذر تحميل الإشعارات. تحقق من الاتصال وإعداد نظام الإشعارات.'); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -36,7 +36,7 @@ function NotificationEditor({ onSignOut }: { onSignOut: () => void }) {
       setStatus(success);
       notifyNotificationsChanged();
       await load();
-    } catch { setError('تعذر تنفيذ العملية. تحقق من الاتصال وصلاحيات حساب الإدارة.'); }
+    } catch (actionError) { console.error('[NotificationsManager] Notification action failed:', actionError); setError('تعذر تنفيذ العملية. تحقق من الاتصال وصلاحيات حساب الإدارة.'); }
     finally { busyRef.current = false; setBusy(false); }
   };
   const create = (publish: boolean) => {

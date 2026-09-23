@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Download, FileText, RefreshCw, Search, UserRound } from 'lucide-react';
-import { loadJobApplications, openApplicationCv } from '../jobApplications';
+import { loadJobApplications, openApplicationCv as openApplicationCvRaw } from '../jobApplications';
 import type { JobApplication } from '../types';
 
 export default function JobApplicationsAdmin() {
@@ -8,6 +8,15 @@ export default function JobApplicationsAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+
+  const openApplicationCv = async (path: string) => {
+    try {
+      await openApplicationCvRaw(path);
+    } catch (openError) {
+      console.error('[JobApplicationsAdmin] CV could not be opened:', openError);
+      setError('تعذر فتح السيرة الذاتية. تحقق من صلاحيات الإدارة والاتصال.');
+    }
+  };
 
   const load = async () => {
     setLoading(true);

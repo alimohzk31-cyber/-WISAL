@@ -20,6 +20,7 @@ import { ensureUserSession } from '../lib/userIdentity';
 // هذه إعادة تصدير للتوافق مع كل الاستيرادات الحالية من hooks/useServices.
 // ------------------------------------------------------------------
 import type { Service } from '../types/models';
+import { getServiceCoordinates } from '../lib/serviceLocation';
 export type { Service };
 export type { ServiceStatus, serviceStatusLabel, serviceStatusBadgeClass } from '../types/models';
 
@@ -162,6 +163,7 @@ function getSlugForCategoryId(categoryId: string | number | null | undefined): s
 
 export function mapRowToService(item: any): Service {
   const category = resolveServiceCategory(item, currentCategoryLookup());
+  const coordinates = getServiceCoordinates(item);
   return {
     id: item.id,
     slug: item.slug ?? String(item.id),
@@ -170,8 +172,8 @@ export function mapRowToService(item: any): Service {
     profession: item.profession ?? undefined,
     experience: item.description ?? item.experience ?? undefined,
     location: item.address ?? item.location ?? '',
-    latitude: item.latitude ?? item.lat ?? undefined,
-    longitude: item.longitude ?? item.lng ?? undefined,
+    latitude: coordinates?.latitude,
+    longitude: coordinates?.longitude,
     phone: item.phone ?? undefined,
     whatsappPhone: item.whatsapp_phone ?? undefined,
     facebookUrl: item.facebook_url ?? undefined,

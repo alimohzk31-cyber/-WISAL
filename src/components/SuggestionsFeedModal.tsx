@@ -8,12 +8,16 @@ import {
 } from '../hooks/useComments';
 import { getOwnerId } from '../hooks/useServices';
 import {
+  sendContactMessage, uploadContactMessageImage, removeContactMessageImage,
+} from '../hooks/useContactMessages';
+import {
   useSuggestionInteractions, REACTIONS, ReactionType, SuggestionComment,
 } from '../hooks/useSuggestionInteractions';
 
 const SUGGESTION_MIN_LENGTH = 3;
 const SUGGESTION_MAX_LENGTH = 500;
 const COMMENT_MAX_LENGTH = 300;
+const COMPLAINT_MAX_LENGTH = 1000;
 const IMAGE_SIZE_LIMIT = 2 * 1024 * 1024;
 
 interface Props {
@@ -48,6 +52,17 @@ function avatarHue(ownerId?: string | null): number {
   let sum = 0;
   for (let i = 0; i < tail.length; i++) sum += tail.charCodeAt(i);
   return AVATAR_HUES[sum % AVATAR_HUES.length];
+}
+
+function complaintSubmitError(error: any): string {
+  const raw = String(error?.message || '').toLowerCase();
+  if (raw.includes('bucket not found') || raw.includes('not found')) {
+    return 'تعذر رفع صورة الشكوى حالياً. تخزين صور الشكاوى غير مفعّل بعد.';
+  }
+  if (raw.includes('row-level security') || raw.includes('permission') || raw.includes('unauthorized')) {
+    return 'تعذر رفع صورة الشكوى بسبب صلاحيات التخزين. حاول مرة أخرى لاحقاً.';
+  }
+  return 'تعذر إرسال الشكوى حالياً. حاول مرة أخرى.';
 }
 
 function Avatar({ ownerId, name, size = 'md' }: { ownerId?: string | null; name: string; size?: 'sm' | 'md' }) {
@@ -88,6 +103,14 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
   const [commentTexts, setCommentTexts] = useState<Record<number, string>>({});
   const [commentSending, setCommentSending] = useState<Set<number>>(new Set());
   const [commentErrors, setCommentErrors] = useState<Record<number, string>>({});
+  const [activeTab, setActiveTab] = useState<'suggestions' | 'complaints'>('suggestions');
+  const [complaintText, setComplaintText] = useState('');
+  const [complaintImageFile, setComplaintImageFile] = useState<File | null>(null);
+  const [complaintImagePreview, setComplaintImagePreview] = useState('');
+  const [complaintSubmitting, setComplaintSubmitting] = useState(false);
+  const [complaintError, setComplaintError] = useState('');
+  const [complaintSuccess, setComplaintSuccess] = useState('');
+  const complaintFileInputRef = useRef<HTMLInputElement>(null);
 
 
   const load = useCallback(async (isRefresh = false) => {
@@ -112,7 +135,39 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
     if (comments.length > 0) loadReactions();
   }, [comments.length, loadReactions]);
 
+  useEffect(() => {
+    return () => {
+      if (complaintImagePreview) URL.revokeObjectURL(complaintImagePreview);
+    };
+  }, [complaintImagePreview]);
+
   const canSend = text.trim().length >= SUGGESTION_MIN_LENGTH && !submitting;
+
+  const pickComplaintImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > IMAGE_SIZE_LIMIT) {
+      setComplaintError('حجم الصورة كبير جداً. الحد الأقصى 2 ميغابايت.');
+      e.currentTarget.value = '';
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setComplaintError('الملف المحدد ليس صورة.');
+      e.currentTarget.value = '';
+      return;
+    }
+    setComplaintImageFile(file);
+    setComplaintImagePreview(URL.createObjectURL(file));
+    setComplaintError('');
+    setComplaintSuccess('');
+    e.currentTarget.value = '';
+  };
+
+  const clearComplaintImage = () => {
+    setComplaintImageFile(null);
+    setComplaintImagePreview('');
+    if (complaintFileInputRef.current) complaintFileInputRef.current.value = '';
+  };
 
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -157,6 +212,31 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
       setSubmitError(e?.message || 'تعذر نشر الاقتراح. حاول مرة أخرى.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleComplaintSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const message = complaintText.trim();
+    if (!message || complaintSubmitting) return;
+    setComplaintSubmitting(true);
+    setComplaintError('');
+    setComplaintSuccess('');
+    let imagePath: string | null = null;
+    try {
+      if (complaintImageFile) {
+        imagePath = await uploadContactMessageImage(complaintImageFile);
+      }
+      await sendContactMessage({ message_type: 'complaint', message, image_url: imagePath });
+      setComplaintText('');
+      clearComplaintImage();
+      setComplaintSuccess('تم إرسال شكواك إلى الإدارة بنجاح');
+    } catch (e: any) {
+      console.error('[Complaints] submit error:', e?.message);
+      if (imagePath) await removeContactMessageImage(imagePath);
+      setComplaintError(complaintSubmitError(e));
+    } finally {
+      setComplaintSubmitting(false);
     }
   };
 
@@ -330,20 +410,41 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
               <Lightbulb className="w-5 h-5 text-[var(--accent-primary)]" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-black text-[var(--text-primary)]">ساحة الاقتراحات</h2>
-              <p className="text-xs text-[var(--text-muted)]">شارك اقتراحك مع الجميع</p>
+              <h2 className="text-base font-black text-[var(--text-primary)]">الاقتراحات والشكاوى</h2>
+              <p className="text-xs text-[var(--text-muted)]">{activeTab === 'suggestions' ? 'شارك اقتراحك مع الجميع' : 'أرسل شكواك إلى الإدارة بشكل خاص'}</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => load(true)} disabled={refreshing} aria-label="تحديث" className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50">
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
+            {activeTab === 'suggestions' && (
+              <button type="button" onClick={() => load(true)} disabled={refreshing} aria-label="تحديث" className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50">
+                <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            )}
             <button type="button" onClick={onClose} aria-label="إغلاق" className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
+        <div className="flex shrink-0 border-b border-[var(--border)] bg-[var(--surface-elevated)] p-2">
+          <button
+            type="button"
+            onClick={() => { setActiveTab('suggestions'); setComplaintError(''); setComplaintSuccess(''); }}
+            className={`flex-1 rounded-xl px-3 py-2 text-sm font-black transition-colors ${activeTab === 'suggestions' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'}`}
+          >
+            ساحة الاقتراحات
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab('complaints'); setSubmitError(''); }}
+            className={`flex-1 rounded-xl px-3 py-2 text-sm font-black transition-colors ${activeTab === 'complaints' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'}`}
+          >
+            الشكاوى
+          </button>
+        </div>
+
+        {activeTab === 'suggestions' ? (
+        <>
         <div className="flex-1 overflow-y-auto">
           {error && (
             <div className="p-4 m-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
@@ -429,6 +530,61 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
           </div>
           {submitError && <p role="alert" className="text-sm text-red-500">{submitError}</p>}
         </form>
+        </>
+        ) : (
+          <form onSubmit={handleComplaintSubmit} dir="rtl" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6">
+            <div className="sticky top-0 z-10 -mx-4 -mt-4 flex shrink-0 items-start justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-black text-[var(--text-primary)]">إرسال شكوى</h3>
+                <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">ستصل الشكوى إلى الإدارة فقط ولن تظهر للمستخدمين.</p>
+              </div>
+              <button type="submit" disabled={!complaintText.trim() || complaintSubmitting} className="app-btn-accent flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50">
+                {complaintSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                إرسال الشكوى
+              </button>
+            </div>
+            <textarea
+              value={complaintText}
+              onChange={e => { setComplaintText(e.target.value.slice(0, 2000)); setComplaintError(''); setComplaintSuccess(''); }}
+              placeholder="اكتب شكواك هنا..."
+              maxLength={COMPLAINT_MAX_LENGTH}
+              required
+              disabled={complaintSubmitting}
+              className="min-h-48 w-full flex-1 resize-none rounded-2xl border border-[var(--input-border)] bg-[var(--input-bg)] p-4 text-sm leading-7 text-[var(--text-primary)] outline-none transition-all focus:border-[var(--accent-primary)]"
+            />
+            {complaintImagePreview && (
+              <div className="relative w-fit">
+                <img src={complaintImagePreview} alt="معاينة صورة الشكوى" className="max-h-40 max-w-full rounded-xl border border-[var(--border)] object-contain" />
+                <button
+                  type="button"
+                  onClick={clearComplaintImage}
+                  disabled={complaintSubmitting}
+                  aria-label="حذف صورة الشكوى"
+                  className="absolute left-1 top-1 rounded-full bg-red-600 p-1 text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-[var(--text-muted)]" dir="ltr">{complaintText.length}/{COMPLAINT_MAX_LENGTH}</span>
+                <input ref={complaintFileInputRef} type="file" accept="image/*" onChange={pickComplaintImage} disabled={complaintSubmitting} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => complaintFileInputRef.current?.click()}
+                  disabled={complaintSubmitting}
+                  className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  {complaintImagePreview ? 'تغيير الصورة' : 'إضافة صورة'}
+                </button>
+              </div>
+            </div>
+            {complaintError && <p role="alert" className="text-sm font-bold text-red-500">{complaintError}</p>}
+            {complaintSuccess && <p role="status" className="text-sm font-bold text-emerald-600">{complaintSuccess}</p>}
+          </form>
+        )}
       </div>
     </div>
   );

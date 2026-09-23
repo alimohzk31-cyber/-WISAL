@@ -128,13 +128,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
       if (!mounted) return;
+      if (error) console.error('[Auth] Initial session lookup failed:', { message: error.message, code: error.code });
       currentToken.current = data.session?.access_token ?? '';
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setLoading(false);
       if (data.session?.user) void refreshAdmin();
+    }).catch(error => {
+      if (!mounted) return;
+      console.error('[Auth] Initial session lookup rejected:', error);
+      currentToken.current = '';
+      setSession(null);
+      setUser(null);
+      setIsAdmin(false);
+      setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {

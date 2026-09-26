@@ -7,6 +7,7 @@ import { employmentTypeLabel } from '../../features/jobs/jobData';
 import { useJobs } from '../../features/jobs/useJobs';
 import { useSavedJobs } from '../../features/jobs/useSavedJobs';
 import { useToast } from '../../components/ToastProvider';
+import { sanitizeExternalUrl } from '../../lib/externalUrl';
 
 const infoCard = 'flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-[18px] border border-[#e2edf8] bg-white p-3 text-center shadow-[0_6px_18px_rgba(31,83,142,0.08)]';
 
@@ -27,6 +28,7 @@ export default function JobDetailPage() {
   const images = job.images?.length ? job.images : job.image ? [job.image] : [];
   const requirements = lines(job.requirements);
   const benefits = lines(job.benefits);
+  const videoUrl = sanitizeExternalUrl(job.video);
   const location = [job.governorate, job.area, job.address].filter(Boolean).join('، ') || 'عن بُعد';
   const saved = isSaved(job.id);
   const share = async () => {
@@ -59,7 +61,7 @@ export default function JobDetailPage() {
         {requirements.length ? <section className="rounded-[22px] bg-white p-5 shadow-[0_8px_24px_rgba(31,83,142,0.07)]"><h3 className="text-lg font-black text-[#10243e]">المتطلبات</h3><ul className="mt-3 space-y-2">{requirements.map((item, index) => <li key={`${item}-${index}`} className="flex gap-2 leading-7 text-[#536c89]"><span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#d5f6ee] text-xs font-black text-[#07876c]">✓</span>{item}</li>)}</ul></section> : null}
         {benefits.length ? <section className="rounded-[22px] bg-white p-5 shadow-[0_8px_24px_rgba(31,83,142,0.07)]"><h3 className="flex items-center gap-2 text-lg font-black text-[#10243e]"><Sparkles className="h-5 w-5 text-amber-500" />المميزات</h3><div className="mt-3 flex flex-wrap gap-2">{benefits.map((item, index) => <span key={`${item}-${index}`} className="rounded-full bg-[#d5f6ee] px-3 py-2 text-sm font-bold text-[#07876c]">{item}</span>)}</div></section> : null}
         {job.employmentType === 'تدريب' && (job.trainingDuration || job.trainingPaid || job.trainingHiringPossible) ? <section className="rounded-2xl bg-[var(--accent-soft)] p-4"><h3 className="font-black text-[var(--accent-primary)]">تفاصيل التدريب</h3><div className="mt-2 space-y-1 text-sm font-bold">{job.trainingDuration ? <p>المدة: {job.trainingDuration}</p> : null}<p>{job.trainingPaid ? 'تدريب مدفوع' : 'تدريب غير مدفوع'}</p>{job.trainingHiringPossible ? <p>توجد إمكانية للتوظيف بعد التدريب</p> : null}</div></section> : null}
-        {job.video ? <video src={job.video} controls preload="none" className="max-h-96 w-full rounded-2xl bg-black object-contain" /> : null}
+        {videoUrl ? <video src={videoUrl} controls preload="none" className="max-h-96 w-full rounded-2xl bg-black object-contain" /> : null}
       </div>
     </div>
     </div>

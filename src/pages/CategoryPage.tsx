@@ -24,6 +24,7 @@ import { categoryUrl, directoryEntryState, getDirectoryNavigationState, director
 import ServicePublicationTime from '../components/ServicePublicationTime';
 import { pickJoinTarget } from '../lib/serviceCategorySelection';
 import { getGoogleMapsUrl, getServiceCoordinates, getWazeUrl } from '../lib/serviceLocation';
+import { sanitizeTelUrl } from '../lib/externalUrl';
 
 // ---------------------------------------------------------------------------
 // تحميل تدريجي (Progressive Rendering) لبطاقات الخدمات داخل القسم:
@@ -280,7 +281,8 @@ export default function CategoryPage() {
           locateService={locateService}
           pageSize={PAGE_SIZE}
           renderCard={(service, index) => {
-            const coordinates = getServiceCoordinates(service);
+          const coordinates = getServiceCoordinates(service);
+          const phoneUrl = sanitizeTelUrl(service.phone);
             return (
             <motion.div
               key={service.slug}
@@ -306,9 +308,9 @@ export default function CategoryPage() {
                 <div className={`absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent`} />
                 
                 {/* Quick Call Action Overlay */}
-                {service.phone && service.status === 'approved' && (
+                {phoneUrl && service.status === 'approved' && (
                   <a 
-                    href={`tel:${service.phone}`}
+                    href={phoneUrl}
                     className={`absolute bottom-2 right-2 p-2 rounded-full shadow-lg transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ${colors.bg} text-[var(--accent-contrast)]`}
                   >
                     <Phone className="w-4 h-4" />

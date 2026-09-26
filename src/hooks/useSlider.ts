@@ -4,7 +4,7 @@ import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import { offlineStore, OFFLINE_KEYS } from '../lib/offlineStore';
 import { APP_ONLINE_EVENT } from '../lib/connectivity';
 import { optimizeImageFile } from '../lib/imageOptimization';
-import { SERVICE_MEDIA_BUCKET, uploadServiceMediaFile } from '../lib/serviceMediaStorage';
+import { SERVICE_MEDIA_BUCKET, uploadServiceMediaFile, validateServiceMediaFile } from '../lib/serviceMediaStorage';
 
 export type AdPeriod = 'am' | 'pm';
 export type AdStatus = 'active' | 'upcoming' | 'expired' | 'disabled';
@@ -478,15 +478,18 @@ export async function uploadSliderImageWithProgress(
   onProgress?: (percent: number) => void
 ): Promise<string> {
   const uploadFile = await optimizeImageFile(file, 1600, 1000, 0.8);
-  const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const ext = validateServiceMediaFile(uploadFile, 'jpg');
   const path = `slider/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${ext}`;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('يجب تسجيل دخول الإدارة قبل رفع السلايدر.');
 
   try {
     const publicUrl = await new Promise<string>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${supabaseUrl}/storage/v1/object/${SLIDER_BUCKET}/${path}`);
       xhr.setRequestHeader('apikey', supabaseAnonKey);
-      xhr.setRequestHeader('authorization', `Bearer ${supabaseAnonKey}`);
+      xhr.setRequestHeader('authorization', `Bearer ${accessToken}`);
       xhr.setRequestHeader('cache-control', '31536000');
       xhr.setRequestHeader('content-type', uploadFile.type || 'image/jpeg');
       xhr.setRequestHeader('x-upsert', 'false');

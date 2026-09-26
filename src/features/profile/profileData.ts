@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { sanitizeExternalUrl } from '../../lib/externalUrl';
 import { optimizeImageFile } from '../../lib/imageOptimization';
 import { uploadServiceMediaFile } from '../../lib/serviceMediaStorage';
 import { mapJob } from '../jobs/jobData';
@@ -82,7 +83,11 @@ export async function loadProfile(userId: string): Promise<UserProfile | null> {
 
 export async function saveProfileText(userId: string, values: Partial<Pick<UserProfile, typeof TEXT_COLUMNS[number]>>): Promise<UserProfile> {
   await assertCurrentUser(userId);
-  const payload = Object.fromEntries(TEXT_COLUMNS.map(column => [column, values[column] ?? null]));
+  const urlColumns = new Set(['whatsapp_url', 'facebook_url', 'instagram_url', 'tiktok_url']);
+  const payload = Object.fromEntries(TEXT_COLUMNS.map(column => [
+    column,
+    urlColumns.has(column) ? sanitizeExternalUrl(values[column]) ?? null : values[column] ?? null,
+  ]));
   const { data, error } = await supabase.from('profiles').update(payload).eq('id', userId).select(PROFILE_COLUMNS).single();
   if (error) throw error;
   return data as unknown as UserProfile;

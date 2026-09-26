@@ -40,6 +40,7 @@ interface AdminPinResponse {
   success?: boolean;
   access_token?: string;
   refresh_token?: string;
+  enrollment_token?: string;
   code?: string;
 }
 
@@ -130,7 +131,7 @@ function setPinRateLimit(retryAfterSeconds?: number): void {
 
 export async function adminPinLogin(
   pin: string
-): Promise<{ ok: true } | { ok: false; code: string }> {
+): Promise<{ ok: true; enrollmentToken?: string } | { ok: false; code: string }> {
   // Defensive validation at the network boundary too: no empty or whitespace
   // PIN should ever reach the Edge Function if another caller bypasses the UI.
   if (typeof pin !== 'string' || pin.trim() === '') {
@@ -226,5 +227,5 @@ export async function adminPinLogin(
   // Success — clear any previous local ban so the user can log in normally
   // if they retry after the window expires.
   clearPinRateLimit();
-  return { ok: true };
+  return { ok: true, enrollmentToken: data.enrollment_token };
 }

@@ -8,6 +8,7 @@ import {
 import { uploadSliderImageWithProgress } from '../../../hooks/useSlider';
 import SafeImage from '../../../components/SafeImage';
 import { useToast } from '../../../components/ToastProvider';
+import { englishDigits } from '../../../lib/englishDigits';
 import {
   deleteJobSlide, duplicateJobSlide, loadJobSliderSettings, loadJobSlides,
   restartJobSlideRun, reorderJobSlide, reorderJobSlides, saveJobSlide,
@@ -237,7 +238,7 @@ export default function JobSlidesAdmin() {
         <div className="relative h-48"><JobSlideView slide={slide} interactive={false} /></div>
         <div className="space-y-3 p-3">
           <p className="break-words font-bold text-[var(--text-primary)]">{slide.title} <span className={JOB_STATUS_META[getJobSlideStatus(slide)].cls}>{JOB_STATUS_META[getJobSlideStatus(slide)].label}</span></p>
-          {slide.runMode === 'timed' && slide.runEndsAt && <p className="text-xs text-[var(--text-muted)]">نهاية التشغيل: {new Date(slide.runEndsAt).toLocaleString('ar-IQ')}</p>}
+          {slide.runMode === 'timed' && slide.runEndsAt && <p className="text-xs text-[var(--text-muted)]">نهاية التشغيل: {englishDigits(new Date(slide.runEndsAt).toLocaleString('ar-IQ'))}</p>}
           <fieldset disabled={busy} className="flex flex-wrap gap-2 text-sm font-bold text-[var(--text-primary)]">
             <button type="button" onClick={() => setDraft(draftFromSlide(slide))}>تعديل</button>
             <button type="button" onClick={() => perform(async () => replaceSlide(await setJobSlideVisible(slide, !slide.isVisible)))}>{slide.isVisible ? 'إيقاف' : 'تشغيل'}</button>

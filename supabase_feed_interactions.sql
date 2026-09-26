@@ -104,3 +104,6 @@ AS $$
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_own_pending_service_id(text, text) TO anon, authenticated;
+-- LEGACY / DO NOT APPLY TO PRODUCTION
+-- Historical compatibility migration. Do not run automatically; use only the
+-- reviewed security migrations for the current database.

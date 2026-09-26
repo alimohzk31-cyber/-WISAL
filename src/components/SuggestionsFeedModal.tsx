@@ -13,6 +13,7 @@ import {
 import {
   useSuggestionInteractions, REACTIONS, ReactionType, SuggestionComment,
 } from '../hooks/useSuggestionInteractions';
+import { sanitizeExternalUrl } from '../lib/externalUrl';
 
 const SUGGESTION_MIN_LENGTH = 3;
 const SUGGESTION_MAX_LENGTH = 500;
@@ -470,7 +471,8 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
             <div className="divide-y divide-[var(--border)]">
               {comments.map(comment => {
                 const name = authorName(comment.owner_id);
-                const hasImage = !!comment.image_url;
+                const safeImageUrl = sanitizeExternalUrl(comment.image_url);
+                const hasImage = !!safeImageUrl;
                 return (
                   <article key={comment.id} className="p-4 space-y-3">
                     <div className="flex gap-3">
@@ -482,8 +484,8 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
                         </div>
                         <p className="text-sm whitespace-pre-wrap break-words text-[var(--text-primary)] leading-relaxed">{comment.content}</p>
                         {hasImage && (
-                          <a href={comment.image_url!} target="_blank" rel="noopener noreferrer" className="block mt-2">
-                            <img src={comment.image_url!} alt="مرفق" loading="lazy" className="max-h-64 w-auto max-w-full rounded-xl border object-cover border-[var(--border)]" />
+                          <a href={safeImageUrl} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                            <img src={safeImageUrl} alt="مرفق" loading="lazy" className="max-h-64 w-auto max-w-full rounded-xl border object-cover border-[var(--border)]" />
                           </a>
                         )}
                       </div>

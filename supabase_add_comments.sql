@@ -34,3 +34,6 @@ CREATE POLICY "comments_update_policy" ON public.comments
 
 CREATE POLICY "comments_delete_policy" ON public.comments
   FOR DELETE USING (true);
+-- LEGACY / DO NOT APPLY TO PRODUCTION
+-- Historical compatibility migration. Do not run automatically; use only the
+-- reviewed security migrations for the current database.

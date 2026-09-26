@@ -11,6 +11,7 @@ export const APP_VERSION = '1.2';
 /** تاريخ إصدار الواجهة الحالي (قيمة ثابتة مرتبطة بالإصدار، لا يتغير يوميًا). */
 export const APP_VERSION_DATE = '23/09/2026';
 export const PREVIOUS_APP_VERSION = '1.1';
+export const APP_PROJECT_START_DATE = '20/12/2025';
 
 /**
  * سجل إصدارات وصال — المصدر الوحيد الذي تعرضه نافذة «الإصدار».
@@ -34,9 +35,9 @@ export interface AppRelease {
 }
 
 export const APP_RELEASES: readonly AppRelease[] = [
-  { version: '1.2', date: '23/09/2026' },
-  { version: '1.1', date: '15/09/2026' },
   { version: '1.0', date: '08/09/2026' },
+  { version: '1.1', date: '15/09/2026' },
+  { version: '1.2', date: '23/09/2026' },
 ] as const;
 
 /** وصف مصدر التحقق من التحديث (للعرض داخل نافذة الإصدار مستقبلًا). */

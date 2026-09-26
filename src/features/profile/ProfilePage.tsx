@@ -29,6 +29,7 @@ import {
 import AddJobModal from '../jobs/AddJobModal';
 import { useJobs } from '../jobs/useJobs';
 import { useJobPresentation } from '../jobs/useJobPresentation';
+import { sanitizeExternalUrl } from '../../lib/externalUrl';
 
 const AddServiceModal = lazy(() => import('../../components/AddServiceModal'));
 
@@ -71,7 +72,10 @@ function ProfileInfoCard({ profile }: { profile: UserProfile }) {
     { label: 'فيسبوك', url: profile.facebook_url },
     { label: 'إنستغرام', url: profile.instagram_url },
     { label: 'تيك توك', url: profile.tiktok_url },
-  ].filter((item): item is { label: string; url: string } => Boolean(item.url?.trim()));
+  ].flatMap(item => {
+    const url = sanitizeExternalUrl(item.url);
+    return url ? [{ label: item.label, url }] : [];
+  });
 
   return <section dir="rtl" className="rounded-[16px] border border-[#e4eaf1] bg-white p-4 shadow-[0_5px_18px_rgba(20,55,90,0.05)] sm:p-5">
     <div className="mb-5 flex items-center gap-2 border-b border-[#edf1f5] pb-3">
@@ -84,7 +88,7 @@ function ProfileInfoCard({ profile }: { profile: UserProfile }) {
       {profile.phone && <p className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-[#1978c7]" /><span dir="ltr">{profile.phone}</span></p>}
       {profile.bio && <p className="whitespace-pre-wrap leading-7 text-[#6d7f91]">{profile.bio}</p>}
       {contacts.length > 0 && <div className="flex flex-wrap gap-2 border-t border-[#edf1f5] pt-4">
-        {contacts.map(contact => <a key={contact.label} href={contact.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf4ff] px-3 py-1.5 text-xs font-black text-[#1978c7] transition hover:bg-[#d9ecff]"><ExternalLink className="h-3.5 w-3.5" />{contact.label}</a>)}
+        {contacts.map(contact => <a key={contact.label} href={contact.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf4ff] px-3 py-1.5 text-xs font-black text-[#1978c7] transition hover:bg-[#d9ecff]"><ExternalLink className="h-3.5 w-3.5" />{contact.label}</a>)}
       </div>}
       {!profile.profession && !location && !profile.phone && !profile.bio && contacts.length === 0 && <p className="text-[#8a9aaa]">لا توجد معلومات مضافة بعد.</p>}
     </div>

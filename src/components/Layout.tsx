@@ -110,7 +110,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen w-full min-w-0 max-w-full font-sans transition-colors duration-300" dir="rtl">
+    <div className={`min-h-screen w-full min-w-0 max-w-full font-sans transition-colors duration-300 ${location.pathname === '/admin' ? 'wisal-admin-route' : ''}`} dir="rtl">
       {/* Header */}
       <header className="sticky top-0 z-40 w-full min-w-0 max-w-full backdrop-blur-md border-b bg-[var(--header-bg)] border-[var(--border-color)]">
         <div className="relative mx-auto flex h-20 w-full min-w-0 max-w-7xl items-center justify-between px-3 sm:px-4">

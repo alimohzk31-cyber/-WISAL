@@ -16,6 +16,7 @@ import { ServiceSocialLinks } from './ServiceSocialContacts';
 import { useSavedServices } from '../hooks/useSavedServices';
 import type { Service } from '../types/models';
 import { getGoogleMapsUrl, getServiceCoordinates, getServiceLocationParts, getWazeUrl } from '../lib/serviceLocation';
+import { sanitizeExternalUrl, sanitizeTelUrl } from '../lib/externalUrl';
 
 interface SocialFeedProps {
   onAddService?: () => void;
@@ -95,7 +96,9 @@ function SocialFeed({
             ?? categories.find((category) => category.slug === service.categorySlug)?.name
             ?? service.categorySlug;
           const browseImages = getBrowseImages(service);
-          const extraImages = getBrowseExtraImages(service);
+          const extraImages = getBrowseExtraImages(service).map(image => sanitizeExternalUrl(image)).filter((image): image is string => Boolean(image));
+          const videoUrl = sanitizeExternalUrl(service.video);
+          const phoneUrl = sanitizeTelUrl(service.phone);
           const serviceKey = String(service.id ?? service.slug);
           const detailsOpen = isDetailsExpanded(serviceKey);
           const description = getBrowseDescriptionPreview(service.experience);
@@ -201,9 +204,9 @@ function SocialFeed({
                     </div>
                   )}
 
-                  {service.phone && (
+                  {phoneUrl && (
                     <a
-                      href={`tel:${service.phone}`}
+                      href={phoneUrl}
                       className="flex items-center gap-3 rounded-2xl bg-[var(--bg-secondary)] px-4 py-3 transition-colors hover:bg-[var(--accent-soft)]"
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-500/20 text-green-500">
@@ -249,14 +252,14 @@ function SocialFeed({
                   )}
 
                   {/* الفيديو إن وجد */}
-                  {service.video && (
-                    <a href={service.video} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-2xl bg-[var(--bg-secondary)] px-4 py-3 transition-colors hover:bg-[var(--accent-soft)]">
+                  {videoUrl && (
+                    <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-2xl bg-[var(--bg-secondary)] px-4 py-3 transition-colors hover:bg-[var(--accent-soft)]">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500 text-white">
                         <Video className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold text-[var(--text-muted)]">شاهد الفيديو</p>
-                        <p className="text-sm font-bold text-blue-500 truncate">{service.video}</p>
+                        <p className="text-sm font-bold text-blue-500 truncate">{videoUrl}</p>
                       </div>
                       <ExternalLink className="h-5 w-5 shrink-0 text-[var(--accent-primary)]" />
                     </a>

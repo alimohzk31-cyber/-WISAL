@@ -154,3 +154,6 @@ SELECT column_name, data_type
 FROM information_schema.columns
 WHERE table_name = 'services'
 ORDER BY ordinal_position;
+-- LEGACY / DO NOT APPLY TO PRODUCTION
+-- Historical compatibility migration. Do not run automatically; use only the
+-- reviewed security migrations for the current database.

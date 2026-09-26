@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import SafeImage, { FALLBACK_IMAGE } from '../../components/SafeImage';
 import type { JobSlide } from './jobSlideMeta';
 import type { Job } from './types';
+import { sanitizeExternalUrl } from '../../lib/externalUrl';
 import {
   SLIDE_TEXT_ALIGN, SLIDE_VERTICAL_CLASSES, SUBTITLE_SIZE_CLASSES, TITLE_SIZE_CLASSES,
 } from './jobSlideMeta';
@@ -16,7 +17,8 @@ import {
 // ارتفاع الشريحة وزواياها تحددها الحاوية الأم (h-full w-full).
 // ============================================================================
 export default function JobSlideView({ slide, linkedJob, loading = 'lazy', className = '', interactive = true }: { slide: JobSlide; linkedJob?: Job; loading?: 'lazy' | 'eager'; className?: string; interactive?: boolean }) {
-  const link = (slide.buttonLink || (linkedJob ? `/jobs/${linkedJob.id}` : '')).trim();
+  const rawLink = (slide.buttonLink || (linkedJob ? `/jobs/${linkedJob.id}` : '')).trim();
+  const link = rawLink.startsWith('/') || rawLink.startsWith('#') ? rawLink : sanitizeExternalUrl(rawLink) ?? '';
   const isExternal = /^https?:\/\//i.test(link);
   const imageSrc = slide.imageUrl || linkedJob?.image || FALLBACK_IMAGE;
   const title = linkedJob?.title || slide.title;
@@ -43,7 +45,7 @@ export default function JobSlideView({ slide, linkedJob, loading = 'lazy', class
 
       {interactive && link ? (
         slide.linkType === 'external' || isExternal ? (
-          <a href={link} target="_blank" rel="noreferrer" className="absolute inset-0 z-10" aria-label={`فتح ${title || company || 'تفاصيل الوظيفة'}`} />
+          <a href={link} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-10" aria-label={`فتح ${title || company || 'تفاصيل الوظيفة'}`} />
         ) : (
           <Link to={link} className="absolute inset-0 z-10" aria-label={`فتح ${title || company || 'تفاصيل الوظيفة'}`} />
         )

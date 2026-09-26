@@ -48,7 +48,7 @@ async function run() {
       const invokeCallsBefore = s.invokeCalls || 0;
       const r = await adminPinLogin(value);
       if (r.ok !== false || r.code !== 'invalid_pin' || (s.invokeCalls || 0) !== invokeCallsBefore || s.setSessionCalls !== 0) {
-        throw new Error(`PIN=${JSON.stringify(value)} result=${JSON.stringify(r)} invokeCalls=${s.invokeCalls || 0}`);
+        throw new Error(`Empty PIN case failed: result=${JSON.stringify(r)} invokeCalls=${s.invokeCalls || 0}`);
       }
     }
     report('0. Empty and whitespace-only PINs rejected locally without request', true);

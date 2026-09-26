@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getOwnerId } from './useServices';
+import { ensureUserSession } from '../lib/userIdentity';
 import { requireOnlineConnection } from '../lib/connectivity';
 
 // ---------------------------------------------------------------------------
@@ -111,6 +112,13 @@ interface FeedCacheSnapshot {
 let feedCache: FeedCacheSnapshot | null = null;
 let feedRequest: { idsKey: string; promise: Promise<void> } | null = null;
 let feedRevision = 0;
+let authenticatedOwnerId: string | null = null;
+
+async function getAuthenticatedOwnerId(): Promise<string> {
+  const user = await ensureUserSession();
+  authenticatedOwnerId = user.id;
+  return user.id;
+}
 
 /** يُبطل كاش الجلسة بعد أي عملية كتابة ناجحة (تفاعل/تعليق/حذف). */
 function invalidateFeedCache() {
@@ -201,7 +209,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
           throw commentsRes.error;
         }
 
-        const ownerId = getOwnerId();
+        const ownerId = await getAuthenticatedOwnerId();
         const reactionRows = (reactionsRes.data || []) as { service_id: number; owner_id: string; reaction_type: ReactionType }[];
         const commentRows = (commentsRes.data || []) as PostComment[];
 
@@ -261,7 +269,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
   const toggleReaction = useCallback(async (serviceId: string | number, type: ReactionType) => {
     requireOnlineConnection();
     const key = String(serviceId);
-    const ownerId = getOwnerId();
+    const ownerId = await getAuthenticatedOwnerId();
     const current = myReactions[key] ?? null;
     invalidateFeedCache();
 
@@ -321,12 +329,13 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
       throw new Error('لا يمكن إرسال تعليق فارغ.');
     }
     const key = String(serviceId);
+    const ownerId = await getAuthenticatedOwnerId();
 
     const { data, error } = await supabase
       .from('service_comments')
       .insert({
         service_id: Number(serviceId),
-        owner_id: getOwnerId(),
+        owner_id: ownerId,
         content: trimmed,
       })
       .select()
@@ -349,12 +358,13 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
   // حذف تعليق — يُسمح فقط لصاحب الجهاز بحذف تعليقه من الواجهة.
   const deleteComment = useCallback(async (comment: PostComment) => {
     requireOnlineConnection();
-    if (comment.owner_id !== getOwnerId()) return;
+    const ownerId = await getAuthenticatedOwnerId();
+    if (comment.owner_id !== ownerId) return;
     const { error } = await supabase
       .from('service_comments')
       .delete()
       .eq('id', comment.id)
-      .eq('owner_id', comment.owner_id);
+      .eq('owner_id', ownerId);
     if (error) {
       logError('deleteComment', error);
       throw error;
@@ -381,7 +391,7 @@ export function useFeedInteractions(serviceIds: (string | number)[]) {
 
 // اسم عرض ودّي مشتق من معرّف الجهاز (لا توجد حسابات مستخدمين في التطبيق).
 export function commentAuthorName(ownerId: string): string {
-  if (ownerId === getOwnerId()) return 'أنت';
+  if (ownerId === authenticatedOwnerId || ownerId === getOwnerId()) return 'أنت';
   const tail = ownerId.replace(/[^a-z0-9]/gi, '').slice(-4).toUpperCase();
   return `مستخدم ${tail || 'مجهول'}`;
 }

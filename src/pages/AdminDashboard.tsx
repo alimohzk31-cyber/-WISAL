@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass, BriefcaseBusiness, CheckCheck, AlertTriangle, Ban, Download } from 'lucide-react';
+import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass, BriefcaseBusiness, CheckCheck, AlertTriangle, Ban, Download, Search } from 'lucide-react';
 import { useServices } from '../context/ServicesContext';
 import { isValidServiceId, Service } from '../hooks/useServices';
 import { serviceStatusLabel, serviceStatusBadgeClass } from '../types/models';
@@ -19,6 +19,10 @@ import SliderManager from '../components/SliderManager';
 import JobsAdminPanel from '../features/jobs/admin/JobsAdminPanel';
 import MessagesManager from '../components/MessagesManager';
 import NotificationsManager from '../components/NotificationsManager';
+import AdminOverviewDashboard, { type AdminOverviewTab } from '../components/AdminOverviewDashboard';
+import AdminSidebar from '../components/AdminSidebar';
+import ThemeToggle from '../components/ThemeToggle';
+import { englishDigits } from '../lib/englishDigits';
 
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -72,6 +76,7 @@ export default function AdminDashboard() {
   const [isAddingService, setIsAddingService] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [movingServiceId, setMovingServiceId] = useState<string | null>(null);
   // Track which service is currently being processed (approve/reject) so the
   // buttons show a spinner, are disabled (no double-click), and the action
@@ -384,118 +389,40 @@ export default function AdminDashboard() {
   // (المصدر الوحيد لتسميات الحالات وأصناف شاراتها في التطبيق كله).
 
   return (
-    <div className="relative flex min-h-[80vh] w-full min-w-0 max-w-full flex-col gap-4 md:flex-row md:gap-5" dir="rtl">
+    <div className="wisal-overview wisal-admin-shell relative flex min-h-[80vh] w-full min-w-0 max-w-full flex-col gap-4 md:flex-row md:gap-5" dir="rtl">
       {/* Ambient Background Lights */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[20%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent-soft)] blur-[120px]" />
         <div className="absolute bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent-primary)]/5 blur-[120px]" />
       </div>
 
-      {/* Sidebar */}
-      <div className="w-full md:w-52 shrink-0 space-y-3">
-        <div className={`bg-[var(--card)] border-[var(--border)] shadow-sm border rounded-2xl p-4 text-center`}>
-          <div className="w-12 h-12 mx-auto bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-hover)] rounded-full flex items-center justify-center mb-2 shadow-[0_0_20px_var(--glow)]">
-            <Shield className="w-6 h-6 text-white" />
-          </div>
-          <h2 className={`font-bold text-base text-[var(--text-primary)]`}>{t('admin_panel')}</h2>
-          <p className="text-xs text-[var(--accent-primary)] mt-0.5 font-bold">{t('full_permissions')}</p>
-        </div>
-
-        <div className={`bg-[var(--card)] border-[var(--border)] shadow-sm border rounded-2xl p-2.5 space-y-1`}>
-          <button
-            onClick={() => { goToTab('overview'); setSelectedCategory(null); }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'overview' && !selectedCategory ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)]' : `hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}`}
-          >
-            <Activity className={navIconCls} />
-            <span>{t('overview')}</span>
-          </button>
-
-          <button
-            onClick={() => { goToTab('pending'); setSelectedCategory(null); }}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'pending' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : `hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}`}
-          >
-            <div className="flex items-center gap-2">
-              <Bell className={navIconCls} />
-              <span>{t('new_services_review')}</span>
-            </div>
-            <AdminCountBadge count={pendingServices.length} />
-          </button>
-
-          <button
-            onClick={() => { goToTab('rejected'); setSelectedCategory(null); }}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'rejected' ? 'bg-red-500/10 text-red-400' : `hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}`}
-          >
-            <span>الخدمات المرفوضة</span>
-            <AdminCountBadge count={rejectedServices.length} />
-          </button>
-
-          <button
-            onClick={() => { goToTab('slider'); setSelectedCategory(null); }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'slider' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : `hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}`}
-          >
-            <ImageIcon className={navIconCls} />
-            <span>{t('slider_management')}</span>
-          </button>
-
-          <button
-            onClick={() => { goToTab('services'); setSelectedCategory(null); }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'services' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : `hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}`}
-          >
-            <FolderOpen className={navIconCls} />
-            <span>الخدمات</span>
-          </button>
-
-          <button onClick={() => { goToTab('jobs'); setSelectedCategory(null); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'jobs' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-            <div className="flex items-center gap-2"><BriefcaseBusiness className={navIconCls} /><span>الوظائف</span></div>
-            <AdminCountBadge count={pendingJobs} />
-          </button>
-
-          <button
-            onClick={() => { goToTab('browse'); setSelectedCategory(null); }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'browse' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : `hover:bg-[var(--accent-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}`}
-          >
-            <Compass className={navIconCls} />
-            <span>التصفح</span>
-          </button>
-
-          <button
-            onClick={() => setIsCategoryManagerOpen(true)}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]`}
-          >
-            <FolderOpen className={navIconCls} />
-            <span>إدارة الأقسام</span>
-          </button>
-
-          <button
-            onClick={() => { goToTab('messages'); setSelectedCategory(null); }}
-            title="اقتراحات المستخدمين"
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'messages' ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
-          >
-            <div className="flex items-center gap-2">
-              <Lightbulb className={navIconCls} style={{ filter: `drop-shadow(0 0 5px rgba(0,207,255,0.4))` }} />
-              <span>اقتراحات المستخدمين</span>
-            </div>
-            <AdminCountBadge count={messages} />
-          </button>
-          
-          <button type="button" onClick={() => { goToTab('notifications'); setSelectedCategory(null); }}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-bold text-sm ${activeTab === 'notifications' ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--accent-soft)]'}`}>
-            <span>إدارة الإشعارات</span>
-            <AdminCountBadge count={notifications} />
-          </button>
-
-          <div className={`pt-1.5 mt-1.5 border-t border-[var(--border)]`}>
-            <Link to="/" className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-sm hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}>
-              <ArrowRight className={navIconCls} />
-              <span>{t('back_to_app')}</span>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <AdminSidebar
+        activeTab={activeTab}
+        pendingCount={pendingServices.length}
+        rejectedCount={rejectedServices.length}
+        messageCount={messages}
+        notificationCount={notifications}
+        jobCount={pendingJobs}
+        showIcons={true}
+        onNavigate={(tab: AdminOverviewTab) => { goToTab(tab); setSelectedCategory(null); }}
+        onOpenCategories={() => setIsCategoryManagerOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
 
       {/* Main Content */}
-      <div className={`relative min-w-0 flex-1 overflow-hidden rounded-3xl border bg-[var(--bg-secondary)] border-[var(--border)]`}>
-        <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+      <div className={`wisal-overview__main relative min-w-0 flex-1 overflow-hidden rounded-3xl border bg-[var(--bg-secondary)] border-[var(--border)]`}>
+        <header className="wisal-overview__topbar">
+          <div className="wisal-admin-identity">
+            <div className="wisal-admin-avatar">A</div>
+            <div><strong>المدير العام</strong><span>admin@wisal.com</span></div>
+          </div>
+          <button className="wisal-notification-button" type="button" onClick={() => goToTab('notifications')} aria-label="الإشعارات">
+            <Bell size={23} /><b>{notifications > 99 ? '99+' : notifications}</b>
+          </button>
+          <label className="wisal-search"><Search size={19} /><input aria-label="البحث في الإدارة" placeholder="البحث في الإدارة ..." /></label>
+          <div className="wisal-system-status"><i />النظام يعمل بصورة طبيعية</div>
+        </header>
+        <div className="hidden">
           {/* زر إظهار/إخفاء أيقونات القائمة (UI فقط) */}
           <button 
             onClick={() => setShowIcons(v => !v)}
@@ -526,7 +453,7 @@ export default function AdminDashboard() {
 
         {/* Menu Overlay */}
         {isMenuOpen && (
-          <div className={`absolute top-16 right-4 z-50 border rounded-xl p-2 w-48 shadow-2xl bg-[var(--surface-elevated)] border-[var(--border)]`}>
+          <div className="hidden">
             <button onClick={() => { goToTab('overview'); setSelectedCategory(null); setIsMenuOpen(false); }} className={`w-full text-right p-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
               <Activity className={navIconCls} /> {t('overview')}
             </button>
@@ -599,7 +526,7 @@ export default function AdminDashboard() {
                           {service.phone && <div className="flex items-center gap-1.5 font-bold"><Phone className="w-3.5 h-3.5 shrink-0 text-[var(--accent-primary)]"/> <span dir="ltr">{service.phone}</span></div>}
                           <p className="text-xs opacity-80">
                             صاحب الخدمة: {service.ownerId || (service.userId ? `مستخدم #${service.userId}` : 'زائر')}
-                            {' • '}تاريخ الإضافة: {new Date(service.createdAt).toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            {' • '}تاريخ الإضافة: {englishDigits(new Date(service.createdAt).toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' }))}
                           </p>
                         </div>
                       </div>
@@ -892,6 +819,12 @@ export default function AdminDashboard() {
               </section>
             ))}
           </div>
+        ) : activeTab === 'overview' && !selectedCategory ? (
+          <AdminOverviewDashboard
+            services={allServices}
+            categories={adminCategories}
+            visits={stats.visits}
+          />
         ) : selectedCategory ? (
           // Category Management View
           <div className="space-y-6 animate-in fade-in p-6 lg:p-8">
@@ -1226,6 +1159,18 @@ export default function AdminDashboard() {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={() => setIsSettingsOpen(false)}>
+          <div onMouseDown={(event) => event.stopPropagation()} className="wisal-admin-settings-modal">
+            <div className="wisal-admin-settings-modal__heading">
+              <h3>الإعدادات</h3>
+              <button type="button" onClick={() => setIsSettingsOpen(false)} aria-label="إغلاق الإعدادات"><X className="h-5 w-5" /></button>
+            </div>
+            <ThemeToggle open={true} onOpenChange={setIsSettingsOpen} hideTrigger />
           </div>
         </div>
       )}

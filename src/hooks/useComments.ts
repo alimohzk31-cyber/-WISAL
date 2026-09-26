@@ -1,5 +1,5 @@
 ﻿import { supabase } from '../lib/supabase';
-import { getOwnerId } from './useServices';
+import { ensureUserSession } from '../lib/userIdentity';
 import { requireOnlineConnection } from '../lib/connectivity';
 
 // Length rules for a comment.
@@ -14,10 +14,9 @@ export interface Comment {
   created_at?: string | null;
 }
 
-// Reuse the device-based user identity used everywhere else in the app.
-// There is no separate login system for regular users.
-export function getCommentOwnerId(): string {
-  return getOwnerId();
+// Anonymous Supabase Auth provides the owner UUID and authenticated role.
+export async function getCommentOwnerId(): Promise<string> {
+  return (await ensureUserSession()).id;
 }
 
 // Helper to upload an image to the existing Supabase storage.
@@ -85,7 +84,7 @@ export async function addComment(input: {
     .insert({
       content: input.content,
       image_url: input.image_url || null,
-      owner_id: getCommentOwnerId(),
+      owner_id: await getCommentOwnerId(),
     })
     .select()
     .single();

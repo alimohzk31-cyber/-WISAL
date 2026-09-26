@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, adminPinLogin } from '../lib/supabase';
 import { measureAdminOperation } from '../lib/adminPerformance';
+import { authenticateAdminPasskey, registerAdminPasskey as registerAdminPasskeyOnServer } from '../lib/adminPasskeys';
 
 // ---------------------------------------------------------------------------
 // AuthContext — SECURITY PHASE 1
@@ -18,6 +19,8 @@ interface AuthContextType {
   hasFreshPinVerification: boolean;
   beginAdminPinAttempt: () => void;
   loginWithPin: (pin: string) => Promise<{ ok: boolean; code?: string }>;
+  loginWithPasskey: () => Promise<{ ok: boolean; code?: string }>;
+  registerAdminPasskey: () => Promise<{ ok: boolean; code?: string }>;
   refreshAdmin: () => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null }>;
@@ -32,14 +35,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [pinVerifiedUserId, setPinVerifiedUserId] = useState('');
+  const [verificationMethod, setVerificationMethod] = useState<'pin' | 'passkey' | null>(null);
   const explicitLogin = useRef(false);
   const currentToken = useRef('');
   const roleRequest = useRef<{ token: string; promise: Promise<boolean> } | null>(null);
   const pinVerifiedUserIdRef = useRef('');
+  const passkeyEnrollmentTokenRef = useRef('');
 
   const clearPinVerification = useCallback(() => {
     pinVerifiedUserIdRef.current = '';
+    passkeyEnrollmentTokenRef.current = '';
     setPinVerifiedUserId('');
+    setVerificationMethod(null);
   }, []);
 
   // A persisted Supabase session is never proof that a PIN was entered in
@@ -83,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await adminPinLogin(pin);
       if (!result.ok) return result;
+      passkeyEnrollmentTokenRef.current = result.enrollmentToken ?? '';
 
       // Bind the temporary PIN grant to an Auth session returned by this
       // attempt and independently confirm the user before enabling the route.
@@ -103,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (admin) {
         pinVerifiedUserIdRef.current = freshSession.user.id;
         setPinVerifiedUserId(freshSession.user.id);
+        setVerificationMethod('pin');
         return { ok: true };
       }
       // The Edge Function already checks the profile, but fail closed again
@@ -124,6 +133,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, code: 'server_error' };
     } finally { explicitLogin.current = false; }
   }, [beginAdminPinAttempt, clearPinVerification, refreshAdmin]);
+
+  // WebAuthn authentication is verified by the admin-passkey Edge Function.
+  // Only its returned Supabase session is installed; a browser-side
+  // navigator.credentials.get() result is never treated as authorization.
+  const loginWithPasskey = useCallback(async (): Promise<{ ok: boolean; code?: string }> => {
+    beginAdminPinAttempt();
+    explicitLogin.current = true;
+    try {
+      const { error: clearError } = await supabase.auth.signOut({ scope: 'local' });
+      if (clearError) return { ok: false, code: 'session_clear_failed' };
+      currentToken.current = '';
+      const result = await authenticateAdminPasskey();
+      if (!result.ok || typeof result.access_token !== 'string' || typeof result.refresh_token !== 'string') {
+        return { ok: false, code: result.code ?? 'webauthn_failed' };
+      }
+      const { error: setError } = await supabase.auth.setSession({
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+      });
+      if (setError) return { ok: false, code: 'server_error' };
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const freshSession = sessionData.session;
+      if (sessionError || !freshSession || freshSession.expires_at * 1000 <= Date.now()) throw new Error('Passkey session is not live.');
+      const { data: userData, error: userError } = await supabase.auth.getUser(freshSession.access_token);
+      if (userError || userData.user?.id !== freshSession.user.id) throw new Error('Passkey session identity verification failed.');
+      currentToken.current = freshSession.access_token;
+      setSession(freshSession);
+      setUser(freshSession.user);
+      const admin = await refreshAdmin();
+      if (!admin) {
+        await supabase.auth.signOut({ scope: 'local' });
+        currentToken.current = '';
+        setSession(null);
+        setUser(null);
+        setIsAdmin(false);
+        return { ok: false, code: 'not_admin' };
+      }
+      pinVerifiedUserIdRef.current = freshSession.user.id;
+      setPinVerifiedUserId(freshSession.user.id);
+      setVerificationMethod('passkey');
+      return { ok: true };
+    } catch (error) {
+      clearPinVerification();
+      setIsAdmin(false);
+      try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* fail closed */ }
+      currentToken.current = '';
+      setSession(null);
+      setUser(null);
+      console.error('[Auth] Passkey verification failed closed:', error);
+      return { ok: false, code: error instanceof Error && error.message === 'webauthn_not_supported' ? 'passkey_not_supported' : 'webauthn_failed' };
+    } finally {
+      explicitLogin.current = false;
+    }
+  }, [beginAdminPinAttempt, clearPinVerification, refreshAdmin]);
+
+  // Registration is intentionally gated by a fresh PIN grant. A passkey may
+  // authenticate an already-registered device, but cannot enroll a new admin
+  // authenticator by itself.
+  const registerAdminPasskey = useCallback(async (): Promise<{ ok: boolean; code?: string }> => {
+    const enrollmentToken = passkeyEnrollmentTokenRef.current;
+    if (!user?.id || pinVerifiedUserId !== user.id || verificationMethod !== 'pin' || !enrollmentToken) return { ok: false, code: 'enrollment_not_authorized' };
+    try {
+      const result = await registerAdminPasskeyOnServer(enrollmentToken);
+      return { ok: result.ok === true, code: result.code };
+    } catch (error) {
+      console.error('[Auth] Passkey registration failed:', error);
+      return { ok: false, code: error instanceof Error && error.message === 'webauthn_not_supported' ? 'passkey_not_supported' : 'webauthn_failed' };
+    }
+  }, [pinVerifiedUserId, user?.id, verificationMethod]);
 
   useEffect(() => {
     let mounted = true;
@@ -198,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasFreshPinVerification = Boolean(user?.id && pinVerifiedUserId === user.id);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, hasFreshPinVerification, beginAdminPinAttempt, loginWithPin, refreshAdmin, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, hasFreshPinVerification, beginAdminPinAttempt, loginWithPin, loginWithPasskey, registerAdminPasskey, refreshAdmin, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

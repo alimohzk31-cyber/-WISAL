@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BriefcaseBusiness, Check, Eye, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { sanitizeExternalUrl } from '../../lib/externalUrl';
 import { employmentTypes, mapJob, whatsappFromSocialLinks } from './jobData';
 import type { EmploymentType, Job, JobStatus, NewJob, NewJobMedia } from './types';
 import { loadJobCategories, type JobCategory } from './admin/jobAdminApi';
@@ -40,8 +41,9 @@ async function updateAdminJob(form: NewJob, current: Job, media: NewJobMedia) {
 
 function JobMediaGallery({ job }: { job: Job }) {
   const images = job.images?.length ? job.images : job.image ? [job.image] : [];
-  if (!images.length && !job.video) return null;
-  return <div className="mt-4 space-y-3">{images.length ? <div className="grid grid-cols-3 gap-2">{images.map((image, index) => <SafeImage key={`${image}-${index}`} src={image} alt={`صورة الوظيفة ${index + 1}`} className="aspect-square w-full rounded-xl bg-[var(--bg-secondary)] object-contain" />)}</div> : null}{job.video ? <video src={job.video} controls preload="none" className="max-h-64 w-full rounded-xl bg-black object-contain" /> : null}</div>;
+  const videoUrl = sanitizeExternalUrl(job.video);
+  if (!images.length && !videoUrl) return null;
+  return <div className="mt-4 space-y-3">{images.length ? <div className="grid grid-cols-3 gap-2">{images.map((image, index) => <SafeImage key={`${image}-${index}`} src={image} alt={`صورة الوظيفة ${index + 1}`} className="aspect-square w-full rounded-xl bg-[var(--bg-secondary)] object-contain" />)}</div> : null}{videoUrl ? <video src={videoUrl} controls preload="none" className="max-h-64 w-full rounded-xl bg-black object-contain" /> : null}</div>;
 }
 
 function Preview({ job, close }: { job: Job; close: () => void }) {

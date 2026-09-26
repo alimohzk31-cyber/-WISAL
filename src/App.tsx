@@ -142,34 +142,34 @@ export default function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <CategoriesProvider>
         <ServicesProvider>
-          <AuthProvider>
-            <ToastProvider>
-            <ConnectivityNotice />
-            <HashRouter>
-              <ScrollToTop />
-              <Routes>
-                <Route path="/" element={<Layout />}>
-                  {/* Suspense: fallback خفيف بدل شاشة بيضاء أثناء جلب chunk الصفحة */}
-                  {/* ErrorBoundary: خطأ في صفحة واحدة يعرض رسالة أنيقة بدل انهيار التطبيق */}
-                  <Route index element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><Home /></ErrorBoundary></Suspense>} />
-                  <Route path="category/:id" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><CategoryPage /></ErrorBoundary></Suspense>} />
-                  <Route path="service/:serviceId" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><ServicePage /></ErrorBoundary></Suspense>} />
-                  <Route element={<AdminRoute />}>
-                    <Route path="admin" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><AdminDashboard /></ErrorBoundary></Suspense>} />
+          <CategoriesProvider>
+            <AuthProvider>
+              <ToastProvider>
+              <ConnectivityNotice />
+              <HashRouter>
+                <ScrollToTop />
+                <Routes>
+                  <Route path="/" element={<Layout />}>
+                    {/* Suspense: fallback خفيف بدل شاشة بيضاء أثناء جلب chunk الصفحة */}
+                    {/* ErrorBoundary: خطأ في صفحة واحدة يعرض رسالة أنيقة بدل انهيار التطبيق */}
+                    <Route index element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><Home /></ErrorBoundary></Suspense>} />
+                    <Route path="category/:id" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><CategoryPage /></ErrorBoundary></Suspense>} />
+                    <Route path="service/:serviceId" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><ServicePage /></ErrorBoundary></Suspense>} />
+                    <Route element={<AdminRoute />}>
+                      <Route path="admin" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><AdminDashboard /></ErrorBoundary></Suspense>} />
+                    </Route>
+                    <Route path="about" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><AboutUs /></ErrorBoundary></Suspense>} />
+                    <Route path="jobs" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><JobsPage /></ErrorBoundary></Suspense>} />
+                    <Route path="jobs/:jobId" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><JobDetailPage /></ErrorBoundary></Suspense>} />
+                    <Route path="saved" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><SavedServicesPage /></ErrorBoundary></Suspense>} />
                   </Route>
-                  <Route path="about" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><AboutUs /></ErrorBoundary></Suspense>} />
-                  <Route path="jobs" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><JobsPage /></ErrorBoundary></Suspense>} />
-                  <Route path="jobs/:jobId" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><JobDetailPage /></ErrorBoundary></Suspense>} />
-                  <Route path="saved" element={<Suspense fallback={<RouteFallback />}><ErrorBoundary><SavedServicesPage /></ErrorBoundary></Suspense>} />
-                </Route>
-              </Routes>
-            </HashRouter>
-            </ToastProvider>
-          </AuthProvider>
+                </Routes>
+              </HashRouter>
+              </ToastProvider>
+            </AuthProvider>
+          </CategoriesProvider>
         </ServicesProvider>
-        </CategoriesProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

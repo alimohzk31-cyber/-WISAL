@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Download, FileText, RefreshCw, Search, UserRound } from 'lucide-react';
 import { loadJobApplications, openApplicationCv as openApplicationCvRaw } from '../jobApplications';
 import type { JobApplication } from '../types';
+import { englishDigits } from '../../../lib/englishDigits';
 
 export default function JobApplicationsAdmin() {
   const [items, setItems] = useState<JobApplication[]>([]);
@@ -61,7 +62,7 @@ export default function JobApplicationsAdmin() {
       {item.message ? <p className="mt-3 break-words rounded-xl bg-[var(--bg-secondary)] p-3 text-sm leading-7">{item.message}</p> : null}
       <div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs font-bold text-[var(--text-muted)]">
         <span className="inline-flex min-w-0 items-center gap-1 break-all"><FileText className="h-4 w-4 shrink-0" />{item.cvName}</span>
-        <time className="shrink-0">{new Intl.DateTimeFormat('ar-IQ', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}</time>
+        <time className="shrink-0">{englishDigits(new Intl.DateTimeFormat('ar-IQ', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt)))}</time>
       </div>
     </article>)}</div>}
   </section>;

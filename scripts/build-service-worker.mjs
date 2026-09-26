@@ -9,7 +9,7 @@ async function listFiles(directory, prefix = '') {
   const files = [];
   for (const entry of entries) {
     const relative = path.posix.join(prefix, entry.name);
-    if (relative === 'sw.js' || relative.startsWith('.vite/')) continue;
+    if (relative === 'sw.js' || relative === '_headers' || relative.startsWith('.vite/')) continue;
     // Keep uncompressed working copies out of the precache. Published slider
     // banners use the optimized JPEG files under public/slider-banners.
     if (relative.startsWith('slider-banners/') && relative.endsWith('.png')) continue;
@@ -105,6 +105,16 @@ async function staleWhileRevalidateMedia(request, event) {
   return update;
 }
 
+function isPrivateOrSignedMediaRequest(request, url) {
+  const query = (url.search + url.hash).toLowerCase();
+  return Boolean(
+    url.pathname.includes('/complaint-media/') ||
+    url.pathname.includes('/storage/v1/object/sign/') ||
+    /(?:^|[?&#])(token|signature|expires|download|signedurl)=/.test(query) ||
+    request.headers.has('authorization')
+  );
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -114,6 +124,12 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (request.destination === 'image') {
+    if (isPrivateOrSignedMediaRequest(request, url)) {
+      // Private complaint media and signed storage URLs are network-only.
+      // Never read or write them from a browser cache.
+      event.respondWith(fetch(new Request(request, { cache: 'no-store' })));
+      return;
+    }
     event.respondWith(staleWhileRevalidateMedia(request, event));
     return;
   }

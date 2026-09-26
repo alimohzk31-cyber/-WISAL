@@ -11,6 +11,7 @@ import { useServiceVisits } from '../hooks/useServiceVisits';
 import ServicePublicationTime from './ServicePublicationTime';
 import { ServiceSocialLinks } from './ServiceSocialContacts';
 import { getGoogleMapsUrl, getServiceCoordinates, getWazeUrl } from '../lib/serviceLocation';
+import { sanitizeTelUrl } from '../lib/externalUrl';
 
 interface ServiceDetailModalProps {
   service: Service;
@@ -38,6 +39,7 @@ const ServiceVisitCount = memo(function ServiceVisitCount({ service }: { service
 export default function ServiceDetailModal({ service, onClose, theme, colors }: ServiceDetailModalProps) {
   const { t } = useLanguage();
   const coordinates = getServiceCoordinates(service);
+  const phoneUrl = sanitizeTelUrl(service.phone);
   const contentRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -193,9 +195,9 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
             {/* Actions - Only show for approved services */}
             {service.status === 'approved' && (
               <div className="flex flex-col gap-3 pt-4">
-                {service.phone && (
+                {phoneUrl && (
                   <a
-                    href={`tel:${service.phone}`}
+                    href={phoneUrl}
                     className={`flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-lg transition-all ${colors.bg} text-[var(--accent-contrast)] ${colors.shadow} hover:scale-[1.02] active:scale-[0.98]`}
                   >
                     <Phone className="w-5 h-5" />

@@ -8,6 +8,8 @@ import {
 } from '../hooks/useContactMessages';
 import { createComplaintImageUrl } from '../lib/complaintMediaStorage';
 import { getOwnerId } from '../hooks/useServices';
+import { sanitizeExternalUrl } from '../lib/externalUrl';
+import { englishDigits } from '../lib/englishDigits';
 
 // ---------------------------------------------------------------------------
 // MessagesManager — تبويب "اقتراحات المستخدمين" في لوحة الإدارة.
@@ -23,10 +25,10 @@ function formatDate(value?: string | null): string {
   if (!value) return '-';
   const d = new Date(value);
   if (isNaN(d.getTime())) return value;
-  return d.toLocaleString('ar', {
+  return englishDigits(d.toLocaleString('ar', {
     year: 'numeric', month: 'long', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
-  });
+  }));
 }
 
 function authorName(ownerId?: string | null): string {
@@ -235,14 +237,15 @@ export default function MessagesManager() {
           {messages.map(msg => {
             const name = authorName(msg.owner_id);
             const hue = authorHue(msg.owner_id);
-            const hasImage = !!msg.image_url;
+            const safeImageUrl = sanitizeExternalUrl(msg.image_url);
+            const hasImage = !!safeImageUrl;
             return (
               <div key={String(msg.id)} className={card}>
                 <div className="flex flex-col sm:flex-row gap-4">
                   {hasImage && (
                     <div className="shrink-0">
-                      <a href={msg.image_url!} target="_blank" rel="noopener noreferrer">
-                        <img src={msg.image_url!} alt="مرفق الاقتراح" loading="lazy" decoding="async" className="w-full sm:w-36 h-28 object-cover rounded-xl border border-[var(--border)]" />
+                      <a href={safeImageUrl} target="_blank" rel="noopener noreferrer">
+                        <img src={safeImageUrl} alt="مرفق الاقتراح" loading="lazy" decoding="async" className="w-full sm:w-36 h-28 object-cover rounded-xl border border-[var(--border)]" />
                       </a>
                     </div>
                   )}

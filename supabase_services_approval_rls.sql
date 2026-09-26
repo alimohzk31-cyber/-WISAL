@@ -85,3 +85,6 @@ CREATE POLICY "services_delete_policy" ON public.services
 -- FROM pg_policies
 -- WHERE schemaname = 'public' AND tablename = 'services';
 -- ============================================================
+-- LEGACY / DO NOT APPLY TO PRODUCTION
+-- Historical compatibility migration. Do not run automatically; use only the
+-- reviewed security migrations for the current database.

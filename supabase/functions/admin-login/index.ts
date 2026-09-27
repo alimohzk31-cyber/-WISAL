@@ -24,13 +24,16 @@ const ADMIN_PASSWORD = Deno.env.get('ADMIN_PASSWORD') ?? '';
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 دقيقة
 const RATE_LIMIT_MAX_FAILURES = 5;
-const ENROLLMENT_AUTH_TTL_MS = 5 * 60 * 1000;
 
 const DEFAULT_CORS_ORIGINS = new Set<string>([
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
   'http://localhost:4173',
   'http://127.0.0.1:4173',
+  'http://192.168.1.111:3000',
+  'https://alimohzk31-cyber.github.io',
   'capacitor://localhost',
   'https://localhost',
 ]);
@@ -99,39 +102,6 @@ function respond(
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-function bytesToBase64Url(value: Uint8Array): string {
-  let binary = '';
-  for (const byte of value) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-}
-
-async function issuePasskeyEnrollmentAuthorization(userId: string): Promise<string | null> {
-  try {
-    const tokenBytes = new Uint8Array(32);
-    crypto.getRandomValues(tokenBytes);
-    const token = bytesToBase64Url(tokenBytes);
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
-    const tokenHash = bytesToBase64Url(new Uint8Array(digest));
-
-    const { error } = await createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false },
-    })
-      .from('admin_webauthn_enrollment_authorizations')
-      .insert({
-        user_id: userId,
-        token_hash: tokenHash,
-        expires_at: new Date(Date.now() + ENROLLMENT_AUTH_TTL_MS).toISOString(),
-      });
-
-    // Keep the existing PIN login usable if the optional WebAuthn schema has not
-    // been deployed yet. Without a persisted row, no enrollment authorization
-    // is returned and registration remains denied server-side.
-    return error ? null : token;
-  } catch {
-    return null;
-  }
-}
-
 Deno.serve(async (req) => {
   const corsOrigin = getAllowedOrigin(req);
 
@@ -197,7 +167,7 @@ Deno.serve(async (req) => {
         'Retry-After': String(RATE_LIMIT_WINDOW_MS / 1000),
       });
     }
-    return respond({ ok: false, code: 'server_error', error: 'Login failed' }, 500, corsOrigin);
+    return respond({ ok: false, code: 'auth_failure', error: 'Login failed' }, 500, corsOrigin);
   }
 
   const session = authData.session;
@@ -224,18 +194,19 @@ Deno.serve(async (req) => {
         'Retry-After': String(RATE_LIMIT_WINDOW_MS / 1000),
       });
     }
-    return respond({ ok: false, code: 'server_error', error: 'Login failed' }, 500, corsOrigin);
+    return respond(
+      { ok: false, code: profileError ? 'authorization_failure' : 'not_admin', error: 'Login failed' },
+      profileError ? 500 : 403,
+      corsOrigin,
+    );
   }
 
   // 4) النجاح — إعادة التوكنات فقط (لا كلمة مرور، لا PIN، لا service_role).
-  const enrollmentToken = await issuePasskeyEnrollmentAuthorization(session.user.id);
-
   return respond(
     {
       ok: true,
       access_token: session.access_token,
       refresh_token: session.refresh_token,
-      ...(enrollmentToken ? { enrollment_token: enrollmentToken } : {}),
     },
     200,
     corsOrigin,

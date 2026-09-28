@@ -10,7 +10,6 @@ export type ProfileImageKind = 'avatar' | 'cover';
 export interface UserProfile {
   id: string;
   full_name: string | null;
-  role?: string | null;
   profession?: string | null;
   governorate?: string | null;
   area?: string | null;
@@ -41,7 +40,7 @@ export interface ProfileService {
 export type ProfileJob = Job;
 
 export const PROFILE_COLUMNS = [
-  'id', 'full_name', 'role', 'profession', 'governorate', 'area', 'bio', 'phone',
+  'id', 'full_name', 'profession', 'governorate', 'area', 'bio', 'phone',
   'avatar_url', 'cover_url', 'whatsapp_url', 'facebook_url', 'instagram_url', 'tiktok_url',
   'portfolio_images', 'created_at', 'updated_at',
 ].join(',');

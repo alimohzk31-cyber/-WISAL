@@ -6,7 +6,7 @@ Edge Function (Server-side) لتحويل PIN الإدارة إلى جلسة Supa
 1. تستقبل `{ pin }` فقط.
 2. تتحقق من الـ PIN ضد Secret `ADMIN_PIN` (خادم فقط، بمقارنة ثابتة الزمن).
 3. تسجّل الدخول بحساب الإدارة باستخدام `ADMIN_EMAIL` + `ADMIN_PASSWORD` (Secrets فقط).
-4. تتحقق أن `public.profiles.id = session.user.id` و `role = 'admin'` (بالمعرّف، لا بالبريد).
+4. تتحقق من أن `session.user.id` نشط في `private.admin_users` عبر دالة DB وسيطة مخصصة، ولا تعتمد على `public.profiles.role`.
 5. عند النجاح تعيد `ok: true` صراحةً مع `access_token` + `refresh_token` فقط.
 
 ## Secrets المطلوبة
@@ -28,8 +28,7 @@ supabase secrets set --env-file supabase/functions/admin-login/.env.local
 > - `--no-verify-jwt` ضروري: الواجهة تستدعي الدالة قبل وجود أي جلسة.
 > - ملف `.env.local` محلي فقط ولا يُرفع إلى Git (انظر `.gitignore`: يستبعد `.env*`).
 > - إنشاء الحساب الإداري: Supabase Dashboard → Authentication → Users → Add user،
->   ثم تأكد أن `public.profiles` يحتوي صفاً بـ `id = auth.uid()` و `role = 'admin'`
->   (أول مستخدم يُسجَّل يصبح admin تلقائياً عبر `handle_new_user`).
+>   يجب أن يكون الحساب الإداري موجوداً في `private.admin_users` مع `active = true`.
 
 ## اختبار بعد النشر
 ```bash

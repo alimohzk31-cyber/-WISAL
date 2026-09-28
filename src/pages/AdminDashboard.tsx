@@ -62,7 +62,7 @@ export default function AdminDashboard() {
   const { stats } = useStats();
   const { pendingJobs, messages, notifications } = useAdminDashboardCounts();
   const { t } = useLanguage();
-  const { theme } = useTheme();
+  const { adminTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'overview' | 'pending' | 'rejected' | 'slider' | 'services' | 'browse' | 'messages' | 'notifications' | 'jobs'>('overview');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   // Toggle إظهار/إخفاء أيقونات القائمة (UI فقط — لا يمس أي وظيفة)
@@ -389,7 +389,7 @@ export default function AdminDashboard() {
   // (المصدر الوحيد لتسميات الحالات وأصناف شاراتها في التطبيق كله).
 
   return (
-    <div className="wisal-overview wisal-admin-shell relative flex min-h-[80vh] w-full min-w-0 max-w-full flex-col gap-4 md:flex-row md:gap-5" dir="rtl">
+    <div data-theme={adminTheme} className="wisal-overview wisal-admin-shell relative flex min-h-[80vh] w-full min-w-0 max-w-full flex-col gap-4 md:flex-row md:gap-5" dir="rtl">
       {/* Ambient Background Lights */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[20%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--accent-soft)] blur-[120px]" />
@@ -1170,7 +1170,7 @@ export default function AdminDashboard() {
               <h3>الإعدادات</h3>
               <button type="button" onClick={() => setIsSettingsOpen(false)} aria-label="إغلاق الإعدادات"><X className="h-5 w-5" /></button>
             </div>
-            <ThemeToggle open={true} onOpenChange={setIsSettingsOpen} hideTrigger />
+            <ThemeToggle open={true} onOpenChange={setIsSettingsOpen} hideTrigger scope="admin" />
           </div>
         </div>
       )}

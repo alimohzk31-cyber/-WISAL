@@ -6,8 +6,8 @@ import { measureAdminOperation } from '../lib/adminPerformance';
 // ---------------------------------------------------------------------------
 // AuthContext — SECURITY PHASE 1
 // Real Supabase Auth identity (auth.uid()).
-// The admin role is read from the DATABASE via the public.is_admin() RPC
-// (stored in public.profiles) — never trusted from a client header or PIN.
+// The admin authority is read from the DATABASE via public.is_admin(),
+// backed by private.admin_users — never trusted from a client header or PIN.
 // ---------------------------------------------------------------------------
 
 interface AuthContextType {
@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPinVerifiedUserId(freshSession.user.id);
         return { ok: true };
       }
-      // The Edge Function already checks the profile, but fail closed again
+      // The Edge Function already checks the private admin authority, but fail closed again
       // if the independent database verification disagrees for any reason.
       await supabase.auth.signOut({ scope: 'local' });
       currentToken.current = '';

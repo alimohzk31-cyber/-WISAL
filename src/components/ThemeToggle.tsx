@@ -16,6 +16,8 @@ const THEME_LABELS: Record<string, string> = {
   royal: 'Royal Purple',
   red: '🔴 الأبيض والأحمر',
   blue: 'السماوي / الأزرق',
+  green: 'الأخضر',
+  pink: 'الماروني الإداري',
 };
 
 const THEME_SWATCHES: Record<string, string> = {
@@ -23,6 +25,8 @@ const THEME_SWATCHES: Record<string, string> = {
   royal: '#6A0DAD',
   red: '#D90429',
   blue: '#087CFF',
+  green: '#20E7AD',
+  pink: '#FF4EAC',
 };
 
 const THEME_OPTIONS: ThemeOption[] = SELECTABLE_THEMES.map((id) => ({
@@ -35,10 +39,13 @@ interface ThemeToggleProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
+  scope?: 'browse' | 'admin';
 }
 
-export default function ThemeToggle({ open, onOpenChange, hideTrigger = false }: ThemeToggleProps) {
-  const { theme, setTheme } = useTheme();
+export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, scope = 'browse' }: ThemeToggleProps) {
+  const { theme, setTheme, adminTheme, setAdminTheme } = useTheme();
+  const selectedTheme = scope === 'admin' ? adminTheme : theme;
+  const selectTheme = scope === 'admin' ? setAdminTheme : setTheme;
   const [internalOpen, setInternalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -85,12 +92,12 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false }:
           >
             <div className="p-2 space-y-1">
               {THEME_OPTIONS.map((item) => {
-                const isActive = theme === item.id;
+                const isActive = selectedTheme === item.id;
                 return (
                   <button
                     key={item.id}
                     onClick={() => {
-                      setTheme(item.id);
+                      selectTheme(item.id);
                       setIsOpen(false);
                     }}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${

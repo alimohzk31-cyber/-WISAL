@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PackageCheck, PartyPopper, RefreshCw, X } from 'lucide-react';
-import { APP_PROJECT_START_DATE, APP_RELEASES, APP_VERSION, PREVIOUS_APP_VERSION, getLatestVersion, isNewerVersion } from '../lib/appVersion';
+import { APP_RELEASES, APP_VERSION, PREVIOUS_APP_VERSION, getLatestVersion, isNewerVersion } from '../lib/appVersion';
 
 interface AppVersionModalProps {
   open: boolean;
@@ -84,11 +84,6 @@ export default function AppVersionModal({ open, onClose, hasUpdate, onUpdateAcce
             <div className="mt-4 border-t border-[var(--border-color)] pt-4 text-right" dir="rtl">
               <p className="mb-3 text-sm font-extrabold text-[var(--text-primary)]">سجل الإصدارات والتحديثات</p>
               <ol className="relative mr-2 space-y-3 border-r border-[var(--accent-primary)]/40 pr-4">
-                <li className="relative rounded-2xl bg-[var(--accent-soft)]/50 px-3 py-2">
-                  <span className="absolute -right-[1.45rem] top-3 h-3 w-3 rounded-full border-2 border-[var(--surface-elevated)] bg-[var(--accent-primary)]" />
-                  <p className="text-sm font-extrabold text-[var(--accent-primary)]" dir="ltr">{APP_PROJECT_START_DATE}</p>
-                  <p className="mt-1 text-xs font-bold text-[var(--text-secondary)]">بداية المشروع</p>
-                </li>
                 {APP_RELEASES.map((release) => (
                   <li key={release.version} className="relative rounded-2xl px-3 py-2">
                     <span className={`absolute -right-[1.45rem] top-3 h-3 w-3 rounded-full border-2 border-[var(--surface-elevated)] ${release.version === APP_VERSION ? 'bg-[var(--accent-primary)]' : 'bg-[var(--text-muted)]'}`} />

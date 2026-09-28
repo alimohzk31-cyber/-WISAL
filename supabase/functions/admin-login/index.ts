@@ -4,8 +4,8 @@
  * الأمان:
  * - العميل يرسل { pin } فقط، ولا يرسل email/password أبداً.
  * - بيانات حساب الإدارة (ADMIN_EMAIL / ADMIN_PASSWORD) في Secrets الخادم فقط.
- * - التحقق من الصلاحية يتم بمعرّف المستخدم (session.user.id) مقابل public.profiles
- *   وليس بالبريد.
+ * - التحقق من الصلاحية يتم بمعرّف المستخدم (session.user.id) عبر بوابة قاعدة بيانات
+ *   ضيقة تقرأ private.admin_users فقط، وليس بالبريد أو public.profiles.
  * - عند النجاح يُعاد access_token + refresh_token فقط. لا يُعاد أي Secret.
  * - حماية من brute-force عبر Deno KV؛ عند تجاوز الحد يُعاد HTTP 429.
  * - لا تُسجَّل قيم PIN أو كلمة المرور أو التوكنات في أي مكان.
@@ -172,15 +172,13 @@ Deno.serve(async (req) => {
 
   const session = authData.session;
 
-  // 3) تأكيد أن الحساب Admin بالمعرّف (وليس بالبريد).
+  // 3) تأكيد أن الحساب Admin من private.admin_users (وليس بالبريد أو profiles).
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-  const { data: profile, error: profileError } = await adminClient
-    .from('profiles')
-    .select('role')
-    .eq('id', session.user.id)
-    .maybeSingle();
+  const { data: isAdmin, error: adminCheckError } = await adminClient.rpc('admin_login_is_active', {
+    p_user_id: session.user.id,
+  });
 
-  if (profileError || profile?.role !== 'admin') {
+  if (adminCheckError || isAdmin !== true) {
     // Best-effort: إبطال الجلسة المؤقتة إن أمكن (التوكنات لن تصل للعميل أصلاً).
     try {
       const adminAuth = adminClient.auth.admin as { signOut?: (userId: string) => Promise<unknown> } | undefined;
@@ -195,8 +193,8 @@ Deno.serve(async (req) => {
       });
     }
     return respond(
-      { ok: false, code: profileError ? 'authorization_failure' : 'not_admin', error: 'Login failed' },
-      profileError ? 500 : 403,
+      { ok: false, code: adminCheckError ? 'authorization_failure' : 'not_admin', error: 'Login failed' },
+      adminCheckError ? 500 : 403,
       corsOrigin,
     );
   }

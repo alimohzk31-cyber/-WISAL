@@ -1,0 +1,119 @@
+{
+  "functions": [
+    {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "signature": "guard_profile_role_change()",
+      "definition": "CREATE OR REPLACE FUNCTION public.guard_profile_role_change()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    -- Only allow role changes if done by an admin (via is_admin RPC)\r\n    -- The is_admin() call here uses the session's auth.uid()\r\n    IF OLD.role IS DISTINCT FROM NEW.role THEN\r\n        IF NOT public.is_admin() THEN\r\n            RAISE EXCEPTION 'Unauthorized: only admins can modify user roles (profile id=%)', NEW.id;\r\n        END IF;\r\n    END IF;\r\n    RETURN NEW;\r\nEND;\r\n$function$\n",
+      "definition_md5": "f407b466655fc0831eaac28f29007980"
+    },
+    {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "signature": "is_admin()",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n    SELECT EXISTS (\r\n        SELECT 1 FROM public.profiles\r\n        WHERE id = auth.uid()\r\n          AND role = 'admin'\r\n    );\r\n$function$\n",
+      "definition_md5": "fb97527d03c3c8b0fc8a5e83f2a59066"
+    }
+  ],
+  "read_only": "on",
+  "captured_at": "2026-09-27T10:49:34.407056+00:00",
+  "project_ref": "nnxrjpitjxtceydlcxzm",
+  "admin_accounts": [
+    {
+      "role": "admin",
+      "banned": false,
+      "deleted": false,
+      "auth_exists": true,
+      "uuid_masked": "d988791f.b8cb",
+      "uuid_sha256": "045b30ff538f747438efce4d070abeae93f24264d78722968e9507e56bc0d6ea",
+      "is_anonymous": false,
+      "auth_status_md5": "012717593fcf2c50f409c5c34870347b",
+      "profile_row_md5": "48afd8daf88c36c1c4562b533b184d10"
+    }
+  ],
+  "private_schema": null,
+  "all_policies_md5": "9f5110f007a592c98615012ae5104086",
+  "all_policies_canonical_md5": "f612b3d190fd583eb90e79e052573529",
+  "canonical_policy_hash_search_path": "",
+  "profile_policies": [
+    {
+      "cmd": "DELETE",
+      "qual": "is_admin()",
+      "roles": [
+        "public"
+      ],
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles_delete_policy",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles_insert_policy",
+      "with_check": "is_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "((id = auth.uid()) OR is_admin())",
+      "roles": [
+        "public"
+      ],
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles_select_policy",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "((id = auth.uid()) OR is_admin())",
+      "roles": [
+        "public"
+      ],
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles_update_policy",
+      "with_check": null
+    }
+  ],
+  "profile_triggers": [
+    {
+      "name": "profile_immutable_fields_guard",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER profile_immutable_fields_guard BEFORE UPDATE OF id, created_at ON public.profiles FOR EACH ROW EXECUTE FUNCTION guard_profile_immutable_fields()"
+    },
+    {
+      "name": "profile_role_guard",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER profile_role_guard BEFORE UPDATE OF role ON public.profiles FOR EACH ROW EXECUTE FUNCTION guard_profile_role_change()"
+    }
+  ],
+  "private_relations": null,
+  "admin_users_exists": false,
+  "ordinary_user_count": 8,
+  "migration_history_exists": false,
+  "api_configuration": {
+    "exposed_schemas": "public,graphql_public",
+    "extra_search_path": "public, extensions"
+  },
+  "edge_function": {
+    "slug": "admin-login",
+    "status": "ACTIVE",
+    "version": 11,
+    "updated_at": 1790485750003
+  },
+  "local_file_sha256": {
+    "src/index.css": "8DCC03916198ACFBC2C9BF76BD221AB98B3D60A3E702EE1E5965758EB017E6BB",
+    "src/components/ThemeToggle.tsx": "656EB801A33E0D582D42F5C5807DB74E01545DC98E8E10A9E0E84198229690EE",
+    "supabase/functions/admin-login/pin-security.ts": "7018E7503D059AF156CFBE8BE83C12184A31B972D1B9DD43B5E117A1B9B91058",
+    "src/context/ThemeContext.tsx": "431710A076F20CB1256A6179B58EC38E6DF61C5C7F59399056877DE62D58236C",
+    "src/context/AuthContext.tsx": "63594294740981F04252C8A02C50D297FA5286079F20F8CB7C3546BF36594258",
+    "package.json": "DEA8EAD65857EE3C3DB4D5839AED4815C64694E97B72BC313A006DAE65C473A3",
+    "scripts/test-admin-route.mjs": "09AD7A270D72407BAB91BFC6914FB45CD20B227F7B5E3A8AF8CD9876ED0E01B6",
+    "src/components/AdminRoute.tsx": "4FE7C90652F0ED65EB71E64A6C75247B511270DF1681A33C4134B150C5EA6D1D",
+    "src/lib/supabase.ts": "F9B4967856375F28393A7D6758E60AF4BF49DA99CEB3B51EAD9E0B5702D6876F",
+    "src/pages/AdminDashboard.tsx": "5358E2A59B2A0A7DCA1EBE1391AFA9F8FE95ECE028314917694F7EA580CAC734",
+    "scripts/test-admin-regression.mjs": "2C48684EA6550DB779933FFC6A772A6199B178670377617BDFCC0177F591007B",
+    "supabase/functions/admin-login/index.ts": "5452581C7581A3B468A46291A4B527B95F28C01CB50C99EF0F0FD7369FC795C0"
+  },
+  "note": "Read-only preflight. UUID is represented by a masked value and exact-match SHA-256 fingerprint; no secrets or profile data stored."
+}

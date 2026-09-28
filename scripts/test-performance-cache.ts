@@ -93,9 +93,9 @@ test('confirmed rejection replaces the local pending copy', () => {
   assert.equal(result[0].status, 'rejected');
 });
 
-test('release numbering follows 1.1 with 1.2', () => {
-  assert.equal(APP_VERSION, '1.2');
-  assert.equal(PREVIOUS_APP_VERSION, '1.1');
+test('release numbering follows 1.3 with 1.4', () => {
+  assert.equal(APP_VERSION, '1.4');
+  assert.equal(PREVIOUS_APP_VERSION, '1.3');
 });
 
 test('central connectivity model exposes offline fallback and the user-facing write guard message', () => {

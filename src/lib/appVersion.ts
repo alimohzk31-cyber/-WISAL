@@ -7,25 +7,16 @@
  */
 
 /** الإصدار الحالي المثبَّت لدى المستخدم. */
-export const APP_VERSION = '1.2';
+export const APP_VERSION = '1.4';
 /** تاريخ إصدار الواجهة الحالي (قيمة ثابتة مرتبطة بالإصدار، لا يتغير يوميًا). */
 export const APP_VERSION_DATE = '23/09/2026';
-export const PREVIOUS_APP_VERSION = '1.1';
-export const APP_PROJECT_START_DATE = '20/12/2025';
+export const PREVIOUS_APP_VERSION = '1.3';
 
 /**
  * سجل إصدارات وصال — المصدر الوحيد الذي تعرضه نافذة «الإصدار».
  *
- * مصدر التواريخ (موثّق من Git، وليس تخمينًا):
- *  - 1.1: نُقل إليه بتاريخ 14/09/2026 (Commit 450ea17)، والتاريخ المعلن
- *    رسميًا في التطبيق نفسه (APP_VERSION_DATE) هو 15/09/2026.
- *  - 1.0: أول Commit في المستودع بتاريخ 08/09/2026 (Commit 259a8f0
- *    «Initial complete Wisal project»)، وفيه android/app/build.gradle
- *    يُظهر versionName "1.0.0" وappVersion.ts يُظهر APP_VERSION = '1.0.0'.
- *
- * لإضافة إصدار جديد مستقبلًا: أضف سطرًا واحدًا أعلى القائمة فقط:
- *   { version: '1.2', date: 'يوم/شهر/سنة' },
- * والقائمة تبقى مرتبة من الأحدث إلى الأقدم كما هي مكتوبة.
+ * تواريخ السجل معتمدة من سجل إصدارات وصال، والقائمة مرتبة من الأقدم إلى الأحدث.
+ * لإضافة إصدار جديد مستقبلًا: أضف سطرًا واحدًا في نهاية القائمة.
  */
 export interface AppRelease {
   /** رقم الإصدار، مثل '1.1'. */
@@ -35,9 +26,11 @@ export interface AppRelease {
 }
 
 export const APP_RELEASES: readonly AppRelease[] = [
-  { version: '1.0', date: '08/09/2026' },
-  { version: '1.1', date: '15/09/2026' },
-  { version: '1.2', date: '23/09/2026' },
+  { version: '1.0', date: '20/12/2025' },
+  { version: '1.1', date: '10/07/2026' },
+  { version: '1.2', date: '08/09/2026' },
+  { version: '1.3', date: '15/09/2026' },
+  { version: '1.4', date: '23/09/2026' },
 ] as const;
 
 /** وصف مصدر التحقق من التحديث (للعرض داخل نافذة الإصدار مستقبلًا). */

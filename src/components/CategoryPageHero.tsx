@@ -45,7 +45,7 @@ export default function CategoryPageHero({
   };
 
   return (
-    <section dir="rtl" className="relative isolate h-[470px] min-w-0 overflow-hidden rounded-[30px] border border-[#d7e6f5] bg-[#f7fbff] shadow-[0_12px_32px_rgba(45,87,130,0.09)] md:h-[300px] md:rounded-[38px]">
+    <section dir="rtl" className="relative isolate h-[470px] min-w-0 overflow-hidden rounded-[30px] border border-[var(--theme-border)] bg-[var(--theme-background)] shadow-[var(--theme-shadow)] md:h-[300px] md:rounded-[38px]">
       <div className="absolute inset-x-0 top-0 h-[238px] overflow-hidden md:inset-y-0 md:left-0 md:right-auto md:h-full md:w-[55%]">
         <CategoryPhoto
           key={visual.photoUrl}
@@ -67,7 +67,7 @@ export default function CategoryPageHero({
         type="button"
         onClick={onBack}
         aria-label={childName ? `الرجوع إلى ${sectionName}` : 'الرجوع'}
-        className="absolute right-3 top-3 z-30 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#dceaf7] bg-white/95 text-[#172b4d] shadow-sm transition hover:bg-white md:right-4 md:top-7 md:h-[86px] md:w-[86px]"
+        className="absolute right-3 top-3 z-30 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text)] shadow-sm transition hover:bg-[var(--theme-primary-soft)] md:right-4 md:top-7 md:h-[86px] md:w-[86px]"
       >
         <ArrowRight className="h-8 w-8 md:h-10 md:w-10" aria-hidden="true" />
       </button>
@@ -76,11 +76,11 @@ export default function CategoryPageHero({
         type="button"
         onClick={onAdd}
         aria-label="إضافة خدمة"
-        className="absolute left-4 top-3 z-30 flex h-[70px] w-[70px] items-center justify-center rounded-full bg-[#0878ed] text-white shadow-[0_12px_24px_rgba(8,120,237,0.22)] transition hover:scale-[1.02] active:scale-95 md:left-8 md:top-3 md:h-[102px] md:w-[102px]"
+        className="absolute left-4 top-3 z-30 flex h-[70px] w-[70px] items-center justify-center rounded-full bg-[var(--theme-primary)] text-white shadow-[0_12px_24px_var(--glow)] transition hover:scale-[1.02] active:scale-95 md:left-8 md:top-3 md:h-[102px] md:w-[102px]"
       >
         <Plus className="h-10 w-10 md:h-14 md:w-14" strokeWidth={3.5} aria-hidden="true" />
       </button>
-      <span className="absolute left-3 top-[82px] z-30 rounded-2xl border border-[#e7edf4] bg-white/95 px-3 py-1.5 text-sm font-black text-[#172b4d] shadow-[0_5px_15px_rgba(37,61,91,0.12)] md:left-4 md:top-[121px] md:px-4 md:py-2 md:text-lg">إضافة خدمة</span>
+      <span className="absolute left-3 top-[82px] z-30 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-1.5 text-sm font-black text-[var(--theme-text)] shadow-[var(--theme-shadow)] md:left-4 md:top-[121px] md:px-4 md:py-2 md:text-lg">إضافة خدمة</span>
 
       <div className="absolute left-4 right-4 top-[250px] z-20 min-w-0 text-right md:left-auto md:right-[11%] md:top-[62px] md:w-[41%]">
         <div className="relative inline-block max-w-full" ref={childMenuRef}>
@@ -93,41 +93,41 @@ export default function CategoryPageHero({
               aria-label={childName ? `التخصص الحالي: ${childName}. تغيير التخصص` : `تخصصات قسم ${sectionName}`}
               className="flex max-w-full items-center gap-1 text-right"
             >
-              <h1 className="break-words text-[clamp(1.45rem,3.1vw,2.55rem)] font-black leading-tight text-[#172b4d]">
+              <h1 className="break-words text-[clamp(1.45rem,3.1vw,2.55rem)] font-black leading-tight text-[var(--theme-text)]">
                 {sectionName}
-                {childName && <><span className="mx-2 text-[#637894]">/</span><span className="text-[#0878ed]">{childName}</span></>}
+                {childName && <><span className="mx-2 text-[var(--theme-muted)]">/</span><span className="text-[var(--theme-primary)]">{childName}</span></>}
               </h1>
-              <ChevronDown className="h-5 w-5 shrink-0 text-[#637894]" aria-hidden="true" />
+              <ChevronDown className="h-5 w-5 shrink-0 text-[var(--theme-muted)]" aria-hidden="true" />
             </button>
           ) : (
-            <h1 className="break-words text-[clamp(1.45rem,3.1vw,2.55rem)] font-black leading-tight text-[#172b4d]">
+            <h1 className="break-words text-[clamp(1.45rem,3.1vw,2.55rem)] font-black leading-tight text-[var(--theme-text)]">
               {sectionName}
-              {childName && <><span className="mx-2 text-[#637894]">/</span><span className="text-[#0878ed]">{childName}</span></>}
+              {childName && <><span className="mx-2 text-[var(--theme-muted)]">/</span><span className="text-[var(--theme-primary)]">{childName}</span></>}
             </h1>
           )}
           {isChildMenuOpen && children.length > 0 && (
-            <div role="menu" className="absolute right-0 top-full z-50 mt-2 max-h-[55dvh] w-max min-w-[220px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-[#dce7f2] bg-white p-2 text-[#263e60] shadow-[0_18px_40px_rgba(37,61,91,0.18)]">
+            <div role="menu" className="absolute right-0 top-full z-50 mt-2 max-h-[55dvh] w-max min-w-[220px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 text-[var(--theme-text)] shadow-[var(--theme-shadow)]">
               {!hideAll && (
-                <button type="button" role="menuitem" disabled={!activeChildSlug} onClick={() => chooseChild(undefined)} className={`block w-full rounded-xl px-4 py-3 text-right text-sm font-bold ${activeChildSlug ? 'hover:bg-[#eff7ff]' : 'text-[#0878ed]'}`}>
+                <button type="button" role="menuitem" disabled={!activeChildSlug} onClick={() => chooseChild(undefined)} className={`block w-full rounded-xl px-4 py-3 text-right text-sm font-bold ${activeChildSlug ? 'hover:bg-[var(--theme-primary-soft)]' : 'text-[var(--theme-primary)]'}`}>
                   كل التخصصات
                 </button>
               )}
               {children.map(child => (
-                <button key={child.slug} type="button" role="menuitem" onClick={() => chooseChild(child.slug)} className={`block w-full rounded-xl px-4 py-3 text-right text-sm font-bold hover:bg-[#eff7ff] ${activeChildSlug === child.slug ? 'text-[#0878ed]' : ''}`}>
+                <button key={child.slug} type="button" role="menuitem" onClick={() => chooseChild(child.slug)} className={`block w-full rounded-xl px-4 py-3 text-right text-sm font-bold hover:bg-[var(--theme-primary-soft)] ${activeChildSlug === child.slug ? 'text-[var(--theme-primary)]' : ''}`}>
                   {child.name}
                 </button>
               ))}
             </div>
           )}
         </div>
-        <p className="mt-2 text-[clamp(1rem,1.8vw,1.45rem)] font-bold text-[#7487a0] md:mt-4">
+        <p className="mt-2 text-[clamp(1rem,1.8vw,1.45rem)] font-bold text-[var(--theme-muted)] md:mt-4">
           قسم {childName ?? sectionName} يرحب بكم
         </p>
-        <span aria-hidden="true" className="mt-4 block h-[5px] w-[54px] rounded-full bg-[#0878ed] md:mt-7" />
+        <span aria-hidden="true" className="mt-4 block h-[5px] w-[54px] rounded-full bg-[var(--theme-primary)] md:mt-7" />
       </div>
 
-      <div className="absolute bottom-3 left-3 z-20 flex h-[56px] max-w-[calc(100%-1.5rem)] items-center gap-3 rounded-full border border-white bg-white/95 px-4 text-[#2860a0] shadow-[0_8px_22px_rgba(52,101,157,0.14)] md:bottom-6 md:left-4 md:h-[72px] md:min-w-[256px] md:gap-4 md:px-6">
-        <Layers className="h-6 w-6 shrink-0 fill-[#2860a0] text-[#2860a0] md:h-8 md:w-8" aria-hidden="true" />
+      <div className="absolute bottom-3 left-3 z-20 flex h-[56px] max-w-[calc(100%-1.5rem)] items-center gap-3 rounded-full border border-white bg-[var(--theme-surface)] px-4 text-[var(--theme-primary)] shadow-[var(--theme-shadow)] md:bottom-6 md:left-4 md:h-[72px] md:min-w-[256px] md:gap-4 md:px-6">
+        <Layers className="h-6 w-6 shrink-0 fill-[#2860a0] text-[var(--theme-primary)] md:h-8 md:w-8" aria-hidden="true" />
         <bdi className="text-base font-black md:text-2xl">{serviceCountLabel(count)}</bdi>
       </div>
     </section>

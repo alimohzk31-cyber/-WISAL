@@ -100,8 +100,8 @@ export default function ServiceDetailModal({ service, onClose, theme, colors }: 
               {(() => {
                 const CategoryIcon = getServiceIcon(service.categorySlug);
                 return (
-                  <div className="w-12 h-12 rounded-full bg-white border-2 border-[#D90429] shadow-md flex items-center justify-center mb-3">
-                    <CategoryIcon className="w-6 h-6 text-[#D90429]" />
+                  <div className="w-12 h-12 rounded-full bg-white border-2 border-[var(--theme-primary)] shadow-md flex items-center justify-center mb-3">
+                    <CategoryIcon className="w-6 h-6 text-[var(--theme-primary)]" />
                   </div>
                 );
               })()}

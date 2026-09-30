@@ -41,17 +41,17 @@ export default function JobsPage() {
   const visibleJobs = showAll || debouncedQuery || employmentType ? filtered : filtered.slice(0, 6);
   const hasFilter = Boolean(debouncedQuery || employmentType);
 
-  return <main className="-mx-3 -my-8 min-h-screen min-w-0 max-w-none bg-[#f3f8ff] px-3 pb-16 pt-3 text-[#12233f] sm:-mx-4 sm:px-6 sm:pt-6 lg:px-8" dir="rtl">
+  return <main className="-mx-3 -my-8 min-h-screen min-w-0 max-w-none bg-[var(--theme-background)] px-3 pb-16 pt-3 text-[var(--theme-text)] sm:-mx-4 sm:px-6 sm:pt-6 lg:px-8" dir="rtl">
     <div className="mx-auto w-full min-w-0 max-w-6xl space-y-5 sm:space-y-7">
     <JobsSlider settings={presentation.settings} jobs={jobs} loading={loading} />
     <DirectoryNav activeView="jobs" />
 
     <section aria-label="البحث عن وظيفة">
-      <label className="relative block rounded-[20px] bg-white shadow-[0_9px_30px_rgba(20,100,210,0.12)]">
-        <Search className="absolute right-4 top-1/2 z-10 h-6 w-6 -translate-y-1/2 text-[#24558f]" />
-        <input value={query} onChange={event => { setQuery(event.target.value); setShowAll(false); }} placeholder="ابحث عن وظيفة (مثلاً: محاسب، مبيعات...)" className="h-[58px] w-full rounded-[20px] border-2 border-[#b8d9ff] bg-white pr-13 pl-24 text-sm font-bold text-[#1d3557] outline-none transition placeholder:text-[#7286a1] focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-primary)]/10 sm:h-16 sm:text-base" />
-        <span className="absolute left-2.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white shadow-[0_5px_14px_rgba(8,124,255,0.32)]" aria-hidden="true"><Mic className="h-5 w-5" /></span>
-        {query ? <button type="button" onClick={() => { setQuery(''); setShowAll(false); }} aria-label="مسح البحث" className="absolute left-14 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#7890aa] hover:bg-[#edf6ff] hover:text-[var(--accent-primary)]"><X className="h-4 w-4" /></button> : null}
+      <label className="relative block rounded-[20px] bg-[var(--theme-surface)] shadow-[var(--theme-shadow)]">
+        <Search className="absolute right-4 top-1/2 z-10 h-6 w-6 -translate-y-1/2 text-[var(--theme-muted)]" />
+        <input value={query} onChange={event => { setQuery(event.target.value); setShowAll(false); }} placeholder="ابحث عن وظيفة (مثلاً: محاسب، مبيعات...)" className="h-[58px] w-full rounded-[20px] border-2 border-[var(--theme-border)] bg-[var(--theme-surface)] pr-13 pl-24 text-sm font-bold text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-muted)] focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-primary)]/10 sm:h-16 sm:text-base" />
+        <span className="absolute left-2.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white shadow-[0_5px_14px_var(--glow)]" aria-hidden="true"><Mic className="h-5 w-5" /></span>
+        {query ? <button type="button" onClick={() => { setQuery(''); setShowAll(false); }} aria-label="مسح البحث" className="absolute left-14 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[var(--theme-muted)] hover:bg-[var(--theme-primary-soft)] hover:text-[var(--accent-primary)]"><X className="h-4 w-4" /></button> : null}
       </label>
     </section>
 
@@ -59,11 +59,11 @@ export default function JobsPage() {
       <div className="grid min-w-0 grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-4">
         {typeCards.map(({ type, icon: Icon, color, accent }) => {
           const selected = employmentType === type;
-          return <article key={type} className={`relative min-w-0 overflow-hidden rounded-[20px] border bg-white px-1.5 py-3 text-center shadow-[0_8px_24px_rgba(30,86,146,0.10)] transition sm:px-3 sm:py-4 ${selected ? `${accent} -translate-y-1 ring-2 ring-[var(--accent-primary)]/15` : 'border-[#e2edf9]'}`}>
+          return <article key={type} className={`relative min-w-0 overflow-hidden rounded-[20px] border bg-[var(--theme-surface)] px-1.5 py-3 text-center shadow-[var(--theme-shadow)] transition sm:px-3 sm:py-4 ${selected ? `${accent} -translate-y-1 ring-2 ring-[var(--accent-primary)]/15` : 'border-[var(--theme-border)]'}`}>
             <button type="button" onClick={() => { setEmploymentType(current => current === type ? '' : type); setShowAll(true); }} aria-pressed={selected} className="absolute inset-0 z-0" aria-label={`عرض وظائف ${employmentTypeLabel(type)}`} />
             <span className={`pointer-events-none relative z-[1] mx-auto flex h-10 w-10 items-center justify-center rounded-[14px] sm:h-12 sm:w-12 ${color}`}><Icon className="h-6 w-6 sm:h-7 sm:w-7" /></span>
-            <h2 className="pointer-events-none relative z-[1] mt-2 truncate text-[11px] font-black text-[#153458] sm:text-sm">{employmentTypeLabel(type)}</h2>
-            <button type="button" onClick={() => setAddType(type)} className="relative z-10 mt-2 inline-flex max-w-full items-center justify-center gap-0.5 rounded-lg bg-[#eef6ff] px-1.5 py-1 text-[9px] font-black text-[var(--accent-primary)] hover:bg-[#dcecff] sm:px-2.5 sm:text-[11px]"><Plus className="h-3 w-3" />انضم الآن</button>
+            <h2 className="pointer-events-none relative z-[1] mt-2 truncate text-[11px] font-black text-[var(--theme-text)] sm:text-sm">{employmentTypeLabel(type)}</h2>
+            <button type="button" onClick={() => setAddType(type)} className="relative z-10 mt-2 inline-flex max-w-full items-center justify-center gap-0.5 rounded-lg bg-[var(--theme-primary-soft)] px-1.5 py-1 text-[9px] font-black text-[var(--accent-primary)] hover:bg-[var(--theme-surface-alt)] sm:px-2.5 sm:text-[11px]"><Plus className="h-3 w-3" />انضم الآن</button>
           </article>;
         })}
       </div>
@@ -71,12 +71,12 @@ export default function JobsPage() {
     </section>
 
     <section aria-labelledby="latest-jobs-title" className="space-y-4">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><div className="min-w-0"><h2 id="latest-jobs-title" className="text-xl font-black text-[#0f2747] sm:text-2xl">{hasFilter ? 'نتائج البحث' : 'أحدث الوظائف'}</h2><p className="mt-0.5 text-[11px] font-bold text-[#8191a7]">{loading ? 'جارٍ التحميل…' : `${filtered.length} فرصة متاحة`}</p></div>{!showAll && !hasFilter ? <button type="button" onClick={() => setShowAll(true)} className="inline-flex shrink-0 items-center gap-1 text-sm font-black text-[var(--accent-primary)]">عرض الكل<ArrowLeft className="h-4 w-4" /></button> : null}</div>
-      {loading ? <div className="grid gap-3 md:grid-cols-2"><div className="h-32 animate-pulse rounded-[22px] bg-white" /><div className="h-32 animate-pulse rounded-[22px] bg-white" /></div>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><div className="min-w-0"><h2 id="latest-jobs-title" className="text-xl font-black text-[var(--theme-text)] sm:text-2xl">{hasFilter ? 'نتائج البحث' : 'أحدث الوظائف'}</h2><p className="mt-0.5 text-[11px] font-bold text-[var(--theme-muted)]">{loading ? 'جارٍ التحميل…' : `${filtered.length} فرصة متاحة`}</p></div>{!showAll && !hasFilter ? <button type="button" onClick={() => setShowAll(true)} className="inline-flex shrink-0 items-center gap-1 text-sm font-black text-[var(--accent-primary)]">عرض الكل<ArrowLeft className="h-4 w-4" /></button> : null}</div>
+      {loading ? <div className="grid gap-3 md:grid-cols-2"><div className="h-32 animate-pulse rounded-[22px] bg-[var(--theme-surface)]" /><div className="h-32 animate-pulse rounded-[22px] bg-[var(--theme-surface)]" /></div>
         : !configured ? <div className="rounded-3xl border border-amber-400/30 bg-amber-500/10 p-8 text-center"><BriefcaseBusiness className="mx-auto h-11 w-11 text-amber-500" /><h2 className="mt-3 text-lg font-black">قسم الوظائف جاهز بانتظار تفعيل قاعدة البيانات</h2><p className="mt-2 text-sm font-bold text-[var(--text-secondary)]">نفّذ ملفات SQL الخاصة بالوظائف لبدء استقبال وعرض الفرص.</p></div>
           : error ? <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-8 text-center"><p className="font-bold">تعذر تحميل الوظائف.</p><button onClick={reload} className="mt-3 font-black text-[var(--accent-primary)]">إعادة المحاولة</button></div>
             : visibleJobs.length ? <div className="grid gap-3 md:grid-cols-2">{visibleJobs.map(job => <JobCard key={job.id} job={job} saved={isSaved(job.id)} onToggleSaved={() => toggleSaved(job.id)} />)}</div>
-              : <div className="rounded-[24px] bg-white p-10 text-center shadow-[0_8px_25px_rgba(30,86,146,0.08)]"><BriefcaseBusiness className="mx-auto h-11 w-11 text-[#91a8c3]" /><p className="mt-3 text-base font-black">{debouncedQuery ? 'لا توجد وظائف مطابقة لبحثك حالياً' : 'لا توجد وظائف متاحة حالياً'}</p>{hasFilter ? <button type="button" onClick={() => { setQuery(''); setEmploymentType(''); }} className="mt-3 text-sm font-black text-[var(--accent-primary)]">مسح البحث والتصفية</button> : null}</div>}
+              : <div className="rounded-[24px] bg-[var(--theme-surface)] p-10 text-center shadow-[var(--theme-shadow)]"><BriefcaseBusiness className="mx-auto h-11 w-11 text-[var(--theme-muted)]" /><p className="mt-3 text-base font-black">{debouncedQuery ? 'لا توجد وظائف مطابقة لبحثك حالياً' : 'لا توجد وظائف متاحة حالياً'}</p>{hasFilter ? <button type="button" onClick={() => { setQuery(''); setEmploymentType(''); }} className="mt-3 text-sm font-black text-[var(--accent-primary)]">مسح البحث والتصفية</button> : null}</div>}
     </section>
 
     {addType ? <AddJobModal initialEmploymentType={addType} categories={presentation.categories} onClose={() => setAddType(undefined)} onSubmit={addJob} /> : null}

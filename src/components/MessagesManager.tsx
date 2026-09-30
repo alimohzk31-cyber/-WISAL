@@ -206,8 +206,8 @@ export default function MessagesManager() {
       <>
 
       {error && (
-        <div className="text-center py-12 rounded-2xl border bg-red-500/5 border-red-500/20">
-          <p className="text-sm font-bold text-red-500 mb-3">{error}</p>
+        <div className="text-center py-12 rounded-2xl border bg-[var(--theme-primary)]/5 border-[var(--theme-primary)]/20">
+          <p className="text-sm font-bold text-[var(--theme-primary)] mb-3">{error}</p>
           <button
             type="button"
             onClick={load}
@@ -273,7 +273,7 @@ export default function MessagesManager() {
                       type="button"
                       onClick={() => remove(msg)}
                       disabled={updatingId !== null}
-                      className="flex items-center justify-center gap-1 rounded-xl bg-red-500/10 px-3 py-2 text-sm font-bold text-red-500 hover:bg-red-500/20 disabled:opacity-50"
+                      className="flex items-center justify-center gap-1 rounded-xl bg-[var(--theme-primary)]/10 px-3 py-2 text-sm font-bold text-[var(--theme-primary)] hover:bg-[var(--theme-primary-soft)] disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" /> حذف
                     </button>
@@ -288,8 +288,8 @@ export default function MessagesManager() {
       ) : (
         <>
           {complaintsError && (
-            <div className="text-center py-12 rounded-2xl border bg-red-500/5 border-red-500/20">
-              <p className="text-sm font-bold text-red-500 mb-3">{complaintsError}</p>
+            <div className="text-center py-12 rounded-2xl border bg-[var(--theme-primary)]/5 border-[var(--theme-primary)]/20">
+              <p className="text-sm font-bold text-[var(--theme-primary)] mb-3">{complaintsError}</p>
               <button
                 type="button"
                 onClick={() => void loadComplaints()}
@@ -336,7 +336,7 @@ export default function MessagesManager() {
                         type="button"
                         onClick={() => void removeComplaint(complaint)}
                         disabled={deletingComplaintId !== null}
-                        className="flex items-center justify-center gap-1 rounded-xl bg-red-500/10 px-3 py-2 text-sm font-bold text-red-500 hover:bg-red-500/20 disabled:opacity-50"
+                        className="flex items-center justify-center gap-1 rounded-xl bg-[var(--theme-primary)]/10 px-3 py-2 text-sm font-bold text-[var(--theme-primary)] hover:bg-[var(--theme-primary-soft)] disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" /> حذف
                       </button>

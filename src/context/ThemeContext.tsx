@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 // and never applied.
 // لإضافة ثيم جديد مستقبلاً: أضف معرّفه هنا + ألوانه في PRIMARY_COLORS
 // + كتلة [data-theme='id'] في src/index.css + عنصر في THEME_OPTIONS بـ ThemeToggle.
-export type Theme = 'light' | 'dark' | 'royal' | 'red' | 'blue' | 'green' | 'pink';
+export type Theme = 'light' | 'dark' | 'royal' | 'red' | 'blue' | 'green' | 'pink' | 'maroon';
 
 export const PRIMARY_COLORS: Record<Theme, string> = {
   light: '#6D5ACF', // calm purple (المظهر الفاتح)
@@ -14,18 +14,19 @@ export const PRIMARY_COLORS: Record<Theme, string> = {
   blue: '#087CFF',
   green: '#20E7AD',
   pink: '#FF4EAC',
+  maroon: '#FF2C91',
   dark: '#6D5ACF', // unreachable fallback (dark mode is disabled)
 };
 
 // الثيمات القابلة للاختيار (قابلة للتوسعة — أضف هنا عند إضافة ثيم جديد)
-export const SELECTABLE_THEMES: Theme[] = ['light', 'royal', 'red', 'blue', 'green', 'pink'];
+export const SELECTABLE_THEMES: Theme[] = ['light', 'royal', 'red', 'blue', 'green', 'pink', 'maroon'];
 
 export function getPrimaryColor(theme: Theme): string {
   return PRIMARY_COLORS[theme];
 }
 
 const BROWSE_STORAGE_KEY = 'saleen_app_theme';
-const ADMIN_STORAGE_KEY = 'saleen_admin_theme';
+
 
 interface ThemeContextType {
   theme: Theme;
@@ -46,9 +47,7 @@ function getStoredTheme(key: string, fallback: Theme): Theme {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => getStoredTheme(BROWSE_STORAGE_KEY, 'light'));
-  // Keep the existing admin appearance by default. This is independent from
-  // the browse theme and is persisted under its own key.
-  const [adminTheme, setAdminThemeState] = useState<Theme>(() => getStoredTheme(ADMIN_STORAGE_KEY, 'pink'));
+
 
   useEffect(() => {
     window.localStorage.setItem(BROWSE_STORAGE_KEY, theme);
@@ -58,12 +57,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.setAttribute('data-theme', theme);
   }, [theme]);
 
-  useEffect(() => {
-    window.localStorage.setItem(ADMIN_STORAGE_KEY, adminTheme);
-  }, [adminTheme]);
 
   const setTheme = (next: Theme) => setThemeState(next);
-  const setAdminTheme = (next: Theme) => setAdminThemeState(next);
+  // Compatibility API for existing admin components; it updates the shared theme.
+  const adminTheme = theme;
+  const setAdminTheme = (next: Theme) => setThemeState(next);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, adminTheme, setAdminTheme }}>

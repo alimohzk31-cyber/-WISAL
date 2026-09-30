@@ -111,8 +111,8 @@ function SocialFeed({
           return (
             <article key={serviceKey} className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)]">
               <div className="flex min-w-0 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-3.5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#D90429] bg-white">
-                  <Icon className="h-5 w-5 text-[#D90429]" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--theme-primary)] bg-white">
+                  <Icon className="h-5 w-5 text-[var(--theme-primary)]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-2">

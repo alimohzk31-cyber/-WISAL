@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
@@ -25,23 +24,15 @@ function AnalogClock({ now }: { now: Date }) {
   );
 }
 
-export default function HeaderClock() {
+function HeaderClock() {
   const [now, setNow] = useState(() => new Date());
-  const [showClock, setShowClock] = useState(false);
 
   useEffect(() => {
-    if (!showClock) return;
     const update = () => { if (!document.hidden) setNow(new Date()); };
     update();
     const tick = window.setInterval(update, 1000);
     document.addEventListener('visibilitychange', update);
     return () => { window.clearInterval(tick); document.removeEventListener('visibilitychange', update); };
-  }, [showClock]);
-
-  useEffect(() => {
-    // دورة ثابتة تضمن العودة إلى الهوية وعدم توقف التناوب بعد أول انتقال.
-    const alternate = window.setInterval(() => { if (!document.hidden) setShowClock(current => !current); }, 6000);
-    return () => window.clearInterval(alternate);
   }, []);
 
   const hour = now.getHours() % 12 || 12;
@@ -52,33 +43,9 @@ export default function HeaderClock() {
 
   return (
     <div className="relative flex h-12 w-[200px] min-w-0 max-w-[48vw] items-center justify-center sm:w-[240px] sm:max-w-[54vw]" aria-live="off">
-      <AnimatePresence initial={false} mode="wait">
-        {!showClock ? (
-          <motion.div
-            key="brand"
-            initial={{ opacity: 0, filter: 'blur(2px) brightness(0.8)' }}
-            animate={{ opacity: 1, filter: 'blur(0px) brightness(1)' }}
-            exit={{ opacity: 0, filter: 'blur(2px) brightness(0.8)' }}
-            transition={{ duration: 0.65, ease: 'easeInOut' }}
-            className="wisal-header-identity relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl"
-            aria-label="وصال، كل الخدمات في مكان واحد"
-          >
-            <span className="wisal-logo-aurora" aria-hidden="true" />
-            <img
-              src={`${(import.meta as any).env.BASE_URL}assets/wisal-header-brand-animated.png`}
-              alt="وصال — WISAL — كل الخدمات في مكان واحد"
-              className="wisal-living-logo relative z-10 max-h-[44px] max-w-full object-contain"
-              draggable={false}
-            />
-            <span className="wisal-logo-shine" aria-hidden="true" />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="clock"
+      <div
             role="timer"
             aria-label={`${pad(hour)}:${pad(now.getMinutes())} ${period}، ${date}`}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.65, ease: 'easeInOut' }}
             className="wisal-header-clock flex w-full min-w-0 items-center justify-center gap-1 rounded-2xl px-1 py-1.5 min-[360px]:gap-2 min-[360px]:px-2 sm:gap-3"
             dir="ltr"
           >
@@ -92,9 +59,9 @@ export default function HeaderClock() {
                 <span className="min-w-0 truncate">{date}</span>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
     </div>
   );
 }
+
+export default memo(HeaderClock);

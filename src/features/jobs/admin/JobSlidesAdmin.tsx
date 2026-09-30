@@ -211,7 +211,7 @@ export default function JobSlidesAdmin() {
         <button type="button" disabled={busy || loading} onClick={() => setDraft(emptyDraft(Math.max(0, ...slides.map(item => item.sortOrder)) + 1))} className={inputCls}>إضافة سلايد</button>
       </div>
     </div>
-    {error && <p role="alert" className="rounded-xl bg-red-500/10 p-3 text-red-600">{error}</p>}
+    {error && <p role="alert" className="rounded-xl bg-[var(--theme-primary)]/10 p-3 text-[var(--theme-primary-dark)]">{error}</p>}
     {loading && <p role="status">جارٍ تحميل السلايدر…</p>}
     <details className="rounded-2xl border border-[var(--border)] p-4">
       <summary className="cursor-pointer font-bold text-[var(--text-primary)]">إعدادات العرض</summary>
@@ -246,7 +246,7 @@ export default function JobSlidesAdmin() {
             <button type="button" onClick={() => perform(async () => replaceSlide(await duplicateJobSlide(slide)))}>نسخ</button>
             <button type="button" disabled={index === 0} aria-label={`رفع ${slide.title}`} onClick={() => move(index, -1)}><ArrowUp className="h-4 w-4" /></button>
             <button type="button" disabled={index === slides.length - 1} aria-label={`خفض ${slide.title}`} onClick={() => move(index, 1)}><ArrowDown className="h-4 w-4" /></button>
-            <button type="button" className="text-red-500" onClick={() => { if (window.confirm(`حذف السلايد «${slide.title}»؟`)) void perform(async () => { await deleteJobSlide(slide.id); setSlides(previous => previous.filter(item => item.id !== slide.id)); }); }}>حذف</button>
+            <button type="button" className="text-[var(--theme-primary)]" onClick={() => { if (window.confirm(`حذف السلايد «${slide.title}»؟`)) void perform(async () => { await deleteJobSlide(slide.id); setSlides(previous => previous.filter(item => item.id !== slide.id)); }); }}>حذف</button>
           </fieldset>
         </div>
       </article>)}

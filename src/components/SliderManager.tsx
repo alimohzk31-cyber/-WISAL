@@ -674,7 +674,7 @@ export default function SliderManager() {
                         <button
                           type="button"
                           onClick={() => setField('images', draft.images.filter((_, idx) => idx !== 0))}
-                          className="absolute top-2 left-2 p-2 rounded-full bg-black/60 text-white hover:bg-red-500 transition-colors"
+                          className="absolute top-2 left-2 p-2 rounded-full bg-black/60 text-white hover:bg-[var(--theme-primary)] transition-colors"
                           title="إزالة الصورة"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -710,7 +710,7 @@ export default function SliderManager() {
                           <button
                             type="button"
                             onClick={() => setField('images', draft.images.filter((_, i) => i !== idx + 1))}
-                            className="absolute top-0.5 left-0.5 p-0.5 rounded-full bg-black/60 text-white hover:bg-red-500 transition-colors"
+                            className="absolute top-0.5 left-0.5 p-0.5 rounded-full bg-black/60 text-white hover:bg-[var(--theme-primary)] transition-colors"
                             title="إزالة"
                           >
                             <X className="w-3 h-3" />
@@ -1175,7 +1175,7 @@ export default function SliderManager() {
                         <button onClick={() => selectSlide(ad)} className="p-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors" title="تعديل الشريحة">
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setDeleteTarget(ad)} className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title="حذف الشريحة">
+                        <button onClick={() => setDeleteTarget(ad)} className="p-2 rounded-xl bg-[var(--theme-primary)]/10 text-[var(--theme-primary-light)] hover:bg-[var(--theme-primary-soft)] transition-colors" title="حذف الشريحة">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -1303,7 +1303,7 @@ export default function SliderManager() {
               exit={{ scale: 0.95, opacity: 0 }}
               className="w-full min-w-0 max-w-md space-y-5 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 text-center shadow-2xl sm:p-6"
             >
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] flex items-center justify-center">
                 <Trash2 className="w-7 h-7" />
               </div>
               <div>
@@ -1323,7 +1323,7 @@ export default function SliderManager() {
                 <button
                   onClick={confirmDelete}
                   disabled={deleting}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--theme-primary)] text-white font-bold text-sm hover:bg-[var(--theme-primary-dark)] transition-colors disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" /> {deleting ? 'جاري الحذف...' : 'نعم، احذف الشريحة'}
                 </button>

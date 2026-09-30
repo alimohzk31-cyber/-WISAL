@@ -5,6 +5,8 @@ const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
 const SuggestionsFeedModal = lazy(() => import('./SuggestionsFeedModal'));
 import NotificationsPopup from './NotificationsPopup';
 const AppVersionModal = lazy(() => import('./AppVersionModal'));
+import type { AppVersionAnchorRect } from './AppVersionModal';
+import type { MenuPopoverAnchorRect } from './MenuSubmenuPopover';
 import { APP_VERSION, checkForUpdate } from '../lib/appVersion';
 import { useNotifications } from '../hooks/useNotifications';
 import { useStats } from '../hooks/useStats';
@@ -20,12 +22,18 @@ export default function Layout() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminClickCount, setAdminClickCount] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionsMounted, setSuggestionsMounted] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsAnchorRect, setNotificationsAnchorRect] = useState<MenuPopoverAnchorRect | null>(null);
+  const [suggestionsAnchorRect, setSuggestionsAnchorRect] = useState<MenuPopoverAnchorRect | null>(null);
   const { beginAdminPinAttempt } = useAuth();
   const notifications = useNotifications();
-  const closeNotifications = useCallback(() => setShowNotifications(false), []);
+  const closeNotifications = useCallback(() => { setShowNotifications(false); setNotificationsAnchorRect(null); }, []);
+  const closeSuggestions = useCallback(() => { setShowSuggestions(false); setSuggestionsAnchorRect(null); }, []);
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [showAppVersion, setShowAppVersion] = useState(false);
+  const [versionAnchorRect, setVersionAnchorRect] = useState<AppVersionAnchorRect | null>(null);
+  const [colorsAnchorRect, setColorsAnchorRect] = useState<AppVersionAnchorRect | null>(null);
   const [hasUpdate, setHasUpdate] = useState(false);
 
 
@@ -53,13 +61,84 @@ export default function Layout() {
   }, []);
   const [colorsOpen, setColorsOpen] = useState(false);
   const mainMenuRef = useRef<HTMLDivElement>(null);
+  const mainMenuPanelRef = useRef<HTMLDivElement>(null);
+  const versionTriggerRef = useRef<HTMLButtonElement>(null);
+  const colorsTriggerRef = useRef<HTMLButtonElement>(null);
+  const notificationsTriggerRef = useRef<HTMLButtonElement>(null);
+  const suggestionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const handleAppVersionOpen = useCallback(() => {
+    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
+    const triggerRect = versionTriggerRef.current?.getBoundingClientRect() ?? menuRect;
+    const rect = triggerRect ?? menuRect;
+    if (rect) {
+      const horizontalRect = menuRect ?? rect;
+      setVersionAnchorRect({
+        top: rect.top,
+        left: horizontalRect.left,
+        right: horizontalRect.right,
+        bottom: horizontalRect.bottom,
+        width: horizontalRect.width,
+        height: rect.height,
+      });
+    }
+    setShowAppVersion(true);
+  }, []);
+  const handleColorsOpen = useCallback(() => {
+    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
+    const triggerRect = colorsTriggerRef.current?.getBoundingClientRect() ?? menuRect;
+    const rect = triggerRect ?? menuRect;
+    if (rect) {
+      const horizontalRect = menuRect ?? rect;
+      setColorsAnchorRect({
+        top: rect.top,
+        left: horizontalRect.left,
+        right: horizontalRect.right,
+        bottom: horizontalRect.bottom,
+        width: horizontalRect.width,
+        height: rect.height,
+      });
+    }
+    setColorsOpen(true);
+  }, []);
+  const handleNotificationsOpen = useCallback(() => {
+    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
+    const triggerRect = notificationsTriggerRef.current?.getBoundingClientRect() ?? menuRect;
+    const rect = triggerRect ?? menuRect;
+    if (rect) {
+      const horizontalRect = menuRect ?? rect;
+      setNotificationsAnchorRect({
+        top: rect.top,
+        left: horizontalRect.left,
+        right: horizontalRect.right,
+        bottom: horizontalRect.bottom,
+        width: horizontalRect.width,
+        height: rect.height,
+      });
+    }
+    setShowNotifications(true);
+  }, []);
+
+  const handleSuggestionsOpen = useCallback(() => {
+    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
+    const triggerRect = suggestionsTriggerRef.current?.getBoundingClientRect() ?? menuRect;
+    const rect = triggerRect ?? menuRect;
+    if (rect) {
+      const horizontalRect = menuRect ?? rect;
+      setSuggestionsAnchorRect({
+        top: rect.top,
+        left: horizontalRect.left,
+        right: horizontalRect.right,
+        bottom: rect.bottom,
+        width: horizontalRect.width,
+        height: rect.height,
+      });
+    }
+    setSuggestionsMounted(true);
+    setShowSuggestions(true);
+  }, []);
   const adminClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const handleAdminClick = () => {
-    // الهاتف والأجهزة الصغيرة: لا يوجد أي منطق إدارة مربوط بالصورة مطلقًا —
-    // فحص matchMedia وقت الضغط (وليس CSS فقط) لضمان التعطيل الكامل.
-    if (!isDesktop) return;
-
     if (adminClickTimerRef.current) {
       clearTimeout(adminClickTimerRef.current);
     }
@@ -122,26 +201,34 @@ export default function Layout() {
               <button
                 type="button"
                 onClick={handleAdminClick}
-                className="flex items-center px-3 py-2 rounded-xl transition-colors hover:bg-[var(--accent-soft)]"
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl transition-colors hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                 title={t('admin_panel')}
                 aria-label={t('admin_panel')}
               >
                 <img
-                  src={`${(import.meta as any).env.BASE_URL}favicon.png`}
+                  src={`${(import.meta as any).env.BASE_URL}wisal-header-logo.png`}
                   alt={t('app_name')}
-                  className="w-7 h-7 rounded-lg object-cover"
+                  className="h-full w-full rounded-xl object-contain"
                   style={{ filter: `drop-shadow(0 0 5px ${primaryColor}40)` }}
                   draggable={false}
                 />
               </button>
             ) : (
               /* الهاتف والأجهزة الصغيرة: شعار شفاف نظيف منفصل عن أي خلفية — بلا أي حدث أو منطق إدارة */
-              <img
+              <button
+                type="button"
+                onClick={handleAdminClick}
+                className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-colors hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                title={t('admin_panel')}
+                aria-label={t('admin_panel')}
+              >
+                <img
                 src={`${(import.meta as any).env.BASE_URL}wisal-header-logo.png`}
                 alt={t('app_name')}
-                className="h-14 w-auto max-w-[22vw] shrink-0 object-contain"
+                className="h-full w-full rounded-xl object-contain"
                 draggable={false}
-              />
+                />
+              </button>
             )}
 
 
@@ -170,6 +257,7 @@ export default function Layout() {
             <AnimatePresence>
               {showMainMenu && (
                 <motion.div
+                  ref={mainMenuPanelRef}
                   id="main-menu"
                   initial={{ opacity: 0, y: -8, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -178,7 +266,9 @@ export default function Layout() {
                 >
                   <button
                     type="button"
-                    onClick={() => { notifications.refresh(); setShowNotifications(true); setShowMainMenu(false); }}
+                    ref={notificationsTriggerRef}
+                    data-wisal-submenu-trigger="true"
+                    onClick={handleNotificationsOpen}
                     aria-haspopup="dialog"
                     aria-label={notifications.unreadCount > 0 ? 'الإشعارات، ' + notifications.unreadCount + ' غير مقروءة' : 'الإشعارات'}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-blue-500/10"
@@ -195,7 +285,9 @@ export default function Layout() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setShowSuggestions(true); setShowMainMenu(false); }}
+                    ref={suggestionsTriggerRef}
+                    data-wisal-submenu-trigger="true"
+                    onClick={handleSuggestionsOpen}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-teal-500/10"
                   >
                     <MessageSquareWarning className="h-5 w-5 text-teal-500" />
@@ -203,15 +295,19 @@ export default function Layout() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setColorsOpen(true); setShowMainMenu(false); }}
+                    ref={colorsTriggerRef}
+                    data-wisal-colors-trigger="true"
+                    onClick={handleColorsOpen}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-soft)]"
                   >
                     <Palette className="h-5 w-5" style={{ color: 'var(--accent-primary)' }} />
                     الألوان
                   </button>
                   <button
+                    ref={versionTriggerRef}
+                    data-wisal-version-trigger="true"
                     type="button"
-                    onClick={() => { setShowAppVersion(true); setShowMainMenu(false); }}
+                    onClick={handleAppVersionOpen}
                     aria-haspopup="dialog"
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-emerald-500/10"
                   >
@@ -294,14 +390,21 @@ export default function Layout() {
       {/* Popups — triggered from ☰ menu (reusing existing components) */}
       <Suspense fallback={null}>
 
-      {showSuggestions && <SuggestionsFeedModal onClose={() => setShowSuggestions(false)} />}
-      {showNotifications && <NotificationsPopup {...notifications} onClose={closeNotifications} />}
+      {suggestionsMounted && <SuggestionsFeedModal open={showSuggestions} onClose={closeSuggestions} anchorRect={suggestionsAnchorRect} />}
+      {showNotifications && <NotificationsPopup {...notifications} onClose={closeNotifications} anchorRect={notificationsAnchorRect} />}
 
       {/* قائمة الألوان — reused ThemeToggle in controlled mode */}
       {colorsOpen && (
-        <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4">
-          <ThemeToggle open={colorsOpen} onOpenChange={setColorsOpen} hideTrigger />
-        </div>
+        <ThemeToggle
+          open={colorsOpen}
+          onOpenChange={(open) => {
+            setColorsOpen(open);
+            if (!open) setColorsAnchorRect(null);
+          }}
+          hideTrigger
+          popover
+          anchorRect={colorsAnchorRect}
+        />
       )}
 
       {showAdminLogin && (
@@ -317,7 +420,8 @@ export default function Layout() {
       {/* نافذة إصدار التطبيق */}
       {showAppVersion && <AppVersionModal
         open={showAppVersion}
-        onClose={() => setShowAppVersion(false)}
+        onClose={() => { setShowAppVersion(false); setVersionAnchorRect(null); }}
+        anchorRect={versionAnchorRect}
         hasUpdate={hasUpdate}
         onUpdateAccepted={() => setHasUpdate(false)}
       />}

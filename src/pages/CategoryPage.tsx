@@ -264,14 +264,14 @@ export default function CategoryPage() {
               type="button"
               onClick={() => setIsAddingService(true)}
               aria-label="إضافة خدمة"
-              className="absolute right-[11%] top-[58%] flex h-[90px] w-[90px] items-center justify-center rounded-full bg-[#168bf3] text-white shadow-[0_8px_20px_rgba(22,139,243,0.24)] transition hover:scale-105 active:scale-95"
+              className="absolute right-[11%] top-[58%] flex h-[90px] w-[90px] items-center justify-center rounded-full bg-[var(--theme-primary)] text-white shadow-[0_8px_20px_var(--glow)] transition hover:scale-105 active:scale-95"
             >
               <Plus className="h-10 w-10" strokeWidth={3} aria-hidden="true" />
             </button>
           </div>
-          <h2 className="mt-3 text-[clamp(1.8rem,4.3vw,2.8rem)] font-black leading-tight text-[#172b4d]">لا توجد خدمات في هذا القسم حالياً</h2>
-          <p className="mt-6 text-[clamp(1.2rem,2.8vw,1.75rem)] font-medium text-[#7789a3]">كن أول من يضيف خدمته في هذا القسم</p>
-          <span aria-hidden="true" className="mt-5 h-[5px] w-[104px] rounded-full bg-[#0878ed]" />
+          <h2 className="mt-3 text-[clamp(1.8rem,4.3vw,2.8rem)] font-black leading-tight text-[var(--theme-text)]">لا توجد خدمات في هذا القسم حالياً</h2>
+          <p className="mt-6 text-[clamp(1.2rem,2.8vw,1.75rem)] font-medium text-[var(--theme-muted)]">كن أول من يضيف خدمته في هذا القسم</p>
+          <span aria-hidden="true" className="mt-5 h-[5px] w-[104px] rounded-full bg-[var(--theme-primary)]" />
         </section>
       ) : visibleCategoryServices.length === 0 ? (
         <EmptyState icon={Search} title="لا توجد نتائج مطابقة" subtitle="جرّب تغيير كلمات البحث أو التخصص المحدد." />
@@ -364,7 +364,7 @@ export default function CategoryPage() {
                       onClick={event => event.stopPropagation()}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center py-1 rounded-md text-[9px] font-bold bg-[var(--bg-secondary)] text-[#33ccff] border border-[var(--border)]"
+                      className="flex-1 flex items-center justify-center py-1 rounded-md text-[9px] font-bold bg-[var(--bg-secondary)] text-[var(--theme-secondary)] border border-[var(--border)]"
                     >
                       ويز
                     </a>

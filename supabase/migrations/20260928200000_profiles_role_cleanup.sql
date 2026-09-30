@@ -38,6 +38,8 @@ DECLARE
   v_is_admin_body text;
   v_admin_login_body text;
   v_policy_hash text;
+  v_admin_users_hash text;
+  v_profiles_hash text;
   v_acl aclitem[];
   v_owner oid;
   v_config text[];
@@ -58,6 +60,13 @@ BEGIN
      OR (SELECT count(*) FROM private.admin_users WHERE active) <> 1 THEN
     RAISE EXCEPTION 'STOP: private.admin_users is not the reviewed protected one-admin authority';
   END IF;
+
+  SELECT pg_catalog.md5(COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(a) ORDER BY a.user_id)::text, '[]'))
+  INTO v_admin_users_hash FROM private.admin_users AS a;
+  PERFORM pg_catalog.set_config('phase4.admin_users_hash', v_admin_users_hash, true);
+  SELECT pg_catalog.md5(COALESCE(pg_catalog.jsonb_agg((pg_catalog.to_jsonb(p) - 'role') ORDER BY p.id)::text, '[]'))
+  INTO v_profiles_hash FROM public.profiles AS p;
+  PERFORM pg_catalog.set_config('phase4.profiles_hash', v_profiles_hash, true);
 
   -- Never touch public.is_admin(); verify its reviewed phase-2 body and
   -- retain its owner, ACL, and security metadata across the migration.
@@ -131,7 +140,7 @@ BEGIN
     AND pg_catalog.pg_get_userbyid(p.proowner) = 'postgres'
     AND p.proconfig @> ARRAY['search_path=public'];
   IF NOT FOUND
-     OR v_handle_body <> 'begininsertintopublic.profiles(id,full_name,role)values(new.id,coalesce(new.raw_user_meta_data->>''full_name'',new.email),''user'')onconflict(id)donothing;returnnew;end' THEN
+     OR v_handle_body <> 'begininsertintopublic.profiles(id,full_name,role)values(new.id,new.raw_user_meta_data->>''full_name'',''user'')onconflict(id)doupdatesetfull_name=excluded.full_name;returnnew;end' THEN
     RAISE EXCEPTION 'STOP: public.handle_new_user() differs from the reviewed pre-cleanup definition';
   END IF;
 
@@ -165,20 +174,38 @@ BEGIN
   IF NOT FOUND
      OR v_role_type <> 'pg_catalog.text'::regtype
      OR NOT v_role_not_null
-     OR pg_catalog.regexp_replace(pg_catalog.lower(COALESCE(v_role_default, '')), '[[:space:]]+', '', 'g') <> '''user''::text' THEN
+     OR pg_catalog.regexp_replace(pg_catalog.lower(COALESCE(v_role_default, '')), '[[:space:]]+', '', 'g') <> '''user''::text'
+     OR EXISTS (SELECT 1 FROM public.profiles WHERE role IS NULL OR role NOT IN ('user', 'owner', 'admin'))
+     OR EXISTS (SELECT 1 FROM public.profiles WHERE role = 'owner') THEN
     RAISE EXCEPTION 'STOP: public.profiles.role type/nullability/default differs from the reviewed baseline';
   END IF;
 
-  SELECT count(*), max(pg_catalog.regexp_replace(pg_catalog.lower(pg_catalog.pg_get_constraintdef(c.oid, true)), '[[:space:]]+', '', 'g'))
-  INTO v_role_constraint_count, v_role_constraint_definition
+  SELECT count(*)
+  INTO v_role_constraint_count
   FROM pg_catalog.pg_constraint AS c
   WHERE c.conrelid = 'public.profiles'::regclass
     AND c.conname = 'profiles_role_check'
     AND c.contype = 'c'
     AND c.convalidated
     AND c.conkey @> ARRAY[(SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid = c.conrelid AND attname = 'role')]::smallint[];
-  IF v_role_constraint_count <> 1
-     OR v_role_constraint_definition <> 'check((role=any(array[''user''::text,''owner''::text,''admin''::text])))' THEN
+  IF v_role_constraint_count <> 1 THEN
+    RAISE EXCEPTION 'STOP: profiles_role_check count must be exactly one';
+  END IF;
+
+  SELECT pg_catalog.regexp_replace(
+           pg_catalog.lower(pg_catalog.pg_get_constraintdef(c.oid, true)),
+           '[[:space:]]+',
+           '',
+           'g'
+         )
+  INTO v_role_constraint_definition
+  FROM pg_catalog.pg_constraint AS c
+  WHERE c.conrelid = 'public.profiles'::regclass
+    AND c.conname = 'profiles_role_check'
+    AND c.contype = 'c'
+    AND c.convalidated
+    AND c.conkey @> ARRAY[(SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid = c.conrelid AND attname = 'role')]::smallint[];
+  IF v_role_constraint_definition <> 'check(role=any(array[''user''::text,''owner''::text,''admin''::text]))' THEN
     RAISE EXCEPTION 'STOP: profiles_role_check differs from the reviewed baseline';
   END IF;
 
@@ -199,12 +226,15 @@ BEGIN
     RAISE EXCEPTION 'STOP: public.is_owner() differs from the reviewed baseline';
   END IF;
   IF EXISTS (
-    SELECT 1 FROM pg_catalog.pg_depend
-    WHERE objid = pg_catalog.to_regprocedure('public.is_owner()')
-  ) OR EXISTS (
-    SELECT 1 FROM pg_catalog.pg_proc AS p
-    WHERE p.oid <> pg_catalog.to_regprocedure('public.is_owner()')
-      AND p.prosrc ~* '(^|[^a-z_])is_owner[[:space:]]*\('
+    WITH candidate_functions AS MATERIALIZED (
+      SELECT p.oid
+      FROM pg_catalog.pg_proc AS p
+      WHERE p.oid <> pg_catalog.to_regprocedure('public.is_owner()')
+        AND p.prokind IN ('f', 'p')
+    )
+    SELECT 1
+    FROM candidate_functions AS p
+    WHERE pg_catalog.pg_get_functiondef(p.oid) ~* '(^|[^a-z_])is_owner[[:space:]]*\('
   ) OR EXISTS (
     SELECT 1 FROM pg_catalog.pg_policies AS p
     WHERE COALESCE(p.qual, '') || COALESCE(p.with_check, '') ~* '(^|[^a-z_])is_owner[[:space:]]*\('
@@ -243,16 +273,16 @@ BEGIN
   INSERT INTO public.profiles (id, full_name)
   VALUES (
     new.id,
-    COALESCE(new.raw_user_meta_data->>'full_name', new.email)
+    new.raw_user_meta_data->>'full_name'
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
   RETURN new;
 END;
 $function$;
 
+DROP FUNCTION public.is_owner();
 DROP TRIGGER profile_role_guard ON public.profiles;
 DROP FUNCTION public.guard_profile_role_change();
-DROP FUNCTION public.is_owner();
 ALTER TABLE public.profiles DROP CONSTRAINT profiles_role_check;
 ALTER TABLE public.profiles DROP COLUMN role;
 
@@ -262,6 +292,8 @@ DECLARE
   v_is_admin_body text;
   v_admin_login_body text;
   v_policy_hash text;
+  v_admin_users_hash text;
+  v_profiles_hash text;
   v_acl aclitem[];
   v_owner oid;
   v_config text[];
@@ -298,7 +330,7 @@ BEGIN
     AND pg_catalog.pg_get_userbyid(p.proowner) = 'postgres'
     AND p.proconfig @> ARRAY['search_path=public'];
   IF NOT FOUND
-     OR v_handle_body <> 'begininsertintopublic.profiles(id,full_name)values(new.id,coalesce(new.raw_user_meta_data->>''full_name'',new.email))onconflict(id)donothing;returnnew;end' THEN
+     OR v_handle_body <> 'begininsertintopublic.profiles(id,full_name)values(new.id,new.raw_user_meta_data->>''full_name'')onconflict(id)doupdatesetfull_name=excluded.full_name;returnnew;end' THEN
     RAISE EXCEPTION 'STOP: handle_new_user() was not rewritten to the reviewed role-free definition';
   END IF;
 
@@ -345,9 +377,15 @@ BEGIN
     RAISE EXCEPTION 'STOP: live RLS policies changed during cleanup';
   END IF;
 
-  IF (SELECT count(*) FROM private.admin_users) <> 1
-     OR (SELECT count(*) FROM private.admin_users WHERE active) <> 1 THEN
+  SELECT pg_catalog.md5(COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(a) ORDER BY a.user_id)::text, '[]'))
+  INTO v_admin_users_hash FROM private.admin_users AS a;
+  IF v_admin_users_hash IS DISTINCT FROM pg_catalog.current_setting('phase4.admin_users_hash', true) THEN
     RAISE EXCEPTION 'STOP: private.admin_users changed during cleanup';
+  END IF;
+  SELECT pg_catalog.md5(COALESCE(pg_catalog.jsonb_agg((pg_catalog.to_jsonb(p) - 'role') ORDER BY p.id)::text, '[]'))
+  INTO v_profiles_hash FROM public.profiles AS p;
+  IF v_profiles_hash IS DISTINCT FROM pg_catalog.current_setting('phase4.profiles_hash', true) THEN
+    RAISE EXCEPTION 'STOP: profile data other than role changed during cleanup';
   END IF;
 END;
 $phase4_postcheck$;

@@ -53,7 +53,7 @@ export default function JobCategoriesAdmin() {
         <button disabled={busy} onClick={() => void run(async () => { await saveJobCategory({ ...item, isVisible: !item.isVisible }); await load(); })} className="text-xs font-bold">{item.isVisible ? 'إخفاء' : 'إظهار'}</button>
         <button disabled={busy} onClick={() => void move(i, -1)} aria-label="نقل للأعلى"><ChevronUp /></button>
         <button disabled={busy} onClick={() => void move(i, 1)} aria-label="نقل للأسفل"><ChevronDown /></button>
-        <button disabled={busy} onClick={() => void run(async () => { await deleteJobCategory(item.id); await load(); })} aria-label="حذف"><Trash2 className="text-red-500" /></button>
+        <button disabled={busy} onClick={() => void run(async () => { await deleteJobCategory(item.id); await load(); })} aria-label="حذف"><Trash2 className="text-[var(--theme-primary)]" /></button>
       </div>
     </div>)}
   </div>;

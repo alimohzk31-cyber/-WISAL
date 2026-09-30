@@ -91,7 +91,7 @@ export default function AdminLoginModal({ onClose, onSuccess }: Props) {
                 }
               }}
               onPaste={() => { pinInputInteracted.current = true; }}
-              className={`w-full rounded-xl border px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] transition-all focus:border-[var(--accent-primary)] focus:outline-none focus:shadow-[0_0_0_3px_var(--focus-ring)] ${errorMsg ? 'border-red-500' : 'border-[var(--input-border)]'} bg-[var(--input-bg)] text-[var(--text-primary)]`}
+              className={`w-full rounded-xl border px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] transition-all focus:border-[var(--accent-primary)] focus:outline-none focus:shadow-[0_0_0_3px_var(--focus-ring)] ${errorMsg ? 'border-[var(--theme-primary)]' : 'border-[var(--input-border)]'} bg-[var(--input-bg)] text-[var(--text-primary)]`}
               placeholder="••••••"
               maxLength={6}
               autoFocus
@@ -99,7 +99,7 @@ export default function AdminLoginModal({ onClose, onSuccess }: Props) {
               inputMode="numeric"
               dir="ltr"
             />
-            {errorMsg && <p className="text-sm font-bold text-red-500">{errorMsg}</p>}
+            {errorMsg && <p className="text-sm font-bold text-[var(--theme-primary)]">{errorMsg}</p>}
           </div>
 
           <button

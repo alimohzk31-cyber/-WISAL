@@ -80,7 +80,7 @@ function NotificationEditor({ onSignOut }: { onSignOut: () => void }) {
         <button type="button" onClick={() => create(false)} disabled={busy || loading} className="rounded-xl px-4 py-2 border border-[var(--border)] text-[var(--text-primary)] disabled:opacity-50">حفظ مسودة</button>
       </div>
     </form>
-    {error && <p role="alert" className="text-red-500">{error}</p>}
+    {error && <p role="alert" className="text-[var(--theme-primary)]">{error}</p>}
     {status && <p role="status" className="text-[var(--accent-primary)]">{status}</p>}
     <button type="button" onClick={() => void load()} disabled={busy || loading} className="text-sm font-bold text-[var(--accent-primary)]">تحديث الإشعارات</button>
     {loading ? <p className="text-[var(--text-muted)]">جاري التحميل...</p> : !error && items.length === 0 ? <p className="text-[var(--text-muted)]">لا توجد إشعارات بعد.</p> : items.map(item => (
@@ -92,7 +92,7 @@ function NotificationEditor({ onSignOut }: { onSignOut: () => void }) {
         <p className="whitespace-pre-wrap break-words text-sm text-[var(--text-secondary)]">{item.message}</p>
         <div className="flex gap-4">
           {!item.published_at && <button type="button" onClick={() => publish(item.id)} disabled={busy} className="flex items-center gap-1 text-sm text-[var(--accent-primary)]"><Send className="w-4 h-4" />إرسال</button>}
-          <button type="button" onClick={() => remove(item.id)} disabled={busy} className="flex items-center gap-1 text-sm text-red-500"><Trash2 className="w-4 h-4" />حذف</button>
+          <button type="button" onClick={() => remove(item.id)} disabled={busy} className="flex items-center gap-1 text-sm text-[var(--theme-primary)]"><Trash2 className="w-4 h-4" />حذف</button>
         </div>
       </article>
     ))}

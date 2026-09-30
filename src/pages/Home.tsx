@@ -292,7 +292,7 @@ export default function Home() {
               className={`group relative z-10 flex min-w-0 flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] sm:gap-4 sm:p-6`}
             >
               {/* Icon frame: white background + red border + red icon (no neon / no glow) */}
-              <div className="w-14 h-14 rounded-full bg-white border-2 border-[#D90429] shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 rounded-full bg-[var(--theme-surface)] border-2 border-[var(--theme-primary)] shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 {Icon && typeof Icon !== 'string' && <Icon className={`w-7 h-7 ${colors.text}`} />}
               </div>
               <div className="text-center">

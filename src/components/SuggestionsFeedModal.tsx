@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  Lightbulb, Send, Image as ImageIcon, Loader2, X, RefreshCw,
+  Send, Image as ImageIcon, Loader2, X, RefreshCw,
   MessageSquareText, Users, AlertTriangle, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import {
@@ -14,6 +14,8 @@ import {
   useSuggestionInteractions, REACTIONS, ReactionType, SuggestionComment,
 } from '../hooks/useSuggestionInteractions';
 import { sanitizeExternalUrl } from '../lib/externalUrl';
+import MenuSubmenuPopover from './MenuSubmenuPopover';
+import type { MenuPopoverAnchorRect } from './MenuSubmenuPopover';
 
 const SUGGESTION_MIN_LENGTH = 3;
 const SUGGESTION_MAX_LENGTH = 500;
@@ -22,7 +24,9 @@ const COMPLAINT_MAX_LENGTH = 1000;
 const IMAGE_SIZE_LIMIT = 2 * 1024 * 1024;
 
 interface Props {
+  open?: boolean;
   onClose: () => void;
+  anchorRect?: MenuPopoverAnchorRect | null;
 }
 
 function formatRelativeTime(value?: string | null): string {
@@ -83,7 +87,7 @@ function Avatar({ ownerId, name, size = 'md' }: { ownerId?: string | null; name:
   );
 }
 
-export default function SuggestionsFeedModal({ onClose }: Props) {
+export default function SuggestionsFeedModal({ open = true, onClose, anchorRect }: Props) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -401,32 +405,33 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex h-[calc(100dvh-1rem)] w-full min-w-0 max-w-2xl flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl sm:h-[92vh] sm:max-h-[700px]">
-        <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[var(--accent-soft)] flex items-center justify-center">
-              <Lightbulb className="w-5 h-5 text-[var(--accent-primary)]" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-base font-black text-[var(--text-primary)]">الاقتراحات والشكاوى</h2>
-              <p className="text-xs text-[var(--text-muted)]">{activeTab === 'suggestions' ? 'شارك اقتراحك مع الجميع' : 'أرسل شكواك إلى الإدارة بشكل خاص'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            {activeTab === 'suggestions' && (
-              <button type="button" onClick={() => load(true)} disabled={refreshing} aria-label="تحديث" className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50">
-                <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-              </button>
-            )}
-            <button type="button" onClick={onClose} aria-label="إغلاق" className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+  if (!open) return null;
 
+  return (
+    <MenuSubmenuPopover
+      open={open}
+      onClose={onClose}
+      anchorRect={anchorRect}
+      title="الاقتراحات والشكاوى"
+      ariaLabel="الاقتراحات والشكاوى"
+      headerAction={activeTab === 'suggestions' ? (
+        <button
+          type="button"
+          onClick={() => load(true)}
+          disabled={refreshing}
+          aria-label="تحديث"
+          className="absolute right-0 flex h-7 w-7 items-center justify-center rounded-full text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] disabled:opacity-50"
+        >
+          <RefreshCw className={refreshing ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+        </button>
+      ) : undefined}
+      size='large'
+      scrollContent={false}
+    >
+      <div className="flex min-h-0 flex-1 flex-col">
+        <p className="mb-2 px-1 text-center text-[10px] font-bold text-[var(--theme-muted)]">
+          {activeTab === 'suggestions' ? 'شارك اقتراحك مع الجميع' : 'أرسل شكواك إلى الإدارة بشكل خاص'}
+        </p>
         <div className="flex shrink-0 border-b border-[var(--border)] bg-[var(--surface-elevated)] p-2">
           <button
             type="button"
@@ -446,7 +451,7 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
 
         {activeTab === 'suggestions' ? (
         <>
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {error && (
             <div className="p-4 m-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
               <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
@@ -588,6 +593,6 @@ export default function SuggestionsFeedModal({ onClose }: Props) {
           </form>
         )}
       </div>
-    </div>
+    </MenuSubmenuPopover>
   );
 }

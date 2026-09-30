@@ -45,7 +45,7 @@ function AdminCountBadge({ count }: { count: number | null | undefined }) {
   if (count === null || count === undefined || count <= 0) return null;
   const label = count > 99 ? '99+' : String(count);
   return (
-    <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white">
+    <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--theme-primary)] px-1.5 text-[10px] font-black leading-none text-white">
       {label}
     </span>
   );
@@ -542,9 +542,9 @@ export default function AdminDashboard() {
                         </button>
                         <button onClick={() => handleReject(service)}
                           disabled={processingId !== null}
-                          className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors font-bold disabled:opacity-60 disabled:cursor-not-allowed">
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[var(--theme-primary)]/10 text-[var(--theme-primary-light)] hover:bg-[var(--theme-primary-soft)] rounded-xl transition-colors font-bold disabled:opacity-60 disabled:cursor-not-allowed">
                           {processingId === String(service.id) ? (
-                            <span className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                            <span className="w-4 h-4 border-2 border-[var(--theme-primary-light)]/30 border-t-[var(--theme-primary-light)] rounded-full animate-spin" />
                           ) : (
                             <X className="w-4 h-4" />
                           )} {t('reject')}
@@ -574,7 +574,7 @@ export default function AdminDashboard() {
           // Rejected Services View
           <div className="h-full min-w-0 space-y-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
             <div className={`flex items-center gap-3 border-b pb-4 border-[var(--border)]`}>
-              <XCircle className="w-6 h-6 text-red-500" />
+              <XCircle className="w-6 h-6 text-[var(--theme-primary)]" />
               <h2 className={`text-2xl font-bold text-[var(--text-primary)]`}>الخدمات المرفوضة</h2>
             </div>
             
@@ -600,7 +600,7 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-1.5 truncate font-medium"><MapPin className="w-3.5 h-3.5 shrink-0 text-[var(--accent-primary)]"/> <span className="truncate">{service.location}</span></div>
                           {service.phone && <div className="flex items-center gap-1.5 font-bold"><Phone className="w-3.5 h-3.5 shrink-0 text-[var(--accent-primary)]"/> <span dir="ltr">{service.phone}</span></div>}
                           {service.rejectionReason && (
-                            <div className="flex items-center gap-1.5 font-bold text-red-500">
+                            <div className="flex items-center gap-1.5 font-bold text-[var(--theme-primary)]">
                               <XCircle className="w-3.5 h-3.5 shrink-0" />
                               <span>سبب الرفض: {service.rejectionReason}</span>
                             </div>
@@ -635,9 +635,9 @@ export default function AdminDashboard() {
                         <button onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteService(service.id);
-                        }} disabled={processingId !== null} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors font-bold disabled:opacity-60 disabled:cursor-not-allowed">
+                        }} disabled={processingId !== null} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[var(--theme-primary)]/10 text-[var(--theme-primary-light)] hover:bg-[var(--theme-primary-soft)] rounded-xl transition-colors font-bold disabled:opacity-60 disabled:cursor-not-allowed">
                           {processingId === String(service.id) ? (
-                            <span className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                            <span className="w-4 h-4 border-2 border-[var(--theme-primary-light)]/30 border-t-[var(--theme-primary-light)] rounded-full animate-spin" />
                           ) : (
                             <Trash2 className="w-4 h-4" />
                           )} {t('delete')}
@@ -694,7 +694,7 @@ export default function AdminDashboard() {
                   type="button"
                   onClick={handleBulkDeleteSelected}
                   disabled={selectedServiceIds.length === 0 || isBulkProcessing}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-red-500/10 px-3 py-2 text-sm font-bold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--theme-primary)]/10 px-3 py-2 text-sm font-bold text-[var(--theme-primary-light)] transition-colors hover:bg-[var(--theme-primary-soft)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="h-4 w-4" /> حذف المحدد
                 </button>
@@ -764,7 +764,7 @@ export default function AdminDashboard() {
                             type="button"
                             onClick={() => handleDeleteServiceWithConfirm(service)}
                             disabled={processingId !== null || isBulkProcessing}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-primary)]/10 px-3 py-1.5 text-xs font-bold text-[var(--theme-primary-light)] transition-colors hover:bg-[var(--theme-primary-soft)] disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> حذف
                           </button>
@@ -888,7 +888,7 @@ export default function AdminDashboard() {
                           e.stopPropagation(); 
                           e.preventDefault();
                           handleDeleteService(service.id);
-                        }} className="p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors" title={t('delete')}>
+                        }} className="p-2.5 bg-[var(--theme-primary)]/10 text-[var(--theme-primary-light)] hover:bg-[var(--theme-primary-soft)] rounded-xl transition-colors" title={t('delete')}>
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -1074,7 +1074,7 @@ export default function AdminDashboard() {
                             e.stopPropagation();
                             handleDeleteCategory(cat);
                           }}
-                          className={`p-1.5 rounded-lg transition-colors bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)] hover:text-red-600`}
+                          className={`p-1.5 rounded-lg transition-colors bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)] hover:text-[var(--theme-primary-dark)]`}
                           title="حذف القسم"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1150,7 +1150,7 @@ export default function AdminDashboard() {
                       <button
                         type="button"
                         onClick={() => handleDeleteCategory(cat)}
-                        className="flex items-center gap-1 rounded-lg bg-red-500/10 px-3 py-2 text-sm font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1 rounded-lg bg-[var(--theme-primary)]/10 px-3 py-2 text-sm font-bold text-[var(--theme-primary-light)] hover:bg-[var(--theme-primary-soft)] disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-4 h-4" /> حذف
                       </button>

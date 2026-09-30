@@ -1,7 +1,8 @@
-﻿import { useEffect, useRef } from 'react';
-import { Clock, X } from 'lucide-react';
-import { motion } from 'motion/react';
-import { AdminNotification } from '../lib/notifications';
+import { useEffect, useRef } from 'react';
+import { Clock } from 'lucide-react';
+import type { AdminNotification } from '../lib/notifications';
+import MenuSubmenuPopover from './MenuSubmenuPopover';
+import type { MenuPopoverAnchorRect } from './MenuSubmenuPopover';
 
 interface Props {
   onClose: () => void;
@@ -11,40 +12,50 @@ interface Props {
   readIds: Set<string>;
   markRead: (id: string) => void;
   refresh: () => void;
+  anchorRect?: MenuPopoverAnchorRect | null;
 }
 
-export default function NotificationsPopup({ onClose, notifications, loading, error, readIds, markRead, refresh }: Props) {
+export default function NotificationsPopup({
+  onClose,
+  notifications,
+  loading,
+  error,
+  readIds,
+  markRead,
+  refresh,
+  anchorRect,
+}: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
       if (event.key !== 'Tab') return;
       const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]');
       if (!focusable?.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', handleKey);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', handleKey);
       if (previousFocus?.isConnected) previousFocus.focus();
       else document.querySelector<HTMLButtonElement>('[aria-controls="main-menu"]')?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   useEffect(() => {
     if (loading || error || !listRef.current) return;
-    // Count only items that enter the popup's scroll viewport as read.
     const observer = new IntersectionObserver(entries => {
       if (document.hidden) return;
       entries.forEach(entry => {
@@ -55,7 +66,6 @@ export default function NotificationsPopup({ onClose, notifications, loading, er
         }
       });
     }, { root: listRef.current, threshold: 0.1 });
-    // Observe the title, so very long messages can be read even on short screens.
     const observeTitles = () => listRef.current?.querySelectorAll('[data-notification-id] h3').forEach(item => observer.observe(item));
     const handleVisibility = () => { if (!document.hidden) observeTitles(); };
     observeTitles();
@@ -67,39 +77,38 @@ export default function NotificationsPopup({ onClose, notifications, loading, er
   }, [notifications, loading, error, markRead]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
-      onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <motion.div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="notifications-title" dir="rtl"
-        initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="flex max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-md flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)] sm:max-h-[85dvh]">
-        <div className="p-4 border-b border-[var(--border)] flex items-center justify-between shrink-0">
-          <h2 id="notifications-title" className="text-lg font-bold text-[var(--text-primary)]">الإشعارات</h2>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="إغلاق الإشعارات"
-            className="p-1 rounded-lg text-[var(--text-muted)] hover:bg-[var(--accent-soft)]"><X className="w-5 h-5" /></button>
-        </div>
-        <div ref={listRef} tabIndex={0} aria-label="إشعارات الإدارة" className="min-h-0 max-h-[500px] overflow-y-auto">
-          {loading ? <p role="status" className="p-6 text-center text-[var(--text-muted)]">جاري تحميل الإشعارات...</p>
-            : error ? <div role="alert" className="p-6 text-center text-[var(--text-muted)]">
-              <p>{error}</p><button type="button" onClick={refresh} className="mt-3 font-bold text-[var(--accent-primary)]">إعادة المحاولة</button>
-            </div>
-            : notifications.length === 0 ? <p className="p-8 text-center text-[var(--text-muted)]">لا توجد إشعارات جديدة</p>
-            : notifications.map(notification => (
-              <article key={notification.id} data-notification-id={notification.id}
-                className="p-4 text-right border-b border-[var(--border)] last:border-0">
-                <div className="flex items-start gap-2">
-                  <h3 className="min-w-0 break-words flex-1 font-bold text-[var(--text-primary)]">{notification.title}</h3>
-                  {!readIds.has(notification.id) && <span className="shrink-0 text-xs text-blue-500">جديد</span>}
-                </div>
-                <p className="text-sm text-[var(--text-secondary)] mt-2 whitespace-pre-wrap break-words">{notification.message}</p>
-                <time dateTime={notification.published_at!} className="mt-3 text-xs text-[var(--text-muted)] flex items-center gap-1">
-                  <Clock className="w-3 h-3 shrink-0" aria-hidden="true" />
-                  {new Date(notification.published_at!).toLocaleString('ar-IQ')}
-                </time>
-              </article>
-            ))}
-        </div>
-      </motion.div>
-    </motion.div>
+    <MenuSubmenuPopover
+      open
+      onClose={onClose}
+      anchorRect={anchorRect}
+      title="الإشعارات"
+      ariaLabel="الإشعارات"
+      dialogRef={dialogRef}
+      closeButtonRef={closeRef}
+      scrollContent={false}
+    >
+      <div ref={listRef} tabIndex={0} aria-label="إشعارات الإدارة" className="min-h-0 flex-1 overflow-y-auto">
+        {loading ? <p role="status" className="p-6 text-center text-[var(--theme-muted)]">جاري تحميل الإشعارات...</p>
+          : error ? <div role="alert" className="p-6 text-center text-[var(--theme-muted)]">
+            <p>{error}</p>
+            <button type="button" onClick={refresh} className="mt-3 font-bold text-[var(--accent-primary)]">إعادة المحاولة</button>
+          </div>
+          : notifications.length === 0 ? <p className="p-8 text-center text-[var(--theme-muted)]">لا توجد إشعارات جديدة</p>
+          : notifications.map(notification => (
+            <article key={notification.id} data-notification-id={notification.id}
+              className="border-b border-[var(--theme-border)] p-3 text-right last:border-0">
+              <div className="flex items-start gap-2">
+                <h3 className="min-w-0 flex-1 break-words font-bold text-[var(--theme-text)]">{notification.title}</h3>
+                {!readIds.has(notification.id) && <span className="shrink-0 text-xs text-[var(--accent-primary)]">جديد</span>}
+              </div>
+              <p className="mt-2 break-words whitespace-pre-wrap text-sm text-[var(--theme-muted)]">{notification.message}</p>
+              <time dateTime={notification.published_at!} className="mt-3 flex items-center gap-1 text-xs text-[var(--theme-muted)]">
+                <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
+                {new Date(notification.published_at!).toLocaleString('ar-IQ')}
+              </time>
+            </article>
+          ))}
+      </div>
+    </MenuSubmenuPopover>
   );
 }

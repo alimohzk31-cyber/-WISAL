@@ -22,7 +22,7 @@ export default function CategoryPhoto({
 
   if (failed) {
     return (
-      <div role="img" aria-label={alt} className={`flex items-center justify-center bg-[#e8f4ff] text-[#2582ed] ${className}`}>
+      <div role="img" aria-label={alt} className={`flex items-center justify-center bg-[var(--theme-primary-soft)] text-[var(--theme-primary)] ${className}`}>
         <FallbackIcon className="h-16 w-16" aria-hidden="true" />
       </div>
     );

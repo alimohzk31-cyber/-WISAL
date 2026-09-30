@@ -28,6 +28,11 @@ DECLARE
   v_is_admin_body text;
   v_admin_login_body text;
   v_policy_hash text;
+  v_admin_users_hash text;
+  v_profiles_hash text;
+  v_acl aclitem[];
+  v_owner oid;
+  v_config text[];
 BEGIN
   IF EXISTS (
     SELECT 1 FROM pg_catalog.pg_attribute
@@ -37,6 +42,10 @@ BEGIN
   ) OR pg_catalog.to_regprocedure('public.guard_profile_role_change()') IS NOT NULL
      OR pg_catalog.to_regprocedure('public.is_owner()') IS NOT NULL THEN
     RAISE EXCEPTION 'STOP: current Remote is not the reviewed phase-4 cleaned state';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_constraint WHERE conrelid = 'public.profiles'::regclass AND conname = 'profiles_role_check') THEN
+    RAISE EXCEPTION 'STOP: cleaned baseline still has profiles_role_check';
   END IF;
 
   SELECT pg_catalog.regexp_replace(
@@ -49,7 +58,7 @@ BEGIN
     AND p.prosecdef
     AND p.proconfig @> ARRAY['search_path=public'];
   IF NOT FOUND
-     OR v_handle_body <> 'begininsertintopublic.profiles(id,full_name)values(new.id,coalesce(new.raw_user_meta_data->>''full_name'',new.email))onconflict(id)donothing;returnnew;end' THEN
+     OR v_handle_body <> 'begininsertintopublic.profiles(id,full_name,role)values(new.id,new.raw_user_meta_data->>''full_name'',''user'')onconflict(id)doupdatesetfull_name=excluded.full_name;returnnew;end' THEN
     RAISE EXCEPTION 'STOP: handle_new_user() is not the reviewed phase-4 definition';
   END IF;
 
@@ -66,6 +75,10 @@ BEGIN
      OR pg_catalog.pg_get_functiondef('public.is_admin()'::regprocedure) ~* 'public[[:space:]]*\.[[:space:]]*profiles' THEN
     RAISE EXCEPTION 'STOP: public.is_admin() is not the unchanged private authority';
   END IF;
+  SELECT p.proacl, p.proowner, p.proconfig INTO v_acl, v_owner, v_config FROM pg_catalog.pg_proc AS p WHERE p.oid = pg_catalog.to_regprocedure('public.is_admin()');
+  PERFORM pg_catalog.set_config('phase4.rollback.is_admin_acl', COALESCE(v_acl::text, '<NULL>'), true);
+  PERFORM pg_catalog.set_config('phase4.rollback.is_admin_owner', v_owner::text, true);
+  PERFORM pg_catalog.set_config('phase4.rollback.is_admin_config', COALESCE(v_config::text, '<NULL>'), true);
 
   SELECT pg_catalog.regexp_replace(
            pg_catalog.lower(pg_catalog.regexp_replace(pg_catalog.btrim(p.prosrc), '[[:space:]]+', '', 'g')),
@@ -82,11 +95,19 @@ BEGIN
      OR v_admin_login_body <> 'selectexists(select1fromprivate.admin_userswhereuser_id=p_user_idandactive=true)' THEN
     RAISE EXCEPTION 'STOP: public.admin_login_is_active(uuid) is not unchanged';
   END IF;
+  SELECT p.proacl, p.proowner, p.proconfig INTO v_acl, v_owner, v_config FROM pg_catalog.pg_proc AS p WHERE p.oid = pg_catalog.to_regprocedure('public.admin_login_is_active(uuid)');
+  PERFORM pg_catalog.set_config('phase4.rollback.admin_login_acl', COALESCE(v_acl::text, '<NULL>'), true);
+  PERFORM pg_catalog.set_config('phase4.rollback.admin_login_owner', v_owner::text, true);
+  PERFORM pg_catalog.set_config('phase4.rollback.admin_login_config', COALESCE(v_config::text, '<NULL>'), true);
 
   IF (SELECT count(*) FROM private.admin_users) <> 1
      OR (SELECT count(*) FROM private.admin_users WHERE active) <> 1 THEN
     RAISE EXCEPTION 'STOP: private.admin_users is not the reviewed protected one-admin authority';
   END IF;
+  SELECT pg_catalog.md5(COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(a) ORDER BY a.user_id)::text, '[]')) INTO v_admin_users_hash FROM private.admin_users AS a;
+  PERFORM pg_catalog.set_config('phase4.rollback.admin_users_hash', v_admin_users_hash, true);
+  SELECT pg_catalog.md5(COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(p) ORDER BY p.id)::text, '[]')) INTO v_profiles_hash FROM public.profiles AS p;
+  PERFORM pg_catalog.set_config('phase4.rollback.profiles_hash', v_profiles_hash, true);
 
   SELECT pg_catalog.md5(COALESCE(
     pg_catalog.jsonb_agg(pg_catalog.to_jsonb(p)
@@ -119,10 +140,10 @@ BEGIN
   INSERT INTO public.profiles (id, full_name, role)
   VALUES (
     new.id,
-    COALESCE(new.raw_user_meta_data->>'full_name', new.email),
+    new.raw_user_meta_data->>'full_name',
     'user'
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
   RETURN new;
 END;
 $function$;
@@ -142,6 +163,9 @@ AND role = 'owner'
 );
 $function$;
 
+ALTER FUNCTION public.is_owner() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION public.is_owner() TO PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.guard_profile_role_change()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -160,16 +184,30 @@ BEGIN
 END;
 $function$;
 
+ALTER FUNCTION public.guard_profile_role_change() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION public.guard_profile_role_change() TO PUBLIC;
+
 CREATE TRIGGER profile_role_guard
   BEFORE UPDATE OF role ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.guard_profile_role_change();
 
 DO $rollback_postcheck$
 DECLARE
+  v_role_type oid;
+  v_role_not_null boolean;
+  v_role_default text;
+  v_constraint_definition text;
   v_handle_body text;
   v_guard_hash text;
   v_is_owner_body text;
+  v_is_admin_body text;
+  v_admin_login_body text;
   v_policy_hash text;
+  v_admin_users_hash text;
+  v_profiles_hash text;
+  v_acl aclitem[];
+  v_owner oid;
+  v_config text[];
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_catalog.pg_attribute
@@ -195,6 +233,12 @@ BEGIN
     RAISE EXCEPTION 'STOP: profiles.role compatibility surface was not restored';
   END IF;
 
+  SELECT a.atttypid, a.attnotnull, pg_catalog.pg_get_expr(d.adbin, d.adrelid) INTO v_role_type, v_role_not_null, v_role_default FROM pg_catalog.pg_attribute AS a LEFT JOIN pg_catalog.pg_attrdef AS d ON d.adrelid = a.attrelid AND d.adnum = a.attnum WHERE a.attrelid = 'public.profiles'::regclass AND a.attname = 'role' AND NOT a.attisdropped;
+  SELECT pg_catalog.regexp_replace(pg_catalog.lower(pg_catalog.pg_get_constraintdef(c.oid, true)), '[[:space:]]+', '', 'g') INTO v_constraint_definition FROM pg_catalog.pg_constraint AS c WHERE c.conrelid = 'public.profiles'::regclass AND c.conname = 'profiles_role_check' AND c.contype = 'c' AND c.convalidated;
+  IF v_role_type <> 'pg_catalog.text'::regtype OR NOT v_role_not_null OR pg_catalog.regexp_replace(pg_catalog.lower(COALESCE(v_role_default, '')), '[[:space:]]+', '', 'g') <> '''user''::text' OR v_constraint_definition <> 'check((role=any(array[''user''::text,''owner''::text,''admin''::text])))' THEN
+    RAISE EXCEPTION 'STOP: profiles.role baseline was not restored exactly';
+  END IF;
+
   SELECT pg_catalog.regexp_replace(
            pg_catalog.lower(pg_catalog.regexp_replace(pg_catalog.btrim(p.prosrc), '[[:space:]]+', '', 'g')),
            ';+$', '', 'g'
@@ -203,7 +247,7 @@ BEGIN
   FROM pg_catalog.pg_proc AS p
   WHERE p.oid = pg_catalog.to_regprocedure('public.handle_new_user()');
   IF NOT FOUND
-     OR v_handle_body <> 'begininsertintopublic.profiles(id,full_name,role)values(new.id,coalesce(new.raw_user_meta_data->>''full_name'',new.email),''user'')onconflict(id)donothing;returnnew;end' THEN
+     OR v_handle_body <> 'begininsertintopublic.profiles(id,full_name,role)values(new.id,new.raw_user_meta_data->>''full_name'',''user'')onconflict(id)doupdatesetfull_name=excluded.full_name;returnnew;end' THEN
     RAISE EXCEPTION 'STOP: handle_new_user() was not restored';
   END IF;
 
@@ -232,9 +276,27 @@ BEGIN
      OR pg_catalog.pg_get_functiondef('public.is_admin()'::regprocedure) !~* 'private[[:space:]]*\.[[:space:]]*admin_users' THEN
     RAISE EXCEPTION 'STOP: rollback changed the current private-based admin authority';
   END IF;
-  IF (SELECT count(*) FROM private.admin_users) <> 1
-     OR (SELECT count(*) FROM private.admin_users WHERE active) <> 1 THEN
+
+  SELECT p.proacl, p.proowner, p.proconfig, pg_catalog.regexp_replace(pg_catalog.lower(pg_catalog.regexp_replace(pg_catalog.btrim(p.prosrc), '[[:space:]]+', '', 'g')), ';+$', '') INTO v_acl, v_owner, v_config, v_is_admin_body FROM pg_catalog.pg_proc AS p WHERE p.oid = pg_catalog.to_regprocedure('public.is_admin()');
+  IF NOT FOUND OR v_is_admin_body <> 'selectexists(select1fromprivate.admin_userswhereuser_id=auth.uid()andactive=true)' OR v_acl::text IS DISTINCT FROM pg_catalog.current_setting('phase4.rollback.is_admin_acl', true) OR v_owner::text IS DISTINCT FROM pg_catalog.current_setting('phase4.rollback.is_admin_owner', true) OR COALESCE(v_config::text, '<NULL>') IS DISTINCT FROM pg_catalog.current_setting('phase4.rollback.is_admin_config', true) THEN
+    RAISE EXCEPTION 'STOP: rollback changed the current private-based admin authority';
+  END IF;
+
+  SELECT p.proacl, p.proowner, p.proconfig,
+         pg_catalog.regexp_replace(pg_catalog.lower(pg_catalog.regexp_replace(pg_catalog.btrim(p.prosrc), '[[:space:]]+', '', 'g')), ';+$', '', 'g') INTO v_admin_login_body
+  FROM pg_catalog.pg_proc AS p
+  WHERE p.oid = pg_catalog.to_regprocedure('public.admin_login_is_active(uuid)')
+    AND p.prosecdef;
+  IF NOT FOUND OR v_admin_login_body <> 'selectexists(select1fromprivate.admin_userswhereuser_id=p_user_idandactive=true)' OR v_acl::text IS DISTINCT FROM pg_catalog.current_setting('phase4.rollback.admin_login_acl', true) OR v_owner::text IS DISTINCT FROM pg_catalog.current_setting('phase4.rollback.admin_login_owner', true) OR COALESCE(v_config::text, '<NULL>') IS DISTINCT FROM pg_catalog.current_setting('phase4.rollback.admin_login_config', true) THEN
+    RAISE EXCEPTION 'STOP: admin_login_is_active(uuid) changed during rollback';
+  END IF;
+  SELECT pg_catalog.md5(COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(a) ORDER BY a.user_id)::text, '[]')) INTO v_admin_users_hash FROM private.admin_users AS a;
+  IF v_admin_users_hash IS DISTINCT FROM pg_catalog.current_setting('phase4.rollback.admin_users_hash', true) THEN
     RAISE EXCEPTION 'STOP: private.admin_users changed during rollback';
+  END IF;
+  SELECT pg_catalog.md5(COALESCE(pg_catalog.jsonb_agg((pg_catalog.to_jsonb(p) - 'role') ORDER BY p.id)::text, '[]')) INTO v_profiles_hash FROM public.profiles AS p;
+  IF v_profiles_hash IS DISTINCT FROM pg_catalog.current_setting('phase4.rollback.profiles_hash', true) THEN
+    RAISE EXCEPTION 'STOP: profile data other than role changed during rollback';
   END IF;
 
   SELECT pg_catalog.md5(COALESCE(

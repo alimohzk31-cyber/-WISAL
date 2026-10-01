@@ -1,6 +1,6 @@
 import { Palette, Check, X } from 'lucide-react';
 import { useTheme, Theme, SELECTABLE_THEMES } from '../context/ThemeContext';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, type MouseEvent as ReactMouseEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
 interface ThemeOption {
@@ -53,9 +53,10 @@ interface ThemeToggleProps {
   scope?: 'browse' | 'admin';
   popover?: boolean;
   anchorRect?: ThemePopoverAnchorRect | null;
+  onClose?: () => void;
 }
 
-export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, scope = 'browse', popover = false, anchorRect = null }: ThemeToggleProps) {
+export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, scope = 'browse', popover = false, anchorRect = null, onClose }: ThemeToggleProps) {
   const { theme, setTheme, adminTheme, setAdminTheme } = useTheme();
   const selectedTheme = scope === 'admin' ? adminTheme : theme;
   const selectTheme = scope === 'admin' ? setAdminTheme : setTheme;
@@ -67,6 +68,12 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
   // self-contained (backward compatible with existing standalone usage).
   const isOpen = open ?? internalOpen;
   const setIsOpen = onOpenChange ?? setInternalOpen;
+  const closePopover = useCallback((event?: ReactMouseEvent<HTMLElement>) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (onClose) onClose();
+    else setIsOpen(false);
+  }, [onClose, setIsOpen]);
   const shouldReduceMotion = useReducedMotion();
   const motionDuration = shouldReduceMotion ? 0 : 0.28;
 
@@ -88,6 +95,7 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
     };
   }, [isOpen, popover]);
   useEffect(() => {
+    if (!isOpen) return;
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Element | null;
       if (popover && target?.closest('[data-wisal-colors-trigger]')) return;
@@ -97,7 +105,7 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [popover, setIsOpen]);
+  }, [isOpen, popover, setIsOpen]);
 
   useEffect(() => {
     if (!popover || !isOpen) return;
@@ -155,6 +163,8 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
                   : "absolute left-0 z-50 mt-2 w-56 min-w-0 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)]"
             }
             transition={popover ? { duration: motionDuration, ease: 'easeOut' } : undefined}
+            onMouseDown={popover ? event => event.stopPropagation() : undefined}
+            onClick={popover ? event => event.stopPropagation() : undefined}
             style={popover ? {
               left: popoverLeft,
               top: popoverTop,
@@ -174,8 +184,8 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
                 <button
                   type="button"
                   aria-label={'\u0625\u063a\u0644\u0627\u0642'}
-                  onClick={() => setIsOpen(false)}
-                  className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  onClick={closePopover}
+                  className="absolute left-0 top-0 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

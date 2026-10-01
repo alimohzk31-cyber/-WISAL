@@ -1,19 +1,12 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Heart, MessageSquareWarning, Menu, Palette, Bell, PackageCheck } from 'lucide-react';
-import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
+import { Heart } from 'lucide-react';
+import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
-const SuggestionsFeedModal = lazy(() => import('./SuggestionsFeedModal'));
-import NotificationsPopup from './NotificationsPopup';
-const AppVersionModal = lazy(() => import('./AppVersionModal'));
-import type { AppVersionAnchorRect } from './AppVersionModal';
-import type { MenuPopoverAnchorRect } from './MenuSubmenuPopover';
-import { APP_VERSION, checkForUpdate } from '../lib/appVersion';
-import { useNotifications } from '../hooks/useNotifications';
 import { useStats } from '../hooks/useStats';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
-import ThemeToggle from './ThemeToggle';
 import HeaderClock from './HeaderClock';
+import MainMenuController from './MainMenuController';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,24 +14,6 @@ export default function Layout() {
   const { theme } = useTheme();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminClickCount, setAdminClickCount] = useState(0);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestionsMounted, setSuggestionsMounted] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notificationsAnchorRect, setNotificationsAnchorRect] = useState<MenuPopoverAnchorRect | null>(null);
-  const [suggestionsAnchorRect, setSuggestionsAnchorRect] = useState<MenuPopoverAnchorRect | null>(null);
-  const { beginAdminPinAttempt } = useAuth();
-  const notifications = useNotifications();
-  const closeNotifications = useCallback(() => { setShowNotifications(false); setNotificationsAnchorRect(null); }, []);
-  const closeSuggestions = useCallback(() => { setShowSuggestions(false); setSuggestionsAnchorRect(null); }, []);
-  const [showMainMenu, setShowMainMenu] = useState(false);
-  const [showAppVersion, setShowAppVersion] = useState(false);
-  const [versionAnchorRect, setVersionAnchorRect] = useState<AppVersionAnchorRect | null>(null);
-  const [colorsAnchorRect, setColorsAnchorRect] = useState<AppVersionAnchorRect | null>(null);
-  const [hasUpdate, setHasUpdate] = useState(false);
-
-
-  // فحص Responsive موثوق (window.matchMedia): منطق الإدارة (5 ضغطات) يعمل على
-  // سطح المكتب فقط — نفس breakpoint sm = 640px المستخدم في المشروع (Tailwind).
   const [isDesktop, setIsDesktop] = useState<boolean>(
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
   );
@@ -51,91 +26,7 @@ export default function Layout() {
   }, []);
 
   // فحص توفر تحديث مرة واحدة عند تحميل التطبيق (يُربط لاحقًا بمصدر خارجي
-  // مثل API أو ملف JSON عبر checkForUpdate في src/lib/appVersion.ts).
-  useEffect(() => {
-    let cancelled = false;
-    void checkForUpdate().then(result => {
-      if (!cancelled) setHasUpdate(result.hasUpdate);
-    });
-    return () => { cancelled = true; };
-  }, []);
-  const [colorsOpen, setColorsOpen] = useState(false);
-  const mainMenuRef = useRef<HTMLDivElement>(null);
-  const mainMenuPanelRef = useRef<HTMLDivElement>(null);
-  const versionTriggerRef = useRef<HTMLButtonElement>(null);
-  const colorsTriggerRef = useRef<HTMLButtonElement>(null);
-  const notificationsTriggerRef = useRef<HTMLButtonElement>(null);
-  const suggestionsTriggerRef = useRef<HTMLButtonElement>(null);
-  const handleAppVersionOpen = useCallback(() => {
-    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
-    const triggerRect = versionTriggerRef.current?.getBoundingClientRect() ?? menuRect;
-    const rect = triggerRect ?? menuRect;
-    if (rect) {
-      const horizontalRect = menuRect ?? rect;
-      setVersionAnchorRect({
-        top: rect.top,
-        left: horizontalRect.left,
-        right: horizontalRect.right,
-        bottom: horizontalRect.bottom,
-        width: horizontalRect.width,
-        height: rect.height,
-      });
-    }
-    setShowAppVersion(true);
-  }, []);
-  const handleColorsOpen = useCallback(() => {
-    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
-    const triggerRect = colorsTriggerRef.current?.getBoundingClientRect() ?? menuRect;
-    const rect = triggerRect ?? menuRect;
-    if (rect) {
-      const horizontalRect = menuRect ?? rect;
-      setColorsAnchorRect({
-        top: rect.top,
-        left: horizontalRect.left,
-        right: horizontalRect.right,
-        bottom: horizontalRect.bottom,
-        width: horizontalRect.width,
-        height: rect.height,
-      });
-    }
-    setColorsOpen(true);
-  }, []);
-  const handleNotificationsOpen = useCallback(() => {
-    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
-    const triggerRect = notificationsTriggerRef.current?.getBoundingClientRect() ?? menuRect;
-    const rect = triggerRect ?? menuRect;
-    if (rect) {
-      const horizontalRect = menuRect ?? rect;
-      setNotificationsAnchorRect({
-        top: rect.top,
-        left: horizontalRect.left,
-        right: horizontalRect.right,
-        bottom: horizontalRect.bottom,
-        width: horizontalRect.width,
-        height: rect.height,
-      });
-    }
-    setShowNotifications(true);
-  }, []);
-
-  const handleSuggestionsOpen = useCallback(() => {
-    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
-    const triggerRect = suggestionsTriggerRef.current?.getBoundingClientRect() ?? menuRect;
-    const rect = triggerRect ?? menuRect;
-    if (rect) {
-      const horizontalRect = menuRect ?? rect;
-      setSuggestionsAnchorRect({
-        top: rect.top,
-        left: horizontalRect.left,
-        right: horizontalRect.right,
-        bottom: rect.bottom,
-        width: horizontalRect.width,
-        height: rect.height,
-      });
-    }
-    setSuggestionsMounted(true);
-    setShowSuggestions(true);
-  }, []);
+  const { beginAdminPinAttempt } = useAuth();
   const adminClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const handleAdminClick = () => {
@@ -162,16 +53,6 @@ export default function Layout() {
     if (adminClickTimerRef.current) {
       clearTimeout(adminClickTimerRef.current);
     }
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (mainMenuRef.current && !mainMenuRef.current.contains(event.target as Node)) {
-        setShowMainMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const { t, isRTL } = useLanguage();
@@ -241,91 +122,7 @@ export default function Layout() {
             </Link>
           </div>
 
-          {/* Left: ☰ Main Menu — 5 items, Admin outside */}
-          <div className="relative" ref={mainMenuRef}>
-            <button
-              type="button"
-              onClick={() => setShowMainMenu(value => !value)}
-              aria-label="القائمة الرئيسية"
-              aria-expanded={showMainMenu}
-              aria-controls="main-menu"
-              className="p-2 rounded-xl transition-colors border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-primary)]"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-
-            <AnimatePresence>
-              {showMainMenu && (
-                <motion.div
-                  ref={mainMenuPanelRef}
-                  id="main-menu"
-                  initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                  className="absolute left-0 z-50 mt-2 w-60 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
-                >
-                  <button
-                    type="button"
-                    ref={notificationsTriggerRef}
-                    data-wisal-submenu-trigger="true"
-                    onClick={handleNotificationsOpen}
-                    aria-haspopup="dialog"
-                    aria-label={notifications.unreadCount > 0 ? 'الإشعارات، ' + notifications.unreadCount + ' غير مقروءة' : 'الإشعارات'}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-blue-500/10"
-                  >
-                    <span className="relative shrink-0">
-                      <Bell className="h-5 w-5 text-blue-500" strokeWidth={1.8} aria-hidden="true" />
-                      {notifications.unreadCount > 0 && (
-                        <span aria-hidden="true" className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] leading-none font-bold text-white ring-2 ring-[var(--surface-elevated)]">
-                          {notifications.unreadCount > 99 ? '99+' : notifications.unreadCount}
-                        </span>
-                      )}
-                    </span>
-                    الإشعارات
-                  </button>
-                  <button
-                    type="button"
-                    ref={suggestionsTriggerRef}
-                    data-wisal-submenu-trigger="true"
-                    onClick={handleSuggestionsOpen}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-teal-500/10"
-                  >
-                    <MessageSquareWarning className="h-5 w-5 text-teal-500" />
-                    الاقتراحات والشكاوى
-                  </button>
-                  <button
-                    type="button"
-                    ref={colorsTriggerRef}
-                    data-wisal-colors-trigger="true"
-                    onClick={handleColorsOpen}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-soft)]"
-                  >
-                    <Palette className="h-5 w-5" style={{ color: 'var(--accent-primary)' }} />
-                    الألوان
-                  </button>
-                  <button
-                    ref={versionTriggerRef}
-                    data-wisal-version-trigger="true"
-                    type="button"
-                    onClick={handleAppVersionOpen}
-                    aria-haspopup="dialog"
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-sm font-bold text-[var(--text-primary)] transition-colors hover:bg-emerald-500/10"
-                  >
-                    <span className="relative shrink-0">
-                      <PackageCheck className="h-5 w-5 text-emerald-500" strokeWidth={1.8} aria-hidden="true" />
-                      {hasUpdate && (
-                        <span aria-hidden="true" className="absolute -top-1.5 -left-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 ring-2 ring-[var(--surface-elevated)]">
-                          <span className="h-1 w-1 rounded-full bg-white" />
-                        </span>
-                      )}
-                    </span>
-                    الإصدار
-                    <span className="mr-auto text-[10px] font-bold text-[var(--text-muted)]" dir="ltr">{APP_VERSION}</span>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <MainMenuController />
         </div>
       </header>
 
@@ -387,44 +184,16 @@ export default function Layout() {
         </div>
       </footer>
 
-      {/* Popups — triggered from ☰ menu (reusing existing components) */}
       <Suspense fallback={null}>
-
-      {suggestionsMounted && <SuggestionsFeedModal open={showSuggestions} onClose={closeSuggestions} anchorRect={suggestionsAnchorRect} />}
-      {showNotifications && <NotificationsPopup {...notifications} onClose={closeNotifications} anchorRect={notificationsAnchorRect} />}
-
-      {/* قائمة الألوان — reused ThemeToggle in controlled mode */}
-      {colorsOpen && (
-        <ThemeToggle
-          open={colorsOpen}
-          onOpenChange={(open) => {
-            setColorsOpen(open);
-            if (!open) setColorsAnchorRect(null);
-          }}
-          hideTrigger
-          popover
-          anchorRect={colorsAnchorRect}
-        />
-      )}
-
-      {showAdminLogin && (
-        <AdminLoginModal
-          onClose={() => setShowAdminLogin(false)}
-          onSuccess={() => {
-            setShowAdminLogin(false);
-            navigate('/admin');
-          }}
-        />
-      )}
-
-      {/* نافذة إصدار التطبيق */}
-      {showAppVersion && <AppVersionModal
-        open={showAppVersion}
-        onClose={() => { setShowAppVersion(false); setVersionAnchorRect(null); }}
-        anchorRect={versionAnchorRect}
-        hasUpdate={hasUpdate}
-        onUpdateAccepted={() => setHasUpdate(false)}
-      />}
+        {showAdminLogin && (
+          <AdminLoginModal
+            onClose={() => setShowAdminLogin(false)}
+            onSuccess={() => {
+              setShowAdminLogin(false);
+              navigate('/admin');
+            }}
+          />
+        )}
       </Suspense>
     </div>
   );

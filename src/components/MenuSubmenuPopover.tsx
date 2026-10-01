@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { X } from 'lucide-react';
@@ -78,6 +78,11 @@ export default function MenuSubmenuPopover({
   }, [open]);
 
   const closePopover = useCallback(() => onClose(), [onClose]);
+  const handleCloseClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePopover();
+  }, [closePopover]);
 
   useEffect(() => {
     if (!open) return;
@@ -144,8 +149,8 @@ export default function MenuSubmenuPopover({
               ref={closeButtonRef}
               type="button"
               aria-label="إغلاق"
-              onClick={closePopover}
-              className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+              onClick={handleCloseClick}
+              className="absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
             >
               <X className="h-3.5 w-3.5" />
             </button>

@@ -34,8 +34,7 @@ const att = (key: string, label: string, ph: string): RegField => ({ key, label,
 function reg(
   customFields: RegField[],
   opts: {
-    phoneRequired?: boolean; minImages?: number; maxImages?: number;
-    includeExperience?: boolean;
+    phoneRequired?: boolean; includeExperience?: boolean;
     featuresLabel?: string; featuresPlaceholder?: string;
   } = {},
 ): SectionRegistrationConfig {
@@ -44,7 +43,7 @@ function reg(
   shared.push(feat(opts.featuresLabel, opts.featuresPlaceholder));
   return {
     phoneRequired: opts.phoneRequired ?? true,
-    images: { min: opts.minImages ?? 1, max: opts.maxImages ?? 5 },
+    images: { min: 1, max: 1 },
     fields: [...customFields, ...shared],
   };
 }
@@ -98,7 +97,7 @@ export const categories: Category[] = [
       experienceLabel: 'نبذة عن الصيدلية وخدماتها', experiencePlaceholder: 'عرّف بالصيدلية والخدمات المتوفرة ومواعيد العمل.',
       locationLabel: 'عنوان الصيدلية', phoneLabel: 'رقم التواصل مع الصيدلية',
       registration: {
-        phoneRequired: true, images: { min: 1, max: 5 },
+        phoneRequired: true, images: { min: 1, max: 1 },
         fields: [
           { key: 'pharmacistName', label: 'اسم صاحب الصيدلية / الصيدلي', placeholder: 'الاسم الكامل', type: 'text', required: true },
           { key: 'credential', label: 'شهادة أو كتاب ممارسة المهنة', placeholder: 'اسم الشهادة أو رقم الكتاب والجهة المانحة', type: 'text', required: true, attachment: true },

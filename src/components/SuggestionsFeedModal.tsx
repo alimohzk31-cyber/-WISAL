@@ -23,6 +23,23 @@ const COMMENT_MAX_LENGTH = 300;
 const COMPLAINT_MAX_LENGTH = 1000;
 const IMAGE_SIZE_LIMIT = 2 * 1024 * 1024;
 
+let suggestionsCache: Comment[] | null = null;
+let suggestionsInFlight: Promise<Comment[]> | null = null;
+
+async function loadCachedSuggestions(force = false): Promise<Comment[]> {
+  if (!force && suggestionsCache) return suggestionsCache;
+  if (!force && suggestionsInFlight) return suggestionsInFlight;
+  const request = fetchComments().then(rows => {
+    suggestionsCache = rows;
+    return rows;
+  });
+  suggestionsInFlight = request;
+  try {
+    return await request;
+  } finally {
+    if (suggestionsInFlight === request) suggestionsInFlight = null;
+  }
+}
 interface Props {
   open?: boolean;
   onClose: () => void;
@@ -122,7 +139,7 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
     if (isRefresh) setRefreshing(true); else setLoading(true);
     setError('');
     try {
-      const rows = await fetchComments();
+      const rows = await loadCachedSuggestions(isRefresh);
       setComments(rows);
     } catch (e: any) {
       console.error('[SuggestionsFeed] load error:', e?.message, e?.code);

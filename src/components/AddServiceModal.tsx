@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, MapPin, Phone, Type, LayoutGrid, Briefcase, Clock, Navigation, Image as ImageIcon, Video } from 'lucide-react';
+import { X, Upload, MapPin, Phone, Type, LayoutGrid, Briefcase, Clock, Navigation, Image as ImageIcon } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import { useServices, getOwnerId } from '../context/ServicesContext';
 import { getInitialProfession, getServiceFormConfig } from '../lib/serviceFormConfig';
@@ -8,7 +8,7 @@ import ServiceRegistrationFields from './ServiceRegistrationFields';
 import ServiceImagePicker from './ServiceImagePicker';
 
 import { useLanguage } from '../context/LanguageContext';
-import { useTheme } from '../context/ThemeContext';
+
 import ServiceModalShell from './ServiceModalShell';
 import { useToast } from './ToastProvider';
 import { getCurrentPositionReliable } from '../lib/geolocation';
@@ -16,6 +16,7 @@ import { SocialContactFields } from './ServiceSocialContacts';
 import { invalidSocialContact } from '../lib/serviceSocialLinks';
 import { optimizeImageToDataUrl } from '../lib/imageOptimization';
 import { resolveServiceCategory, type ServiceJoinTarget } from '../lib/serviceCategorySelection';
+import { getMissingServiceFields } from '../lib/serviceFormValidation';
 
 interface Props {
   onClose: () => void;
@@ -33,7 +34,7 @@ interface Props {
 }
 
 export default function AddServiceModal({ onClose, initialCategorySlug, initialProfession, joinSection, initialCategory, registrationPreview, onSaved }: Props) {
-    const { theme } = useTheme();
+
   const { addService } = useServices();
   const { categories } = useCategories();
   const { t } = useLanguage();
@@ -53,7 +54,6 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
     location: '', // This will be the Area Name
     coordinatesInput: '', // Manual coordinates input
     image: '',
-    video: '',
     categorySlug: initialCategorySlug ?? '',
   });
 
@@ -93,6 +93,9 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
   const [registrationError, setRegistrationError] = useState('');
   const [imagesBusy, setImagesBusy] = useState(false);
   const [attachmentBusy, setAttachmentBusy] = useState(false);
+  const missingRequiredFields = getMissingServiceFields({ registration, registrationDetails, registrationImages, name: formData.name, phone: formData.phone, categorySelected: Boolean(selectedCategory), profession: formData.profession, experience: formData.experience, location: formData.location });
+  const missingFieldsMessage = missingRequiredFields.length ? '\u0623\u0643\u0645\u0644 \u0627\u0644\u062d\u0642\u0648\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629: ' + missingRequiredFields.join('\u060c ') : '';
+  React.useEffect(() => { if (!missingRequiredFields.length) setRegistrationError(''); }, [missingRequiredFields.join('|')]);
 
     // Sync categorySlug if categories load after modal opens
   React.useEffect(() => {
@@ -122,7 +125,6 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
 
   const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | undefined>();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -138,46 +140,6 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
         alert('تعذر تجهيز الصورة. يرجى اختيار صورة أخرى.');
       }
     }
-  };
-
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const objectUrl = URL.createObjectURL(file);
-    const video = document.createElement('video');
-    video.preload = 'metadata';
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(objectUrl);
-      const duration = video.duration;
-
-      if (!Number.isFinite(duration) || duration < 1) {
-        alert('يجب أن تكون مدة الفيديو ثانية واحدة على الأقل.');
-        e.target.value = '';
-        return;
-      }
-      if (duration > 30.05) {
-        alert('مدة الفيديو تتجاوز 30 ثانية. يرجى اختيار فيديو مدته من 1 إلى 30 ثانية.');
-        e.target.value = '';
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, video: reader.result as string }));
-      };
-      reader.onerror = () => {
-        alert('تعذر قراءة ملف الفيديو. يرجى اختيار ملف آخر.');
-        e.target.value = '';
-      };
-      reader.readAsDataURL(file);
-    };
-    video.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      alert('تعذر التحقق من مدة الفيديو. يرجى اختيار ملف فيديو صالح.');
-      e.target.value = '';
-    };
-    video.src = objectUrl;
   };
 
   const handleGetLocation = async () => {
@@ -211,13 +173,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
 
     if (registrationPreview) {
       if (!registration || imagesBusy || attachmentBusy) return;
-      const missing = registration.fields.find(field => field.required && !registrationDetails[field.key]?.trim());
-      if (!formData.name.trim() || !formData.phone.trim() || missing) {
-        setRegistrationError('أكمل جميع الحقول المطلوبة.'); return;
-      }
-      if (registrationImages.length < registration.images.min || registrationImages.length > registration.images.max) {
-        setRegistrationError(`أضف من ${registration.images.min} إلى ${registration.images.max} صور للصيدلية قبل المتابعة.`); return;
-      }
+      if (missingRequiredFields.length) { setRegistrationError(missingFieldsMessage); return; }
       setRegistrationError('');
       registrationPreview.onSubmit({
         name: formData.name.trim(), phone: formData.phone.trim(),
@@ -228,10 +184,12 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
         categorySlug, categoryId: selectedCategory?.dbId,
         details: Object.fromEntries(Object.entries(registrationDetails).map(([key, value]) => [key, value.trim()])),
         images: registrationImages, credential: registrationAttachment,
-        video: formData.video || undefined, status: 'pending',
+        status: 'pending',
       });
       return;
     }
+
+    if (missingRequiredFields.length) { setRegistrationError(missingFieldsMessage); return; }
 
     if (!selectedCategory) {
       alert(joinSection ? 'تعذر تجهيز الانضمام إلى هذا القسم حاليًا. أغلق النافذة وحاول مجددًا بعد تحميل الأقسام.' : 'يرجى اختيار قسم صالح قبل إرسال الخدمة.');
@@ -291,7 +249,6 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
         latitude: finalCoords?.lat,
         longitude: finalCoords?.lng,
         image: formData.image || 'https://images.unsplash.com/photo-1556761175-5973dc0f32b7?w=800&q=80',
-        video: formData.video || undefined,
         categorySlug: selectedCategory.slug,
         categoryId: selectedCategory.dbId,
         // القاعدة الأساسية: أي خدمة جديدة تكون pending دائماً
@@ -512,7 +469,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
           <SocialContactFields values={formData} onChange={(field, value) => setFormData(current => ({ ...current, [field]: value }))} />
 
           {/* Image Upload */}
-          {registration ? <ServiceImagePicker images={registrationImages} min={registration.images.min} max={registration.images.max} onChange={setRegistrationImages} onBusy={setImagesBusy} /> : <div className="space-y-1.5">
+          {registration ? <ServiceImagePicker images={registrationImages} onChange={setRegistrationImages} onBusy={setImagesBusy} /> : <div className="space-y-1.5">
             <label className={`text-sm flex items-center gap-2 font-bold text-[var(--text-secondary)]`}>
               <ImageIcon className="w-4 h-4" /> {t('service_image_label')}
             </label>
@@ -565,54 +522,8 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
           </div>
 
           }
-          {/* Optional video — duration is checked before reading or saving the file. */}
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-2 text-sm font-bold text-[var(--text-secondary)]">
-              <Video className="h-4 w-4" /> الفيديو <span className="text-xs">({t('optional')})</span>
-            </label>
-            <p className="text-xs font-bold text-[var(--text-muted)]">مدة الفيديو لا تتجاوز 30 ثانية</p>
-            {formData.video ? (
-              <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-black">
-                <video
-                  src={formData.video}
-                  controls
-                  preload="none"
-                  className="max-h-56 w-full object-contain"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, video: '' }));
-                    if (videoInputRef.current) videoInputRef.current.value = '';
-                  }}
-                  className="absolute left-2 top-2 flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-white shadow-lg hover:bg-red-700"
-                  aria-label="حذف الفيديو"
-                  title="حذف الفيديو"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => videoInputRef.current?.click()}
-                className="flex min-h-24 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-4 text-[var(--text-primary)] transition-all hover:border-[var(--border-strong)]"
-              >
-                <Video className="h-7 w-7 text-[var(--text-muted)]" />
-                <span className="text-sm font-bold">اختيار فيديو</span>
-              </button>
-            )}
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/*"
-              onChange={handleVideoUpload}
-              className="hidden"
-            />
-          </div>
-          
           {/* Action Buttons */}
-          {registrationError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{registrationError}</p>}
+          {(registrationError || missingFieldsMessage) && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{registrationError || missingFieldsMessage}</p>}
           <div className={`sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex shrink-0 flex-col gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-3 min-[360px]:flex-row sm:-mx-5 sm:-mb-5 sm:gap-3 sm:p-4`}>
             <button
               type="button"
@@ -623,7 +534,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || imagesBusy || attachmentBusy || (!registration && !selectedCategory)}
+              disabled={isSubmitting || imagesBusy || attachmentBusy || missingRequiredFields.length > 0}
                             className="app-btn-accent flex w-full min-w-0 flex-1 items-center justify-center gap-2 rounded-xl py-3.5 font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
@@ -632,7 +543,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                   {t('saving')}
                 </>
               ) : (
-                registration ? 'اختبار النموذج' : t('save_data')
+                registration || joinSection ? '\u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u0627\u0646\u0636\u0645\u0627\u0645' : t('save_data')
               )}
             </button>
           </div>

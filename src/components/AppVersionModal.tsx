@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { CalendarDays, ChevronLeft, ChevronRight, List, X } from 'lucide-react';
-import { APP_RELEASES, APP_VERSION, APP_VERSION_DATE, getLatestVersion } from '../lib/appVersion';
+import { APP_RELEASES, APP_VERSION, APP_VERSION_DATE, APP_VERSION_DAY } from '../lib/appVersion';
 
 export interface AppVersionAnchorRect {
   top: number;
@@ -48,11 +48,7 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
-    if (!open) {
-      setShowHistory(false);
-      return;
-    }
-    void getLatestVersion().catch(() => undefined);
+    if (!open) setShowHistory(false);
   }, [open]);
 
   useEffect(() => {
@@ -72,6 +68,11 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
     setShowHistory(false);
     onClose();
   }, [onClose]);
+  const handleCloseClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePopover();
+  }, [closePopover]);
 
   useEffect(() => {
     if (!open) return;
@@ -145,8 +146,8 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
               <button
                 type="button"
                 aria-label="إغلاق"
-                onClick={closePopover}
-                className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                onClick={handleCloseClick}
+                className="absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -197,7 +198,7 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
                               </div>
                               <div className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-[var(--theme-muted)]" dir="ltr">
                                 <CalendarDays className="h-3 w-3 text-[var(--accent-primary)]" />
-                                {release.date}
+                                {release.day} — {release.date}
                               </div>
                             </div>
                           </li>
@@ -231,7 +232,7 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
                       <p className="mt-0.5 text-6xl font-black leading-none text-[var(--accent-primary)]" dir="ltr">{APP_VERSION}</p>
                       <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--theme-muted)]" dir="ltr">
                         <CalendarDays className="h-3.5 w-3.5 text-[var(--accent-primary)]" />
-                        {APP_VERSION_DATE}
+                        {APP_VERSION_DAY} — {APP_VERSION_DATE}
                       </div>
                     </div>
 

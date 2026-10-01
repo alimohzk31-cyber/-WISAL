@@ -24,7 +24,7 @@ const att = (key: string, label: string, ph: string): RegField => ({ key, label,
 
 /** حقل تسجيل مخصّص + الحقول المشتركة (محافظة/منطقة/خبرة/وصف) + الصور + الهاتف. */
 function reg(customFields: RegField[], opts: {
-  phoneRequired?: boolean; minImages?: number; maxImages?: number; includeExperience?: boolean;
+  phoneRequired?: boolean; includeExperience?: boolean;
   descriptionLabel?: string; descriptionPlaceholder?: string;
 } = {}): SectionRegistrationConfig {
   const shared: RegField[] = [gov(), area()];
@@ -32,7 +32,7 @@ function reg(customFields: RegField[], opts: {
   shared.push(feat(opts.descriptionLabel, opts.descriptionPlaceholder));
   return {
     phoneRequired: opts.phoneRequired ?? true,
-    images: { min: opts.minImages ?? 1, max: opts.maxImages ?? 5 },
+    images: { min: 1, max: 1 },
     fields: [...customFields, ...shared],
   };
 }

@@ -113,7 +113,6 @@ export interface ServiceRegistrationDraft {
   details: Record<string, string>;
   images: string[];
   credential?: ServiceRegistrationAttachment;
-  video?: string;
   status: 'pending';
 }
 

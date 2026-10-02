@@ -82,15 +82,12 @@ export default function Layout() {
               <button
                 type="button"
                 onClick={handleAdminClick}
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl transition-colors hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                title={t('admin_panel')}
-                aria-label={t('admin_panel')}
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl"
               >
                 <img
-                  src={`${(import.meta as any).env.BASE_URL}wisal-header-logo.png`}
-                  alt={t('app_name')}
+                  src={`${(import.meta as any).env.BASE_URL}assets/wisal-header-brand-animated.png`}
+                  alt=""
                   className="h-full w-full rounded-xl object-contain"
-                  style={{ filter: `drop-shadow(0 0 5px ${primaryColor}40)` }}
                   draggable={false}
                 />
               </button>
@@ -99,13 +96,11 @@ export default function Layout() {
               <button
                 type="button"
                 onClick={handleAdminClick}
-                className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-colors hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                title={t('admin_panel')}
-                aria-label={t('admin_panel')}
+                className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl"
               >
                 <img
-                src={`${(import.meta as any).env.BASE_URL}wisal-header-logo.png`}
-                alt={t('app_name')}
+                src={`${(import.meta as any).env.BASE_URL}assets/wisal-header-brand-animated.png`}
+                alt=""
                 className="h-full w-full rounded-xl object-contain"
                 draggable={false}
                 />

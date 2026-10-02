@@ -11,8 +11,10 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
 import SocialFeed from '../components/SocialFeed';
 import ContentSlider from '../components/ContentSlider';
+import { useSlider, getAdStatus } from '../hooks/useSlider';
+import { sanitizeSliderLink } from '../lib/sliderLinks';
 import DirectoryNav from '../components/DirectoryNav';
-import { buildServiceContentSlides, DEMO_SERVICE_SLIDES, SLIDER_DEMO_MODE } from '../lib/contentSlides';
+import { compareSliderOrder, getSliderImageUrl } from '../lib/sliderPresentation';
 const AddServiceModal = lazy(() => import('../components/AddServiceModal'));
 import ErrorState from '../components/ui/ErrorState';
 import { buildDirectorySearchIndex, searchDirectory, getDirectDirectoryMatch } from '../lib/directorySearch';
@@ -93,7 +95,23 @@ export default function Home() {
     return () => cancelAnimationFrame(frame);
   }, [tool]);
 
-  const contentSlides = useMemo(() => SLIDER_DEMO_MODE ? DEMO_SERVICE_SLIDES : buildServiceContentSlides(publicServices, categories), [publicServices, categories]);
+  const { ads, loading: sliderLoading } = useSlider();
+  const [sliderNow, setSliderNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setSliderNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const contentSlides = useMemo(() => {
+    return ads.filter(ad => getAdStatus(ad, sliderNow) === 'active')
+      .sort(compareSliderOrder)
+      .map(ad => ({
+        id: String(ad.id), sliderId: ad.id, title: ad.title, category: ad.subtitle || '',
+        imageUrl: getSliderImageUrl(ad), href: sanitizeSliderLink(ad.button_link) || '/?view=services',
+        button_text: ad.button_text, button_link: ad.button_link,
+        facebook_url: ad.facebook_url, instagram_url: ad.instagram_url,
+        tiktok_url: ad.tiktok_url, twitter_url: ad.twitter_url,
+      }));
+  }, [ads, sliderNow]);
 
   // Scroll Restoration — معالج مُهذَّب: القيمة تُحفظ في متغير خلال التمرير
   // (rAF مرة واحدة لكل إطار كحد أقصى) والكتابة لـ sessionStorage تحدث مرة واحدة
@@ -260,7 +278,9 @@ export default function Home() {
         />
       </div>
 
-      <ContentSlider slides={contentSlides} loading={servicesLoading} label="الخدمات المعتمدة" testId="services-slider" imageFit="contain" />
+      <div className="mx-auto w-full min-w-0 max-w-2xl">
+        <ContentSlider slides={contentSlides} loading={sliderLoading} label="الخدمات المعتمدة" testId="services-slider" imageFit="contain" />
+      </div>
 
       {/* Primary navigation: three destinations below the slider — التصفح | الخدمات | البحث عن وظيفة */}
       <DirectoryNav activeView={activeView} onHomeViewChange={setActiveView} />

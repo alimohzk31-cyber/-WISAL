@@ -4,6 +4,7 @@ import {
   BriefcaseBusiness,
   Compass,
   FolderOpen,
+  House,
   Image as ImageIcon,
   Lightbulb,
   Link as LinkIcon,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { AdminOverviewTab } from './AdminOverviewDashboard';
+import WisalWMark from './WisalWMark';
 
 interface AdminSidebarProps {
   activeTab: AdminOverviewTab;
@@ -70,12 +72,15 @@ export default function AdminSidebar({
   return (
     <aside className="wisal-overview__sidebar" aria-label="تنقل الإدارة">
       <div className="wisal-brand">
-        <img src={`${(import.meta as any).env.BASE_URL}wisal-header-logo.png`} alt="وصال" />
+        <div className="wisal-brand__wordmark">
+          <WisalWMark size="sidebar" />
+          <b dir="ltr">WISAL</b>
+        </div>
         <span>لوحة الإدارة</span>
       </div>
       <div className="wisal-sidebar-divider" />
       <nav className="wisal-side-nav">
-        <Item label="نظرة عامة" icon={Activity} active={activeTab === 'overview'} showIcons={showIcons} onClick={() => onNavigate('overview')} />
+        <Item label="الرئيسية" icon={House} active={activeTab === 'overview'} showIcons={showIcons} onClick={() => onNavigate('overview')} />
         <Item label="الخدمات" icon={FolderOpen} active={activeTab === 'services'} showIcons={showIcons} onClick={() => onNavigate('services')} />
         <Item label="الخدمات المضافة حديثاً" icon={Bell} active={activeTab === 'pending'} badge={pendingCount} showIcons={showIcons} onClick={() => onNavigate('pending')} />
         <Item label="الخدمات المرفوضة" icon={XCircle} active={activeTab === 'rejected'} badge={rejectedCount} showIcons={showIcons} onClick={() => onNavigate('rejected')} />

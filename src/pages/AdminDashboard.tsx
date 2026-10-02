@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass, BriefcaseBusiness, CheckCheck, AlertTriangle, Ban, Download, Search } from 'lucide-react';
+import { ArrowRight, LayoutGrid, Activity, Eye, Plus, Edit, Trash2, ChevronLeft, MapPin, Phone, Shield, TrendingUp, FolderOpen, Bell, Check, X, ArrowRightLeft, Image as ImageIcon, XCircle, Hourglass, Lightbulb, Equal, Compass, BriefcaseBusiness, CheckCheck, AlertTriangle, Ban, Download, Search, Moon, UserRound } from 'lucide-react';
 import { useServices } from '../context/ServicesContext';
 import { isValidServiceId, Service } from '../hooks/useServices';
 import { serviceStatusLabel, serviceStatusBadgeClass } from '../types/models';
@@ -21,6 +21,7 @@ import MessagesManager from '../components/MessagesManager';
 import NotificationsManager from '../components/NotificationsManager';
 import AdminOverviewDashboard, { type AdminOverviewTab } from '../components/AdminOverviewDashboard';
 import AdminSidebar from '../components/AdminSidebar';
+import '../styles/admin-dashboard.css';
 import ThemeToggle from '../components/ThemeToggle';
 import { englishDigits } from '../lib/englishDigits';
 
@@ -413,12 +414,13 @@ export default function AdminDashboard() {
       <div className={`wisal-overview__main relative min-w-0 flex-1 overflow-hidden rounded-3xl border bg-[var(--bg-secondary)] border-[var(--border)]`}>
         <header className="wisal-overview__topbar">
           <div className="wisal-admin-identity">
-            <div className="wisal-admin-avatar">A</div>
-            <div><strong>المدير العام</strong><span>admin@wisal.com</span></div>
+            <div className="wisal-admin-avatar"><UserRound size={26}/></div>
+            <div><strong>مرحباً بك</strong><span>مدير النظام</span></div>
           </div>
           <button className="wisal-notification-button" type="button" onClick={() => goToTab('notifications')} aria-label="الإشعارات">
             <Bell size={23} /><b>{notifications > 99 ? '99+' : notifications}</b>
           </button>
+          <button className="wisal-appearance-button" type="button" onClick={() => setIsSettingsOpen(true)} aria-label="إعدادات المظهر"><Moon size={22}/></button>
           <label className="wisal-search"><Search size={19} /><input aria-label="البحث في الإدارة" placeholder="البحث في الإدارة ..." /></label>
           <div className="wisal-system-status"><i />النظام يعمل بصورة طبيعية</div>
         </header>
@@ -490,6 +492,15 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={`${activeTab}-${selectedCategory ?? 'root'}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.24, ease: 'easeOut' }}
+            className="wisal-admin-view-transition min-h-0 flex-1"
+          >
         {activeTab === 'notifications' ? (
           <NotificationsManager />
         ) : activeTab === 'messages' ? (
@@ -1105,11 +1116,13 @@ export default function AdminDashboard() {
 
           </div>
         )}
+        </motion.div>
+        </AnimatePresence>
       </div>
 
       {isCategoryManagerOpen && (
         <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4">
-          <div className={`w-full min-w-0 max-w-2xl overflow-hidden rounded-2xl border bg-[var(--card)] border-[var(--border)] shadow-2xl`}>
+          <div className={`wisal-admin-manager-panel w-full min-w-0 max-w-2xl overflow-hidden rounded-2xl border bg-[var(--card)] border-[var(--border)] shadow-2xl`}>
             <div className={`flex min-w-0 items-center justify-between gap-2 border-b border-[var(--border)] p-4`}>
               <h3 className={`min-w-0 break-words text-xl font-bold text-[var(--text-primary)]`}>
                 إدارة الأقسام
@@ -1161,7 +1174,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      )}
+        )}
 
       {isSettingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={() => setIsSettingsOpen(false)}>

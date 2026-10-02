@@ -149,12 +149,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
       const nextToken = newSession?.access_token ?? '';
-      if (currentToken.current !== nextToken) setIsAdmin(false);
+      const tokenChanged = currentToken.current !== nextToken;
+      if (tokenChanged) setIsAdmin(false);
       currentToken.current = nextToken;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       const identityChanged = Boolean(newSession && pinVerifiedUserIdRef.current && pinVerifiedUserIdRef.current !== newSession.user.id);
-      const sessionReplacedOutsidePin = Boolean(newSession && !explicitLogin.current && event !== 'TOKEN_REFRESHED' && event !== 'INITIAL_SESSION' && pinVerifiedUserIdRef.current);
+      // Supabase can emit SIGNED_IN when a tab becomes active again while
+      // restoring the same persisted session. Keep the fresh PIN proof for
+      // that exact session, but revoke it if a different token is installed
+      // outside the explicit PIN flow.
+      const sessionReplacedOutsidePin = Boolean(newSession && !explicitLogin.current && event !== 'TOKEN_REFRESHED' && event !== 'INITIAL_SESSION' && tokenChanged && pinVerifiedUserIdRef.current);
       if (!newSession || identityChanged || sessionReplacedOutsidePin) {
         clearPinVerification();
       }

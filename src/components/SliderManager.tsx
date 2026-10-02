@@ -15,6 +15,9 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { SafeImage } from './SafeImage';
 import { useToast } from './ToastProvider';
+import { SLIDER_SOCIAL_FIELDS } from '../lib/sliderLinks';
+import SliderLinkActions from './SliderLinkActions';
+import { compareSliderOrder, getSliderImageUrl } from '../lib/sliderPresentation';
 
 // ==============================
 // أنواع ومساعدو النموذج
@@ -25,6 +28,10 @@ interface SlideDraft {
   subtitle: string;
   button_text: string;
   button_link: string;
+  facebook_url: string;
+  instagram_url: string;
+  tiktok_url: string;
+  twitter_url: string;
   duration_seconds: number;
   sort_order: number;
   language: string;
@@ -65,12 +72,22 @@ function SectionHeader({ icon, text, desc }: { icon: ReactNode; text: string; de
 }
 
 function draftFromAd(ad: SliderAd): SlideDraft {
+  // Recover pre-migration local link drafts for an explicit save by the admin.
+  // Public reads still use the database values; no rows are migrated automatically.
+  let legacy: { button_text?: string; button_link?: string } = {};
+  try {
+    legacy = JSON.parse(localStorage.getItem('saleen_slider_design_v1') || '{}')[String(ad.id)] || {};
+  } catch { /* A damaged old draft must not prevent editing. */ }
   return {
     id: ad.id,
     title: ad.title || '',
     subtitle: ad.subtitle || '',
-    button_text: ad.button_text || '',
-    button_link: ad.button_link || '',
+    button_text: ad.button_text ?? legacy.button_text ?? '',
+    button_link: ad.button_link ?? legacy.button_link ?? '',
+    facebook_url: ad.facebook_url || '',
+    instagram_url: ad.instagram_url || '',
+    tiktok_url: ad.tiktok_url || '',
+    twitter_url: ad.twitter_url || '',
     duration_seconds: getSlideDuration(ad),
     sort_order: Number(ad.sort_order) || 1,
     language: ad.language || 'ar',
@@ -100,6 +117,7 @@ function emptyDraft(sortOrder: number): SlideDraft {
     subtitle: '',
     button_text: '',
     button_link: '',
+    facebook_url: '', instagram_url: '', tiktok_url: '', twitter_url: '',
     duration_seconds: DEFAULT_SLIDE_DURATION_SECONDS,
     sort_order: sortOrder,
     language: 'ar',
@@ -134,6 +152,8 @@ function draftToAd(draft: SlideDraft): SliderAd {
     subtitle: draft.subtitle,
     button_text: draft.button_text,
     button_link: draft.button_link,
+    facebook_url: draft.facebook_url, instagram_url: draft.instagram_url,
+    tiktok_url: draft.tiktok_url, twitter_url: draft.twitter_url,
     duration_seconds: draft.duration_seconds,
     sort_order: draft.sort_order,
     language: draft.language,
@@ -205,10 +225,11 @@ function SlideView({ ad }: { ad: SliderAd }) {
     <div
       dir={ad.language === 'en' ? 'ltr' : 'rtl'}
       className="relative w-full h-full select-none"
+      data-slider-id={ad.id} data-slider-image-url={getSliderImageUrl(ad)}
       style={{ fontFamily: `'${ad.font_family || 'Cairo'}', Cairo, sans-serif` }}
     >
       <SafeImage
-        src={ad.url || ad.images[0] || ''}
+        src={getSliderImageUrl(ad)}
         alt={ad.title || 'شريحة'}
         loading="lazy"
         draggable={false}
@@ -231,14 +252,7 @@ function SlideView({ ad }: { ad: SliderAd }) {
             {ad.subtitle}
           </p>
         ) : null}
-        {ad.button_text ? (
-          <span
-            className="inline-block mt-2.5 px-5 py-2 rounded-xl text-sm md:text-base font-bold text-white shadow-lg pointer-events-auto"
-            style={{ backgroundColor: ad.button_color || '#7C3AED' }}
-          >
-            {ad.button_text}
-          </span>
-        ) : null}
+        <SliderLinkActions links={ad} inline />
       </div>
       <span className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-[11px] font-bold" dir="rtl">
         <Timer className="w-3.5 h-3.5" /> {getSlideDuration(ad)} ث
@@ -255,7 +269,7 @@ export default function SliderManager() {
 
   // القائمة المعروضة تتبع دائماً الترتيب المحفوظ في Supabase (sort_order)
   const sortedAds = useMemo(
-    () => [...ads].sort((a, b) => ((a.sort_order ?? 0) - (b.sort_order ?? 0)) || (Number(a.id) - Number(b.id))),
+    () => [...ads].sort(compareSliderOrder),
     [ads]
   );
 
@@ -449,6 +463,8 @@ export default function SliderManager() {
         subtitle: draft.subtitle.trim(),
         button_text: draft.button_text.trim(),
         button_link: draft.button_link.trim(),
+        facebook_url: draft.facebook_url.trim(), instagram_url: draft.instagram_url.trim(),
+        tiktok_url: draft.tiktok_url.trim(), twitter_url: draft.twitter_url.trim(),
         duration_seconds: draft.duration_seconds,
         language: draft.language,
         font_family: draft.font_family,
@@ -779,6 +795,15 @@ export default function SliderManager() {
                   </div>
                 </div>
 
+
+                <SectionHeader icon={<LinkIcon className="w-5 h-5" />} text="روابط التواصل (اختياري)" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {SLIDER_SOCIAL_FIELDS.map(({ field, label }) => <label key={field} className="space-y-1.5">
+                    <FieldLabel icon={<LinkIcon className="w-4 h-4" />} text={label} />
+                    <input dir="ltr" className={inputCls} value={draft[field]}
+                      onChange={event => setField(field, event.target.value)} placeholder="https://…" />
+                  </label>)}
+                </div>
 
                 {/* ===== الموضع والترتيب ===== */}
                 <SectionHeader icon={<ListOrdered className="w-5 h-5" />} text="الموضع والترتيب" desc="ترتيب ظهور الشريحة ومدة العرض" />

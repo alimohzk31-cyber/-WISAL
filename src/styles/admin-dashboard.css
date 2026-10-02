@@ -1,0 +1,219 @@
+﻿/* WISAL admin: one reference-driven layout, independent of the public UI. */
+.wisal-admin-route { background: #07111f; color: #edf2ff; min-height: 100vh; }
+.wisal-admin-route > header, .wisal-admin-route > footer { display: none; }
+.wisal-admin-route > main { max-width: none; margin: 0; padding: 0; min-height: 100vh; }
+.wisal-admin-route > main > div { min-height: 100vh; }
+.wisal-admin-shell {
+ color-scheme: dark;
+ --theme-primary: #428eff; --theme-primary-light: #9cc9ff; --theme-primary-dark: #2563b8;
+ --theme-primary-soft: #2c69c326; --theme-primary-hover: #60a5fa; --theme-secondary: #d7ad65;
+ --theme-shadow: #0007; --glow: #428eff33; --focus-ring: #428eff55;
+ --theme-background: #07111f; --theme-surface: #0b1627; --theme-surface-alt: #102035;
+ --theme-text: #edf2ff; --theme-muted: #b4c2dd; --theme-border: #2b3c57;
+ --bg-primary: #07111f; --bg-secondary: #0b1627; --surface: #0c182b; --surface-elevated: #152238;
+ --card: #101c30; --input-bg: #142139; --input-border: #2b3d5b;
+ --text-primary: #edf2ff; --text-secondary: #b4c2dd; --text-muted: #94a8c7; --border: #2c3d59;
+ --neon-text: #edf2ff; --neon-muted: #94a8c7; --accent-primary: #428eff;
+ --accent-soft: #2c69c326; --accent-light: #9cc9ff;
+ display: grid !important; grid-template-columns: 270px minmax(0, 1fr); direction: ltr;
+ gap: 0 !important; min-height: 100vh; width: 100%; color: #edf2ff; background: #07111f;
+ font-family: 'Cairo', sans-serif; isolation: isolate;
+}
+.wisal-overview__sidebar { position: sticky; top: 0; z-index: 4; height: 100vh; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border-right: 1px solid #344967; border-radius: 0 28px 28px 0; background: radial-gradient(ellipse at 30% 100%, #19326980, transparent 55%), linear-gradient(140deg,#0b1428,#060e1b 60%); }
+.wisal-overview__sidebar::after { content: ''; position: absolute; bottom: 60px; left: -68px; right: -65px; height: 350px; pointer-events: none; background: url('/assets/wisal-admin-w-metallic.png') center / contain no-repeat; mask-image: linear-gradient(transparent,black 22%,black 85%,transparent); opacity: .92; }
+.wisal-brand { height: 100px; flex: 0 0 100px; display: grid; place-items: center; position: relative; z-index: 2; }
+.wisal-brand__wordmark { display: flex; align-items: center; gap: 10px; direction: ltr; }
+.wisal-brand__wordmark > b { font-family: Georgia, serif; font-size: 30px; color: #ffe0a2; text-shadow: 0 0 12px #ffa73e33; }
+.wisal-brand > span, .wisal-sidebar-divider { display: none; }
+.wisal-side-nav { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 6px; overflow-y: auto; padding: 0 12px 16px; position: relative; z-index: 2; scrollbar-width: thin; scrollbar-color: #46658a transparent; }
+.wisal-side-nav__item { position: relative; display: flex; align-items: center; gap: 23px; flex: 0 0 52px; min-height: 52px; padding: 0 20px; border: 1px solid transparent; border-radius: 14px; background: transparent; color: #dce5f8; text-align: left; direction: ltr; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .2s, border-color .2s; }
+.wisal-side-nav__item > span { direction: rtl; white-space: nowrap; }
+.wisal-side-nav__icon { width: 23px; height: 23px; flex: 0 0 auto; color: #b4c9f3; }
+.wisal-side-nav__icon.is-hidden { display: none; }
+.wisal-side-nav__item:hover { background: #24497a33; border-color: #3d6381; }
+.wisal-side-nav__item.is-active { color: #fff8e9; border-color: #d7a45d; background: linear-gradient(115deg,#a8824963,#57474444 72%,#a867304d); box-shadow: inset 2px 0 3px #fff9d5,0 0 12px #ffc06780,inset -6px 0 16px #ffb5572e; }
+.wisal-side-nav__item.is-active .wisal-side-nav__icon { color: #ffda92; fill: #ffda92; filter: drop-shadow(0 0 10px #ffd18d); }
+.wisal-side-nav__badge { margin-left: auto; min-width: 20px; padding: 1px 5px; border-radius: 12px; background: #284071; color: #cde0ff; text-align: center; font-size: 10px; }
+.wisal-logout { z-index: 2; display: flex; flex: 0 0 auto; justify-content: center; gap: 8px; align-items: center; margin: 8px 14px 18px; padding: 10px; border: 1px solid #344560; border-radius: 12px; color: #b5c9ea; background: #0b142adb; font-size: 12px; }
+.wisal-overview__main { min-width: 0; width: 100%; direction: rtl; border: 0 !important; border-radius: 0 !important; background: #07111f !important; overflow: visible !important; }
+.wisal-overview__topbar { height: 78px; min-height: 78px; display: grid; grid-template-columns: minmax(0,1fr) 44px 44px 170px; gap: 14px; align-items: center; padding: 0 24px 0 42px; direction: ltr; border-bottom: 1px solid #2a3851; background: linear-gradient(100deg,#0a1323,#0d182b); }
+.wisal-overview__topbar > * { grid-row: 1; }
+.wisal-search { grid-column: 1; justify-self: start; display: flex; align-items: center; gap: 12px; width: 305px; height: 44px; padding: 0 18px; border: 1px solid #293d5b; border-radius: 17px; color: #93abd9; background: linear-gradient(120deg,#172237,#131e33); }
+.wisal-search input { width: 100%; min-width: 0; border: 0; background: transparent; outline: none; direction: rtl; text-align: right; color: #dce7fc; font-family: inherit; font-size: 14px; }
+.wisal-search input::placeholder { color: #a3b4d2; }
+.wisal-search:focus-within { border-color: #5089d0; }
+.wisal-notification-button, .wisal-appearance-button { position: relative; display: grid; place-items: center; height: 44px; width: 44px; padding: 0; border: 1px solid #273956; border-radius: 50%; background: #101c2f; color: #b6c9f2; cursor: pointer; }
+.wisal-notification-button { grid-column: 2; }
+.wisal-notification-button b { position: absolute; right: 1px; top: -2px; min-width: 10px; height: 10px; border-radius: 50%; font-size: 0; background: #ff526d; box-shadow: 0 0 9px #fa5f69; }
+.wisal-appearance-button { grid-column: 3; }
+.wisal-appearance-button svg { fill: #c9d8ff; }
+.wisal-admin-identity { grid-column: 4; display: flex; flex-direction: row; align-items: center; gap: 13px; direction: rtl; }
+.wisal-admin-avatar { display: grid; place-items: center; flex: 0 0 52px; width: 52px; height: 52px; color: #ffe1a2; border: 1px solid #eac47e; border-radius: 50%; background: radial-gradient(circle at 45% 38%,#796139,#151b25 74%); box-shadow: 0 0 15px #c9a45933; }
+.wisal-admin-avatar svg { fill: #ffe2a1; stroke-width: 1; }
+.wisal-admin-identity strong, .wisal-admin-identity span { display: block; text-align: right; font-weight: 400; font-size: 13px; line-height: 1.7; white-space: nowrap; }
+.wisal-admin-identity span { font-size: 12px; color: #c5d0e7; }
+.wisal-system-status { display: none; }
+.wisal-overview__content { padding: 0 24px 24px; direction: ltr; }
+.wisal-admin-hero { position: relative; display: grid; grid-template-columns: 38% 43% 19%; height: 270px; margin: 0 -24px 6px; overflow: hidden; align-items: center; background: #081326 url('/assets/wisal-admin-hero-office.png') center 25% / 100% 400px no-repeat; }
+.wisal-admin-hero::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg,#07111f99,transparent 15%,transparent 85%,#07111f33); }
+.wisal-admin-hero__logo-stage { z-index: 1; position: relative; display: grid; place-items: center; height: 270px; width: 100%; perspective: 900px; transform-style: preserve-3d; }
+.wisal-admin-hero__copy { position: relative; z-index: 2; color: #f5f5ff; text-align: center; direction: rtl; white-space: nowrap; }
+.wisal-admin-hero__eyebrow { display: block; font-size: 30px; font-weight: 700; line-height: 1.7; }
+.wisal-admin-hero__copy h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 82px; line-height: 1.08; font-weight: 700; margin: 5px 0 4px; background: linear-gradient(#fff2cf 10%,#ffe1a7 42%,#d89b45 64%,#ffe4b7 88%); background-clip: text; color: transparent; filter: drop-shadow(0 0 14px #e29c4640); }
+.wisal-admin-hero__copy p { margin: 7px 0 10px; font-size: 17px; font-weight: 400; }
+.wisal-admin-hero__copy > i { display: block; height: 3px; width: 148px; margin: auto; border-radius: 100%; background: #ffe1a1; box-shadow: 0 0 12px #ffc16c77; }
+.wisal-w-mark { position: relative; flex: 0 0 auto; }
+.wisal-w-mark--hero { width: 490px; height: 320px; max-width: 120%; animation: wisal-float 6s ease-in-out infinite; }
+.wisal-w-mark img { width: 100%; height: 100%; object-fit: contain; user-select: none; mask-image: radial-gradient(ellipse at 50% 50%,black 38%,#000e 52%,transparent 75%); }
+.wisal-w-mark--hero img { filter: drop-shadow(0 0 12px #037bff40); }
+.wisal-w-mark__reflection { position: absolute; inset: 5% 10% 10%; pointer-events: none; background: linear-gradient(115deg,transparent 37%,#fff3 49%,transparent 60%); clip-path: polygon(22% 12%,36% 10%,50% 56%,69% 16%,79% 20%,58% 80%,45% 75%); mix-blend-mode: screen; background-size: 300% 100%; animation: wisal-reflection 7s ease-in-out infinite; }
+.wisal-w-mark--sidebar { width: 65px; height: 62px; overflow: hidden; }
+.wisal-w-mark--sidebar img { position: absolute; width: 98px; height: 65px; max-width: none; left: -17px; top: -1px; clip-path: polygon(18% 11%,31% 9%,39% 17%,43% 14%,51% 16%,61% 32%,65% 27%,75% 20%,84% 21%,64% 79%,55% 81%,47% 78%,38% 65%); mask-image: none; filter: sepia(1) saturate(1.4) brightness(1.1); }
+.wisal-w-mark--sidebar .wisal-w-mark__reflection { display: none; }
+.wisal-stats-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+.wisal-stat-card { position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; height: 138px; min-width: 0; overflow: hidden; padding: 20px 20px 15px; border: 1px solid color-mix(in srgb,var(--stat-accent) 44%,#27374f); border-radius: 14px; background: radial-gradient(ellipse at 80% 5%,color-mix(in srgb,var(--stat-accent) 24%,transparent),transparent 80%),linear-gradient(120deg,#10192d,#0a1525); transition: transform .22s; }
+.wisal-stat-card:hover { transform: translateY(-3px) !important; }
+.wisal-stat-card::after { content: ''; position: absolute; bottom: -40px; left: -10%; width: 100%; height: 50px; background: var(--stat-accent); filter: blur(32px); opacity: .16; }
+.wisal-stat-card__icon { display: grid; place-items: center; flex: 0 0 63px; width: 63px; height: 63px; border-radius: 17px; border: 1px solid color-mix(in srgb,var(--stat-accent) 75%,white); color: #f3f7ff; background: linear-gradient(140deg,var(--stat-accent),color-mix(in srgb,var(--stat-accent) 33%,#081634)); box-shadow: inset 0 0 12px #ffffff18,0 0 18px color-mix(in srgb,var(--stat-accent) 35%,transparent); }
+.wisal-stat-card__content { text-align: right; direction: rtl; min-width: 0; }
+.wisal-stat-card__content > span { font-size: 15px; font-weight: 400; color: #d8dffa; }
+.wisal-stat-card__content > strong { display: block; font-size: 35px; line-height: 1.3; margin: 5px 0 8px; color: #f6f6ff; }
+.wisal-stat-card__content > small { color: #37eaa8; font-size: 11px; white-space: nowrap; }
+.wisal-stat-card__sparkline { position: absolute; width: 125px; height: 38px; left: 22px; bottom: 10px; overflow: visible; }
+.wisal-stat-card__sparkline path { fill: none; stroke: var(--stat-accent); stroke-width: 2.4; stroke-linecap: round; filter: drop-shadow(0 0 5px var(--stat-accent)); }
+.wisal-chart-grid { display: grid; grid-template-columns: minmax(0,58fr) minmax(0,42fr); gap: 16px; margin-top: 16px; }
+.wisal-panel { min-width: 0; border: 1px solid #2c3c55; border-radius: 14px; padding: 14px 20px; direction: rtl; background: radial-gradient(ellipse at 40% 0%,#14223977,transparent 80%),linear-gradient(135deg,#0e1725,#08111d); box-shadow: inset 0 1px 0 #ffffff02; }
+.wisal-chart-grid > .wisal-panel { height: 266px; }
+.wisal-panel__heading { display: flex; direction: ltr; align-items: center; gap: 18px; min-height: 36px; }
+.wisal-panel__heading > svg { flex: 0 0 auto; color: #acc0f1; }
+.wisal-panel__heading > h2 { direction: rtl; margin: 0; font-size: 15px; font-weight: 700; color: #f1f3ff; }
+.wisal-chart-select { margin-left: auto; direction: rtl; display: flex; align-items: center; gap: 9px; border: 1px solid #283b58; border-radius: 12px; background: #162236; color: #c7d4ef; padding: 8px 11px; }
+.wisal-chart-select select { direction: rtl; appearance: none; border: 0; outline: none; background: transparent; color: inherit; font-family: inherit; font-size: 10px; max-width: 140px; }
+.wisal-chart-select option { background: #111c2f; }
+.wisal-activity-chart { margin-top: 14px; display: flex; direction: ltr; gap: 12px; height: 180px; }
+.wisal-chart-y { display: flex; flex-direction: column; justify-content: space-between; width: 26px; text-align: right; color: #b5c8ec; font-family: Arial,sans-serif; font-size: 12px; padding: 2px 0 23px; }
+.wisal-chart-plot { flex: 1; min-width: 0; }
+.wisal-chart-plot svg { display: block; width: 100%; height: 156px; overflow: visible; }
+.wisal-chart-gridline { stroke: #304561; stroke-width: 1; stroke-dasharray: 4 3; }
+.wisal-chart-gridline--vertical { stroke: #23374e; stroke-width: .8; }
+.wisal-activity-line { fill: none; stroke: url(#wisal-line-spectrum); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px #219aff88); }
+.wisal-chart-x { display: flex; justify-content: space-between; gap: 2px; margin-top: 7px; font-size: 10px; color: #bfcef0; white-space: nowrap; }
+.wisal-donut-layout { display: grid; direction: ltr; grid-template-columns: 190px minmax(0,1fr); gap: 28px; align-items: center; margin-top: 14px; }
+.wisal-donut { width: 190px; height: 190px; border-radius: 50%; display: grid; place-items: center; transform: rotate(-90deg); }
+.wisal-donut__hole { width: 118px; height: 118px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #0a1424; transform: rotate(90deg); }
+.wisal-donut__hole strong { font-family: Arial,sans-serif; color: #dfe6ff; font-size: 32px; line-height: 1.1; }
+.wisal-donut__hole span { font-size: 12px; color: #e5eafa; margin-top: 5px; }
+.wisal-legend { display: grid; gap: 17px; direction: ltr; }
+.wisal-legend__row { display: grid; grid-template-columns: 14px minmax(0,1fr) auto; gap: 10px; align-items: center; font-size: 15px; color: #dce5fc; }
+.wisal-legend__row > i { width: 14px; height: 14px; border-radius: 50%; }
+.wisal-legend__row > span { direction: rtl; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wisal-legend__row > strong { font-family: Arial,sans-serif; font-size: 17px; font-weight: 500; }
+.wisal-admin-bottom-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-top: 14px; }
+.wisal-table-panel { height: 220px; }
+.wisal-admin-table-wrap { margin-top: 11px; overflow-x: auto; }
+.wisal-admin-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; color: #c9d6ef; font-size: 13px; text-align: right; }
+.wisal-admin-table th { height: 36px; background: #152135; border-block: 1px solid #26364f; color: #bbccef; font-weight: 400; }
+.wisal-admin-table th:first-child { border-radius: 0 9px 9px 0; }
+.wisal-admin-table th:last-child { border-radius: 9px 0 0 9px; }
+.wisal-admin-table th, .wisal-admin-table td { padding: 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wisal-admin-table td { height: 40px; border-bottom: 1px solid #24344d; font-weight: 400; }
+.wisal-admin-table tr:last-child td { border-bottom: 0; }
+.wisal-admin-table time { font-family: Arial,sans-serif; font-size: 12px; }
+.wisal-status-pill { display: inline-block; padding: 3px 10px; border: 1px solid #267da42e; border-radius: 11px; font-size: 10px; line-height: 1.5; color: #35d7b7; background: #007f701f; }
+.wisal-status-pill--pending { color: #ffa52d; border-color: #905506; background: #c86b1529; }
+.wisal-status-pill--rejected { color: #ff749c; border-color: #813853; background: #bf2d5b22; }
+.wisal-category-name { display: flex; align-items: center; gap: 9px; }
+.wisal-category-name > i { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+.wisal-empty-state { color: #a6bbdd; font-size: 12px; text-align: center; margin: 25px auto; }
+.wisal-admin-settings-modal { width: min(100%,360px); padding: 18px; border: 1px solid #334969; border-radius: 19px; color: #edf2ff; background: #101d31; box-shadow: 0 24px 70px #0007; }
+.wisal-admin-settings-modal__heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.wisal-admin-settings-modal__heading h3 { margin: 0; font-size: 18px; }
+.wisal-admin-settings-modal__heading button { border: 0; background: transparent; color: #b2c4e1; cursor: pointer; }
+@keyframes wisal-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes wisal-reflection { 0%,20% { background-position: 100% 0; opacity: 0; } 40% { opacity: .25; } 65%,100% { background-position: 0 0; opacity: 0; } }
+@media (max-width: 1300px) { .wisal-admin-hero__eyebrow { font-size: 25px; } .wisal-admin-hero__copy h1 { font-size: 72px; } .wisal-admin-hero__copy p { font-size: 13px; } .wisal-donut-layout { grid-template-columns: 170px minmax(0,1fr); gap: 15px; } .wisal-donut { width: 170px; height: 170px; } .wisal-stat-card { padding-inline: 14px; } .wisal-stat-card__icon { width: 55px; height: 55px; flex-basis: 55px; } }
+@media (max-width: 1100px) { .wisal-admin-shell { grid-template-columns: 235px minmax(0,1fr); } .wisal-side-nav__item { padding-inline: 12px; gap: 12px; font-size: 12px; } .wisal-stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .wisal-chart-grid { grid-template-columns: 1fr; } .wisal-admin-bottom-grid { grid-template-columns: 1fr; } .wisal-donut-layout { grid-template-columns: 190px minmax(0,1fr); } }
+@media (max-width: 700px) { .wisal-admin-shell { grid-template-columns: 170px minmax(0,1fr); } .wisal-brand__wordmark { gap: 0; } .wisal-brand__wordmark > b { font-size: 20px; } .wisal-w-mark--sidebar { width: 48px; } .wisal-side-nav__item { font-size: 10px; padding: 0 6px; gap: 9px; } .wisal-side-nav__icon { width: 18px; height: 18px; } .wisal-overview__topbar { padding: 12px; grid-template-columns: 1fr 40px; height: auto; min-height: 100px; gap: 8px; } .wisal-admin-identity { grid-column: 1; grid-row: 1; } .wisal-admin-avatar { width: 38px; height: 38px; flex-basis: 38px; } .wisal-notification-button { grid-column: 2; } .wisal-appearance-button { display: none; } .wisal-search { width: 100%; grid-row: 2; grid-column: 1 / -1; height: 36px; } .wisal-overview__content { padding-inline: 12px; } .wisal-admin-hero { margin-inline: -12px; height: 360px; grid-template-columns: 1fr; grid-template-rows: 195px 165px; } .wisal-admin-hero__logo-stage { height: 195px; } .wisal-w-mark--hero { width: 290px; height: 210px; } .wisal-admin-hero__eyebrow { font-size: 16px; } .wisal-admin-hero__copy h1 { font-size: 50px; } .wisal-admin-hero__copy p { font-size: 9px; } .wisal-stats-grid { grid-template-columns: 1fr; } .wisal-stat-card { height: 138px; } .wisal-donut-layout { grid-template-columns: 1fr; justify-items: center; } .wisal-chart-grid > .wisal-panel--donut { height: auto; min-height: 320px; } .wisal-legend { width: 100%; } .wisal-panel { padding-inline: 12px; } .wisal-panel__heading { gap: 8px; flex-wrap: wrap; } .wisal-panel__heading > h2 { font-size: 12px; } .wisal-admin-table { min-width: 420px; } }
+@media (prefers-reduced-motion: reduce) { .wisal-w-mark, .wisal-w-mark__reflection { animation: none; } .wisal-stat-card { transition: none; } }
+
+/* Shared identity stays behind every section, including manager overlays. */
+.wisal-overview__main { isolation: isolate; }
+.wisal-overview__main::before, .wisal-admin-settings-modal::before {
+ content: ''; position: absolute; inset: 78px 0 0; z-index: -1; pointer-events: none;
+ background: linear-gradient(#07111fd8,#07111fd0), url('/assets/wisal-admin-w-metallic.png') left center / min(52vw,650px) auto no-repeat,
+ url('/assets/wisal-admin-hero-office.png') center / cover no-repeat;
+}
+.wisal-admin-manager-panel { position: relative; isolation: isolate; }
+.wisal-admin-manager-panel::before {
+ content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: inherit;
+ background: linear-gradient(#0b1627df,#0b1627d8), url('/assets/wisal-admin-w-metallic.png') left bottom / 65% auto no-repeat;
+}
+
+/* Only the admin root changes palette. The public root/theme stays untouched. */
+.wisal-admin-shell[data-theme='light'] {
+ color-scheme: light;
+ --theme-background: #f5f7fc; --theme-surface: #ffffff; --theme-surface-alt: #edf2fa;
+ --theme-text: #182b49; --theme-muted: #516580; --theme-border: #ccd8e9;
+ --bg-primary: #f5f7fc; --bg-secondary: #edf2fa; --surface: #fff; --surface-elevated: #f1f5fc;
+ --card: #ffffffed; --input-bg: #fff; --input-border: #bccce2;
+ --text-primary: #182b49; --text-secondary: #455d7b; --text-muted: #526985; --border: #ccd8e9;
+ --neon-text: #182b49; --neon-muted: #516580; --accent-primary: #2365bd; --accent-light: #2365bd;
+ --accent-soft: #e5eefb; --theme-primary: #2365bd; --theme-primary-light: #2365bd;
+ --theme-primary-soft: #e5eefb; --theme-primary-dark: #194c91; --theme-primary-hover: #194c91;
+ --theme-shadow: #1932521a; --shadow-lg: 0 20px 45px #1932521a;
+ color: var(--text-primary); background: var(--bg-primary);
+}
+.wisal-admin-shell[data-theme='light'] .wisal-overview__main { background: var(--bg-primary) !important; }
+.wisal-admin-shell[data-theme='light'] .wisal-overview__main::before {
+ background: linear-gradient(#f5f7fcd4,#f5f7fcd8), url('/assets/wisal-admin-w-metallic.png') left center / min(52vw,650px) auto no-repeat,
+ url('/assets/wisal-admin-hero-office.png') center / cover no-repeat;
+}
+.wisal-admin-shell[data-theme='light'] .wisal-admin-manager-panel::before { background: linear-gradient(#ffffffdb,#ffffffd9), url('/assets/wisal-admin-w-metallic.png') left bottom / 65% auto no-repeat; }
+.wisal-admin-shell[data-theme='light'] .wisal-overview__sidebar { background: radial-gradient(ellipse at 30% 100%,#dce8ff,transparent 55%),linear-gradient(140deg,#f9fbff,#edf2fa 60%); border-color: var(--border); }
+.wisal-admin-shell[data-theme='light'] .wisal-overview__sidebar::after { opacity: .35; }
+.wisal-admin-shell[data-theme='light'] .wisal-brand__wordmark > b { color: #946319; text-shadow: 0 0 12px #e3af4822; }
+.wisal-admin-shell[data-theme='light'] .wisal-side-nav__item { color: var(--text-primary); }
+.wisal-admin-shell[data-theme='light'] .wisal-side-nav__icon { color: #5574a0; }
+.wisal-admin-shell[data-theme='light'] .wisal-side-nav__item.is-active { color: #674513; background: linear-gradient(115deg,#fae6b9,#f5ead3 72%,#f1d69d); box-shadow: inset 2px 0 3px #fff,0 0 12px #d9a13c33; }
+.wisal-admin-shell[data-theme='light'] .wisal-side-nav__item.is-active .wisal-side-nav__icon { color: #a16d1b; fill: #a16d1b; filter: none; }
+.wisal-admin-shell[data-theme='light'] .wisal-side-nav__badge { background: #dce8fa; color: #274b81; }
+.wisal-admin-shell[data-theme='light'] :is(.wisal-logout,.wisal-search,.wisal-notification-button,.wisal-appearance-button,.wisal-chart-select,.wisal-admin-settings-modal) { color: var(--text-secondary); background: var(--surface-elevated); border-color: var(--border); }
+.wisal-admin-shell[data-theme='light'] .wisal-overview__topbar { background: linear-gradient(100deg,#f9fbff,#edf2fa); border-color: var(--border); }
+.wisal-admin-shell[data-theme='light'] .wisal-search input { color: var(--text-primary); }
+.wisal-admin-shell[data-theme='light'] .wisal-search input::placeholder { color: var(--text-muted); }
+.wisal-admin-shell[data-theme='light'] .wisal-appearance-button svg { fill: #5574a0; }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-identity span { color: var(--text-secondary); }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-avatar { background: radial-gradient(circle at 45% 38%,#fff0cb,#f2e2c3 74%); color: #986717; }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-avatar svg { fill: #986717; }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-hero { background-color: #edf2fa; background-image: linear-gradient(#f5f7fcc9,#f5f7fcc9),url('/assets/wisal-admin-hero-office.png'); }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-hero::after { background: linear-gradient(0deg,#f5f7fc99,transparent 20%); }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-hero__copy { color: var(--text-primary); }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-hero__copy h1 { background-image: linear-gradient(#88601f,#bb832b 42%,#93601d 64%,#b68027); filter: drop-shadow(0 0 14px #e29c4620); }
+.wisal-admin-shell[data-theme='light'] .wisal-stat-card { background: radial-gradient(ellipse at 80% 5%,color-mix(in srgb,var(--stat-accent) 12%,transparent),transparent 80%),linear-gradient(120deg,#fff,#f1f5fc); border-color: color-mix(in srgb,var(--stat-accent) 35%,#ccd8e9); }
+.wisal-admin-shell[data-theme='light'] :is(.wisal-stat-card__content > span,.wisal-stat-card__content > strong,.wisal-panel__heading > h2,.wisal-donut__hole strong,.wisal-donut__hole span,.wisal-legend__row) { color: var(--text-primary); }
+.wisal-admin-shell[data-theme='light'] .wisal-stat-card__content > small { color: #087458; }
+.wisal-admin-shell[data-theme='light'] .wisal-panel { background: linear-gradient(135deg,#fffffff2,#f5f8fcef); border-color: var(--border); }
+.wisal-admin-shell[data-theme='light'] :is(.wisal-panel__heading > svg,.wisal-chart-y,.wisal-chart-x,.wisal-admin-table,.wisal-empty-state,.wisal-admin-settings-modal__heading button) { color: var(--text-secondary); }
+.wisal-admin-shell[data-theme='light'] .wisal-chart-select option { background: var(--surface); }
+.wisal-admin-shell[data-theme='light'] .wisal-chart-gridline { stroke: #c4d2e6; }
+.wisal-admin-shell[data-theme='light'] .wisal-chart-gridline--vertical { stroke: #dce4f1; }
+.wisal-admin-shell[data-theme='light'] .wisal-donut__hole { background: #f7f9fd; }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-table th { background: #eaf0f9; color: var(--text-secondary); border-color: var(--border); }
+.wisal-admin-shell[data-theme='light'] .wisal-admin-table td { border-color: var(--border); }
+.wisal-admin-shell[data-theme='light'] .wisal-status-pill { color: #087458; }
+.wisal-admin-shell[data-theme='light'] .wisal-status-pill--pending { color: #8d5000; }
+.wisal-admin-shell[data-theme='light'] .wisal-status-pill--rejected { color: #a3224c; }
+/* Retain the existing mobile stack while fitting the hero into its column. */
+@media (max-width: 700px) {
+ .wisal-admin-hero { grid-template-columns: minmax(0,1fr); }
+ .wisal-w-mark--hero { max-width: 100%; }
+ .wisal-admin-hero__copy { min-width: 0; white-space: normal; padding-inline: 5px; }
+ .wisal-admin-hero__copy h1 { font-size: clamp(30px,9vw,50px); }
+ .wisal-admin-hero__eyebrow { font-size: 14px; }
+}
+/* Status/action colours need stronger contrast on pale admin surfaces. */
+.wisal-admin-shell[data-theme='light'] .text-blue-400 { color: #1d5cb4; }
+.wisal-admin-shell[data-theme='light'] .text-purple-400 { color: #7540bd; }
+.wisal-admin-shell[data-theme='light'] .text-amber-400 { color: #956000; }
+.wisal-admin-shell[data-theme='light'] .text-green-400 { color: #087458; }
+.wisal-admin-shell[data-theme='light'] .text-red-400 { color: #b32b47; }

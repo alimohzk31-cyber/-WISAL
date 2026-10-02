@@ -105,6 +105,25 @@ async function staleWhileRevalidateMedia(request, event) {
   return update;
 }
 
+// Slider metadata supplies a revisioned URL. Online requests always refresh
+// those images; the last successful response still works fully offline.
+async function networkFirstSliderMedia(request) {
+  const cache = await caches.open(MEDIA_CACHE);
+  const cached = await cache.match(request);
+  try {
+    const response = await fetch(new Request(request, { cache: 'reload' }));
+    if (response.ok || response.type === 'opaque') {
+      await cache.put(request, response.clone());
+      await trimMediaCache(cache);
+      return response;
+    }
+    return cached || response;
+  } catch (error) {
+    if (cached) return cached;
+    throw error;
+  }
+}
+
 function isPrivateOrSignedMediaRequest(request, url) {
   const query = (url.search + url.hash).toLowerCase();
   return Boolean(
@@ -128,6 +147,10 @@ self.addEventListener('fetch', event => {
       // Private complaint media and signed storage URLs are network-only.
       // Never read or write them from a browser cache.
       event.respondWith(fetch(new Request(request, { cache: 'no-store' })));
+      return;
+    }
+    if (url.searchParams.has('_wisal_slider')) {
+      event.respondWith(networkFirstSliderMedia(request));
       return;
     }
     event.respondWith(staleWhileRevalidateMedia(request, event));

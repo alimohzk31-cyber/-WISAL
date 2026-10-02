@@ -16,6 +16,7 @@ const handlers = new Map();
 let online = true;
 let latency = 0;
 let navigationBody = 'installed-shell';
+let mediaBody = 'old-image';
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const absolute = input => new URL(typeof input === 'string' ? input : input.url, scope).href;
 
@@ -43,7 +44,7 @@ async function fakeFetch(input) {
   if (!online) throw new TypeError('offline');
   if (latency) await sleep(latency);
   const url = absolute(input);
-  const body = url === scope || url.endsWith('/index.html') ? navigationBody : `asset:${url}`;
+  const body = url.includes('_wisal_slider=') ? mediaBody : url === scope || url.endsWith('/index.html') ? navigationBody : `asset:${url}`;
   return new Response(body, { status: 200, headers: { 'content-type': 'text/plain' } });
 }
 
@@ -111,6 +112,20 @@ assert.match(results[1].body, /Slow 3G/);
 assert.ok(results[2].elapsedMs < 3000, 'very weak navigation must fall back to cache before the network finishes');
 assert.match(results[3].body, /Very weak/, 'offline navigation must use the last background-refreshed shell');
 
+async function sliderMedia() {
+  let response;
+  const request = new Request(scope + 'image.webp?_wisal_slider=5&_wisal_rev=1');
+  Object.defineProperty(request, 'destination', {value: 'image'});
+  handlers.get('fetch')({request, respondWith(value) {response = value;}, waitUntil() {}});
+  return (await response).text();
+}
+online = true; latency = 0;
+assert.equal(await sliderMedia(), 'old-image');
+mediaBody = 'new-image';
+assert.equal(await sliderMedia(), 'new-image', 'same slider URL must fetch fresh bytes before cached bytes');
+online = false;
+assert.equal(await sliderMedia(), 'new-image', 'offline retains the latest slider image');
+
 const sources = await Promise.all([
   readFile('src/hooks/useServices.ts', 'utf8'),
   readFile('src/hooks/useCategories.ts', 'utf8'),
@@ -137,5 +152,6 @@ console.log(JSON.stringify({
   precacheFiles: shellUrls.length,
   oldCacheRemoved: true,
   reconnectSources: sources.length,
+  sliderCache: 'PASS: same URL updated; latest image retained offline',
   profiles: results,
 }, null, 2));

@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// 'dark' is kept in the union ONLY for type-compatibility with many existing
-// component checks (`theme === dark`). It is never selectable, never saved
-// and never applied.
+// Public palettes stay independent; the admin supports persisted light/dark.
 // لإضافة ثيم جديد مستقبلاً: أضف معرّفه هنا + ألوانه في PRIMARY_COLORS
 // + كتلة [data-theme='id'] في src/index.css + عنصر في THEME_OPTIONS بـ ThemeToggle.
 export type Theme = 'light' | 'dark' | 'royal' | 'red' | 'blue' | 'green' | 'pink' | 'maroon';
@@ -15,7 +13,7 @@ export const PRIMARY_COLORS: Record<Theme, string> = {
   green: '#20E7AD',
   pink: '#FF4EAC',
   maroon: '#FF2C91',
-  dark: '#6D5ACF', // unreachable fallback (dark mode is disabled)
+  dark: '#6D5ACF',
 };
 
 // الثيمات القابلة للاختيار (قابلة للتوسعة — أضف هنا عند إضافة ثيم جديد)
@@ -26,6 +24,7 @@ export function getPrimaryColor(theme: Theme): string {
 }
 
 const BROWSE_STORAGE_KEY = 'saleen_app_theme';
+const ADMIN_STORAGE_KEY = 'wisal_admin_theme';
 
 
 interface ThemeContextType {
@@ -47,6 +46,14 @@ function getStoredTheme(key: string, fallback: Theme): Theme {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => getStoredTheme(BROWSE_STORAGE_KEY, 'light'));
+  const [adminTheme, setAdminThemeState] = useState<Theme>(() => {
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(ADMIN_STORAGE_KEY) : null;
+    return stored === 'light' ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(ADMIN_STORAGE_KEY, adminTheme);
+  }, [adminTheme]);
 
 
   useEffect(() => {
@@ -59,9 +66,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 
   const setTheme = (next: Theme) => setThemeState(next);
-  // Compatibility API for existing admin components; it updates the shared theme.
-  const adminTheme = theme;
-  const setAdminTheme = (next: Theme) => setThemeState(next);
+  const setAdminTheme = (next: Theme) => setAdminThemeState(next === 'light' ? 'light' : 'dark');
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, adminTheme, setAdminTheme }}>

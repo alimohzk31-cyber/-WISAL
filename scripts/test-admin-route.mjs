@@ -147,7 +147,9 @@ try {
   const fresh=async(query='')=>{
     await page.goto(origin+'/#/',{waitUntil:'load'});
     await page.evaluate(()=>localStorage.clear()); // This isolated loopback origin only.
-    await page.goto(origin+'/'+query+'#/');await waitAuth();
+    await page.goto(origin+'/'+query+'#/');
+    // A hash-only navigation does not reset the SDK fixture or React state.
+    await page.reload({waitUntil:'load'});await waitAuth();
   };
   const openPin=async()=>{await page.click('[data-open-pin]');await page.waitForSelector('input[name="admin-pin"]');};
   const enter=async(value='')=>{await page.focus('input[name="admin-pin"]');if(value)await page.keyboard.type(value);await page.keyboard.press('Enter');};
@@ -165,6 +167,19 @@ try {
 
   await fresh();await page.goto(origin+'/#/admin');await waitAuth();await publicOnly();
   pass('C. DIRECT /ADMIN: redirected to public page; zero dashboard mounts');
+
+  // IME, mobile keyboards and browser fill can insert text without keydown/paste.
+  // Exercise a real browser input event with the existing isolated SDK fixture.
+  await openPin();
+  await page.focus('input[name="admin-pin"]');
+  await page.keyboard.sendCharacter(fixturePin);
+  await page.click('button[type="submit"]');
+  await page.waitForSelector('[data-admin]');
+  assert.equal(await page.evaluate(()=>window.audit.pinCalls),1);
+  assert.equal(await page.evaluate(()=>location.hash),'#/admin');
+  pass('Input without keydown/paste: reaches server verification and protected dashboard');
+
+  await fresh();
 
   await openPin();await enter(fixturePin);await page.waitForSelector('[data-admin]');
   assert.equal(await page.evaluate(()=>location.hash),'#/admin');

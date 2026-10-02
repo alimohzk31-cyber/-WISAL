@@ -1,263 +1,105 @@
-import { useMemo, useState } from 'react';
-import {
-  Activity,
-  CheckCircle2,
-  CircleHelp,
-  ChevronLeft,
-  FolderOpen,
-  Grid2X2,
-  LayoutGrid,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
-import type { Service } from '../types/models';
+﻿import { useEffect, useMemo, useState, type MouseEvent, type CSSProperties } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { Activity, BriefcaseBusiness, ChartNoAxesColumnIncreasing, ChevronDown, FileText, FolderOpen, Grid2X2, PieChart, Users, type LucideIcon } from 'lucide-react';
+import { serviceStatusLabel, type Service } from '../types/models';
+import WisalWMark from './WisalWMark';
 
 export type AdminOverviewTab = 'overview' | 'pending' | 'rejected' | 'slider' | 'services' | 'browse' | 'messages' | 'notifications' | 'jobs';
-
-interface AdminOverviewDashboardProps {
-  services: Service[];
-  categories: any[];
-  visits: number;
+interface Props { services: Service[]; categories: any[]; visits: number }
+const number = (value: number) => new Intl.NumberFormat('en-US').format(value);
+const dateLabel = (date: Date) => new Intl.DateTimeFormat('ar-IQ', { day: 'numeric', month: 'short', numberingSystem: 'latn' }).format(date);
+const accents = ['#2bc2ec', '#288bff', '#ffaa56', '#9e46ff', '#7889c3'];
+function Count({ value }: { value: number }) {
+  const reduced = useReducedMotion();
+  const [display, setDisplay] = useState(value);
+  useEffect(() => {
+    if (reduced) { setDisplay(value); return; }
+    let frame = 0;
+    const started = performance.now();
+    const tick = (now: number) => { const p = Math.min(1, (now - started) / 700); setDisplay(Math.round(value * (1 - (1 - p) ** 3))); if (p < 1) frame = requestAnimationFrame(tick); };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value, reduced]);
+  return <strong dir="ltr">{number(display)}</strong>;
 }
-
-type PulsePoint = {
-  label: string;
-  date: Date;
-  added: number;
-  approved: number;
-  rejected: number;
-};
-
-const COLORS = ['cyan', 'gold', 'green', 'blue', 'pink', 'violet'];
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat('en-US').format(value);
+function coordinates(values: number[], width: number, height: number, padding: number, ceiling?: number) {
+  const max = ceiling || Math.max(1, ...values);
+  return values.map((value, i) => ({ x: padding + i / Math.max(1, values.length - 1) * (width - padding * 2), y: height - padding - value / max * (height - padding * 2) }));
 }
-
-function getIcon(category: any) {
-  return category?.icon || FolderOpen;
-}
-
-function buildLinePath(points: number[], maxValue: number, width = 720, height = 220) {
-  const padX = 18;
-  const padY = 16;
-  const usableWidth = width - padX * 2;
-  const usableHeight = height - padY * 2;
-  const denominator = Math.max(maxValue, 1);
-  return points.map((value, index) => {
-    const x = padX + (usableWidth / Math.max(points.length - 1, 1)) * index;
-    const y = height - padY - (value / denominator) * usableHeight;
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+function curve(points: { x: number; y: number }[]) {
+  return points.map((p, i) => {
+    if (i === 0) return `M${p.x},${p.y}`;
+    const previous = points[i - 1], middle = (previous.x + p.x) / 2;
+    return `C${middle},${previous.y} ${middle},${p.y} ${p.x},${p.y}`;
   }).join(' ');
 }
-
-function getPointPosition(index: number, value: number, maxValue: number, width = 720, height = 220) {
-  const padX = 18;
-  const padY = 16;
-  const usableWidth = width - padX * 2;
-  const usableHeight = height - padY * 2;
-  return {
-    x: padX + (usableWidth / 6) * index,
-    y: height - padY - (value / Math.max(maxValue, 1)) * usableHeight,
-  };
+function Stat({ label, value, color, icon: Icon, history, caption, index }: { label: string; value: number; color: string; icon: LucideIcon; history?: number[]; caption: string; index: number }) {
+  const reduced = useReducedMotion();
+  return <motion.article className="wisal-stat-card" style={{ '--stat-accent': color } as CSSProperties} initial={reduced ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .06, duration: .3 }}>
+    <div className="wisal-stat-card__icon"><Icon size={30} strokeWidth={1.7}/></div>
+    <div className="wisal-stat-card__content"><span>{label}</span><Count value={value}/><small>{caption}</small></div>
+    {history && <svg className="wisal-stat-card__sparkline" viewBox="0 0 140 44" role="img" aria-label={caption}><title>{caption}</title><path d={curve(coordinates(history, 140, 44, 5))}/></svg>}
+  </motion.article>;
 }
-
-function OverviewStat({
-  label,
-  value,
-  accent,
-  icon: Icon,
-  meta,
-}: {
-  label: string;
-  value: string;
-  accent: string;
-  icon: typeof Activity;
-  meta?: string;
-}) {
-  return (
-    <article className={`wisal-stat-card wisal-stat-card--${accent}`}>
-      <div className="wisal-stat-card__icon"><Icon size={23} strokeWidth={2.2} /></div>
-      <div className="wisal-stat-card__content">
-        <span>{label}</span>
-        <strong dir="ltr">{value}</strong>
-        {meta && <small>{meta}</small>}
-      </div>
-      <span className="wisal-stat-card__spark" aria-hidden="true" />
-    </article>
-  );
+function Distribution({ services, categories }: { services: Service[]; categories: any[] }) {
+  const [selected, setSelected] = useState('all');
+  const rows = useMemo(() => {
+    const list = categories.map(c => ({ slug: String(c.slug), name: c.name as string, count: services.filter(s => s.categorySlug === c.slug).length })).filter(c => c.count > 0).sort((a, b) => b.count - a.count);
+    const uncategorized = services.filter(s => !categories.some(c => c.slug === s.categorySlug)).length;
+    const visible = list.slice(0, 4);
+    const other = list.slice(4).reduce((sum, c) => sum + c.count, 0) + uncategorized;
+    if (other) visible.push({ slug: '__other', name: 'خدمات أخرى', count: other });
+    return visible;
+  }, [services, categories]);
+  const shown = selected === 'all' ? rows : rows.filter(row => row.slug === selected);
+  const total = shown.reduce((sum, row) => sum + row.count, 0);
+  let offset = 0;
+  const slices = shown.map((row, i) => { const start = offset; offset += total ? row.count / total * 100 : 0; return `${accents[i]} ${start}% ${offset}%`; });
+  return <article className="wisal-panel wisal-panel--donut">
+    <div className="wisal-panel__heading"><PieChart size={23}/><h2>توزيع الخدمات</h2><label className="wisal-chart-select"><select aria-label="تصفية توزيع الخدمات" value={selected} onChange={e => setSelected(e.target.value)}><option value="all">جميع الخدمات</option>{rows.map(row => <option key={row.slug} value={row.slug}>{row.name}</option>)}</select><ChevronDown size={14}/></label></div>
+    <div className="wisal-donut-layout"><div className="wisal-donut" style={{ background: total ? `conic-gradient(${slices.join(',')})` : '#243149' }} role="img" aria-label={`توزيع ${number(total)} خدمة`}><div className="wisal-donut__hole"><strong dir="ltr">{number(total)}</strong><span>خدمة</span></div></div><div className="wisal-legend">{shown.map((row, i) => <div className="wisal-legend__row" key={row.slug}><i style={{ background: accents[i] }}/><span title={row.name}>{row.name}</span><strong dir="ltr">{number(row.count)}</strong></div>)}{!total && <p className="wisal-empty-state">لا توجد خدمات مسجلة</p>}</div></div>
+  </article>;
 }
-
-function DonutChart({ approved, pending, rejected }: { approved: number; pending: number; rejected: number }) {
-  const total = approved + pending + rejected;
-  const approvedPct = total ? (approved / total) * 100 : 0;
-  const pendingPct = total ? (pending / total) * 100 : 0;
-  const rejectedPct = total ? (rejected / total) * 100 : 0;
-  const approvedEnd = approvedPct;
-  const pendingEnd = approvedPct + pendingPct;
-  const gradient = total
-    ? `conic-gradient(var(--neon-cyan) 0 ${approvedEnd}%, var(--neon-gold) ${approvedEnd}% ${pendingEnd}%, var(--neon-pink) ${pendingEnd}% 100%)`
-    : 'conic-gradient(rgba(255,255,255,.12) 0 100%)';
-
-  const rows = [
-    { label: 'مقبولة', value: approved, pct: approvedPct, color: 'cyan' },
-    { label: 'قيد المراجعة', value: pending, pct: pendingPct, color: 'gold' },
-    { label: 'مرفوضة', value: rejected, pct: rejectedPct, color: 'pink' },
-  ];
-
-  return (
-    <div className="wisal-donut-layout">
-      <div className="wisal-donut" style={{ background: gradient }} aria-label={`إجمالي الخدمات ${formatNumber(total)}`}>
-        <div className="wisal-donut__hole">
-          <strong dir="ltr">{formatNumber(total)}</strong>
-          <span>إجمالي الخدمات</span>
-        </div>
-      </div>
-      <div className="wisal-legend">
-        {rows.map(row => (
-          <div className="wisal-legend__row" key={row.label}>
-            <div className="wisal-legend__label"><i className={`wisal-dot wisal-dot--${row.color}`} />{row.label}</div>
-            <strong dir="ltr">{formatNumber(row.value)}</strong>
-            <span dir="ltr">{Math.round(row.pct)}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function ActivityChart({ services }: { services: Service[] }) {
+  const [days, setDays] = useState(30);
+  const reduced = useReducedMotion();
+  const data = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return Array.from({ length: days }, (_, index) => { const date = new Date(today); date.setDate(date.getDate() - days + 1 + index); const next = new Date(date); next.setDate(next.getDate() + 1); return { date, count: services.filter(s => s.createdAt >= date.getTime() && s.createdAt < next.getTime()).length }; });
+  }, [services, days]);
+  const ceiling = Math.max(4, Math.ceil(Math.max(0, ...data.map(d => d.count)) / 4) * 4);
+  const positions = coordinates(data.map(d => d.count), 800, 200, 5, ceiling);
+  const line = curve(positions), area = `${line} L795,195 L5,195 Z`;
+  return <article className="wisal-panel wisal-panel--pulse">
+    <div className="wisal-panel__heading"><ChartNoAxesColumnIncreasing size={23}/><h2>معدل النشاط خلال {days} يوم</h2><label className="wisal-chart-select"><select aria-label="فترة النشاط" value={days} onChange={e => setDays(Number(e.target.value))}><option value={30}>آخر 30 يوم</option><option value={7}>آخر 7 أيام</option></select><ChevronDown size={14}/></label></div>
+    <div className="wisal-activity-chart"><div className="wisal-chart-y">{Array.from({ length: 5 }, (_, i) => <span key={i}>{number(ceiling - ceiling / 4 * i)}</span>)}</div><div className="wisal-chart-plot"><svg viewBox="0 0 800 200" preserveAspectRatio="none" role="img" aria-label={`عدد الخدمات المسجلة خلال آخر ${days} يوماً`}><defs><linearGradient id="wisal-line-spectrum"><stop stopColor="#00bfff"/><stop offset="55%" stopColor="#278cff"/><stop offset="100%" stopColor="#aa3fff"/></linearGradient><linearGradient id="wisal-fill-spectrum" x1="0" y1="0" x2="1" y2="0"><stop stopColor="#008be6" stopOpacity=".38"/><stop offset="60%" stopColor="#285ad3" stopOpacity=".32"/><stop offset="100%" stopColor="#9519de" stopOpacity=".38"/></linearGradient></defs>{Array.from({ length: 5 }, (_, i) => <line key={`h${i}`} x1="5" x2="795" y1={5 + i * 47.5} y2={5 + i * 47.5} className="wisal-chart-gridline"/>)}{Array.from({ length: 15 }, (_, i) => <line key={`v${i}`} x1={5 + i / 14 * 790} x2={5 + i / 14 * 790} y1="5" y2="195" className="wisal-chart-gridline wisal-chart-gridline--vertical"/>)}<path d={area} fill="url(#wisal-fill-spectrum)"/><motion.path key={days} d={line} className="wisal-activity-line" initial={reduced ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: .8 }}/>{positions.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3.2" fill="#c8f7ff"><title>{dateLabel(data[i].date)}: {number(data[i].count)} خدمة</title></circle>)}</svg><div className="wisal-chart-x">{data.filter((_, i) => i % Math.ceil((days - 1) / 5) === 0 || i === days - 1).map(d => <span key={d.date.getTime()}>{dateLabel(d.date)}</span>)}</div></div></div>
+  </article>;
 }
-
-function PulseChart({ services }: { services: Service[] }) {
-  const [activePoint, setActivePoint] = useState(6);
-  const points = useMemo<PulsePoint[]>(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(now);
-      date.setDate(now.getDate() - (6 - index));
-      const dayServices = services.filter(service => {
-        const created = new Date(service.createdAt);
-        return created.getFullYear() === date.getFullYear()
-          && created.getMonth() === date.getMonth()
-          && created.getDate() === date.getDate();
-      });
-      return {
-        date,
-        label: new Intl.DateTimeFormat('ar-IQ', { weekday: 'short' }).format(date),
-        added: dayServices.length,
-        approved: dayServices.filter(service => service.status === 'approved').length,
-        rejected: dayServices.filter(service => service.status === 'rejected').length,
-      };
-    });
-  }, [services]);
-
-  const maxValue = Math.max(1, ...points.flatMap(point => [point.added, point.approved, point.rejected]));
-  const series = [
-    { key: 'added' as const, label: 'المضافة', color: 'cyan', values: points.map(point => point.added) },
-    { key: 'approved' as const, label: 'المقبولة', color: 'gold', values: points.map(point => point.approved) },
-    { key: 'rejected' as const, label: 'المرفوضة', color: 'pink', values: points.map(point => point.rejected) },
-  ];
-  const selected = points[activePoint];
-
-  return (
-    <div className="wisal-pulse-chart">
-      <div className="wisal-pulse-chart__legend">
-        {series.map(item => <span key={item.key}><i className={`wisal-dot wisal-dot--${item.color}`} />{item.label}</span>)}
-      </div>
-      <div className="wisal-pulse-chart__canvas">
-        <svg viewBox="0 0 720 220" role="img" aria-label="نبض الخدمات خلال آخر سبعة أيام" preserveAspectRatio="none">
-          {[0, 1, 2, 3, 4].map(line => {
-            const y = 16 + ((220 - 32) / 4) * line;
-            const labelValue = Math.round(maxValue - (maxValue / 4) * line);
-            return <g key={line}><line x1="18" x2="702" y1={y} y2={y} className="wisal-chart-grid" /><text x="2" y={y + 4} className="wisal-chart-axis">{labelValue}</text></g>;
-          })}
-          {series.map(item => (
-            <g key={item.key} className={`wisal-line wisal-line--${item.color}`}>
-              <path d={buildLinePath(item.values, maxValue)} />
-              {item.values.map((value, index) => {
-                const position = getPointPosition(index, value, maxValue);
-                return <circle key={`${item.key}-${index}`} cx={position.x} cy={position.y} r="4.8" onClick={() => setActivePoint(index)}><title>{`${points[index].label}: ${formatNumber(value)}`}</title></circle>;
-              })}
-            </g>
-          ))}
-          {points.map((point, index) => {
-            const position = getPointPosition(index, 0, maxValue);
-            return <text key={point.date.toISOString()} x={position.x} y="214" textAnchor="middle" className="wisal-chart-label">{point.label}</text>;
-          })}
-        </svg>
-        {selected && (
-          <button className="wisal-chart-tooltip" onClick={() => setActivePoint((activePoint + 1) % points.length)} type="button">
-            <strong>{selected.label}</strong>
-            <span>المضافة {formatNumber(selected.added)} · المقبولة {formatNumber(selected.approved)} · المرفوضة {formatNumber(selected.rejected)}</span>
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function AdminOverviewDashboard({
-  services,
-  categories,
-  visits,
-}: AdminOverviewDashboardProps) {
-  const approved = services.filter(service => service.status === 'approved').length;
-  const pending = services.filter(service => service.status === 'pending').length;
-  const rejected = services.filter(service => service.status === 'rejected').length;
-  const categoryStats = useMemo(() => categories.map(category => ({
-    ...category,
-    count: services.filter(service => service.categorySlug === category.slug).length,
-  })).sort((a, b) => b.count - a.count), [categories, services]);
-  const topCategories = categoryStats.filter(category => category.count > 0).slice(0, 6);
-  const maxCategoryCount = Math.max(1, ...topCategories.map(category => category.count));
-
-  return (
-    <div className="wisal-overview__content wisal-overview__content--embedded">
-          <div className="wisal-overview__heading">
-            <div><p>لوحة المتابعة وإحصائيات منصة وصال</p><h1>نظرة عامة</h1></div>
-            <button className="wisal-date-filter" type="button"><Activity size={17} />هذا الأسبوع<ChevronLeft size={15} /></button>
-          </div>
-
-          <section className="wisal-stats-grid" aria-label="الإحصائيات الرئيسية">
-            <OverviewStat label="إجمالي الخدمات" value={formatNumber(services.length)} accent="cyan" icon={LayoutGrid} meta="الخدمات المسجلة" />
-            <OverviewStat label="الأقسام" value={formatNumber(categories.length)} accent="gold" icon={Grid2X2} meta="الأقسام النشطة" />
-            <OverviewStat label="الزيارات" value={formatNumber(visits)} accent="green" icon={TrendingUp} meta="إجمالي الزيارات" />
-            <OverviewStat label="قيد المراجعة" value={formatNumber(pending)} accent="pink" icon={CircleHelp} meta="طلبات تحتاج مراجعة" />
-          </section>
-
-          <section className="wisal-chart-grid">
-            <article className="wisal-panel wisal-panel--donut">
-              <div className="wisal-panel__heading"><div><h2>حالة الخدمات</h2><p>نسبة القبول والمراجعة والرفض</p></div><CheckCircle2 size={21} /></div>
-              <DonutChart approved={approved} pending={pending} rejected={rejected} />
-            </article>
-            <article className="wisal-panel wisal-panel--pulse">
-              <div className="wisal-panel__heading"><div><h2>نبض الخدمات</h2><p>الحركة خلال آخر 7 أيام</p></div><Activity size={21} /></div>
-              <PulseChart services={services} />
-            </article>
-          </section>
-
-          <section className="wisal-panel wisal-panel--categories">
-            <div className="wisal-panel__heading"><div><h2>الأقسام الأكثر نشاطاً</h2><p>حسب عدد الخدمات المسجلة</p></div><TrendingUp size={21} /></div>
-            {topCategories.length > 0 ? (
-              <div className="wisal-category-grid">
-                {topCategories.map((category, index) => {
-                  const Icon = getIcon(category);
-                  const percentage = Math.round((category.count / maxCategoryCount) * 100);
-                  return (
-                    <div className="wisal-category-row" key={category.slug || index}>
-                      <div className="wisal-category-title"><span className={`wisal-category-icon wisal-category-icon--${COLORS[index]}`}><Icon size={18} /></span><strong>{category.name}</strong></div>
-                      <strong className={`wisal-category-count wisal-text--${COLORS[index]}`} dir="ltr">{formatNumber(category.count)}</strong>
-                      <div className="wisal-progress"><span className={`wisal-progress__fill wisal-progress__fill--${COLORS[index]}`} style={{ width: `${percentage}%` }} /></div>
-                      <span className="wisal-category-percentage" dir="ltr">{percentage}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="wisal-empty-state">لا توجد خدمات مسجلة في الأقسام بعد</div>
-            )}
-          </section>
-
-          <div className="wisal-overview__footnote"><Users size={16} /> البيانات المعروضة مأخوذة من السجلات الحالية في قاعدة البيانات</div>
-    </div>
-  );
+export default function AdminOverviewDashboard({ services, categories, visits }: Props) {
+  const reduced = useReducedMotion();
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const move = (event: MouseEvent<HTMLDivElement>) => { if (reduced) return; const bounds = event.currentTarget.getBoundingClientRect(); setTilt({ x: ((event.clientY - bounds.top) / bounds.height - .5) * -6, y: ((event.clientX - bounds.left) / bounds.width - .5) * 8 }); };
+  const pending = services.filter(s => s.status === 'pending');
+  const latest = useMemo(() => [...services].sort((a,b) => b.createdAt - a.createdAt).slice(0,3), [services]);
+  const categoryRows = useMemo(() => categories.map(c => ({ ...c, count: services.filter(s => s.categorySlug === c.slug).length })).filter(c => c.count > 0).sort((a,b) => b.count-a.count).slice(0,3), [services,categories]);
+  const weekly = useMemo(() => Array.from({ length: 7 }, (_, i) => { const day = new Date(); day.setHours(0,0,0,0); day.setDate(day.getDate()-6+i); const next = new Date(day); next.setDate(next.getDate()+1); return services.filter(s => s.createdAt>=day.getTime() && s.createdAt<next.getTime()).length; }), [services]);
+  const pendingWeekly = useMemo(() => Array.from({ length: 7 }, (_, i) => { const day = new Date(); day.setHours(0,0,0,0); day.setDate(day.getDate()-6+i); const next = new Date(day); next.setDate(next.getDate()+1); return services.filter(s => s.status==='pending' && s.createdAt>=day.getTime() && s.createdAt<next.getTime()).length; }), [services]);
+  const categoryWeekly = useMemo(() => Array.from({ length: 7 }, (_, i) => { const day = new Date(); day.setHours(0,0,0,0); day.setDate(day.getDate()-6+i); const next = new Date(day); next.setDate(next.getDate()+1); return new Set(services.filter(s => s.createdAt>=day.getTime() && s.createdAt<next.getTime()).map(s => s.categorySlug)).size; }), [services]);
+  return <div className="wisal-overview__content">
+    <section className="wisal-admin-hero">
+      <motion.div className="wisal-admin-hero__logo-stage" onMouseMove={move} onMouseLeave={() => setTilt({ x:0, y:0 })} style={{ rotateX:tilt.x, rotateY:tilt.y }}><WisalWMark size="hero"/></motion.div>
+      <div className="wisal-admin-hero__copy"><span className="wisal-admin-hero__eyebrow">مرحباً بك في لوحة إدارة</span><h1 dir="ltr">WISAL</h1><p>كل شيء تحت السيطرة ... لإدارة أفضل وخدمات أوسع</p><i aria-hidden="true"/></div>
+    </section>
+    <section className="wisal-stats-grid" aria-label="الإحصائيات الرئيسية">
+      <Stat label="إجمالي الزيارات" value={visits} color="#2677ff" icon={Users} caption="نشاط الخدمات · 7 أيام" history={weekly} index={0}/>
+      <Stat label="إجمالي الخدمات" value={services.length} color="#00d2b3" icon={BriefcaseBusiness} caption="الخدمات المسجلة" history={weekly} index={1}/>
+      <Stat label="قيد المراجعة" value={pending.length} color="#a53eff" icon={FileText} caption="خدمات بانتظار المراجعة" history={pendingWeekly} index={2}/>
+      <Stat label="إجمالي الأقسام" value={categories.length} color="#ff980b" icon={Grid2X2} caption="أقسام الخدمات الجديدة · 7 أيام" history={categoryWeekly} index={3}/>
+    </section>
+    <section className="wisal-chart-grid"><ActivityChart services={services}/><Distribution services={services} categories={categories}/></section>
+    <section className="wisal-admin-bottom-grid">
+      <article className="wisal-panel wisal-table-panel"><div className="wisal-panel__heading"><FileText size={23}/><h2>أحدث الخدمات</h2></div><div className="wisal-admin-table-wrap"><table className="wisal-admin-table"><thead><tr><th>الخدمة</th><th>القسم</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>{latest.map(s => <tr key={s.id || s.slug}><td title={s.name}>{s.name}</td><td>{categories.find(c=>c.slug===s.categorySlug)?.name || s.categorySlug}</td><td><span className={`wisal-status-pill wisal-status-pill--${s.status||'approved'}`}>{serviceStatusLabel(s.status)}</span></td><td><time dateTime={new Date(s.createdAt).toISOString()}>{new Intl.DateTimeFormat('en-GB').format(new Date(s.createdAt))}</time></td></tr>)}</tbody></table>{!latest.length && <p className="wisal-empty-state">لا توجد خدمات مسجلة حالياً</p>}</div></article>
+      <article className="wisal-panel wisal-table-panel"><div className="wisal-panel__heading"><FolderOpen size={23}/><h2>الأقسام الأكثر خدمات</h2></div><div className="wisal-admin-table-wrap"><table className="wisal-admin-table"><thead><tr><th>القسم</th><th>الخدمات</th><th>النسبة</th></tr></thead><tbody>{categoryRows.map((c,i) => <tr key={c.slug}><td><span className="wisal-category-name"><i style={{background:accents[i]}}/>{c.name}</span></td><td dir="ltr">{number(c.count)}</td><td dir="ltr">{services.length ? Math.round(c.count/services.length*100) : 0}%</td></tr>)}</tbody></table>{!categoryRows.length && <p className="wisal-empty-state">لا توجد بيانات أقسام حالياً</p>}</div></article>
+    </section>
+  </div>;
 }

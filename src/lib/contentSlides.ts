@@ -1,7 +1,8 @@
 import type { Job } from '../features/jobs/types';
 import type { Section, Service } from '../types/models';
+import type { SliderLinks } from './sliderLinks';
 
-export interface ContentSlide {
+export interface ContentSlide extends SliderLinks {
   id: string;
   title: string;
   category: string;
@@ -16,6 +17,8 @@ export interface ContentSlide {
   serviceId?: string | number;
   /** المعرّف الرقمي للوظيفة في public.jobs (نفس الغرض عند الحاجة مستقبلاً). */
   jobId?: string | number;
+  /** Exact slider_images primary key, independent of jobs/services IDs. */
+  sliderId?: number;
 }
 
 /** Local banner set is enabled by default; live approved content remains opt-in. */

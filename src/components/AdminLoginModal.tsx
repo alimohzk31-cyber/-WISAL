@@ -82,6 +82,10 @@ export default function AdminLoginModal({ onClose, onSuccess }: Props) {
               name="admin-pin"
               value={pin}
               onChange={(e) => {
+                // Mobile keyboards, IME and browser fill can change the value
+                // without a printable keydown or paste event. Authentication
+                // still depends exclusively on the server's PIN verification.
+                pinInputInteracted.current = true;
                 setPin(e.target.value);
                 setErrorMsg(null);
               }}

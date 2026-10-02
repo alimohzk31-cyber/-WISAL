@@ -193,7 +193,10 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
             )}
             <div className={popover ? "min-h-0 flex-1 overflow-y-auto pr-0.5" : "p-2 space-y-1"} style={popover ? { scrollbarWidth: 'thin', scrollbarColor: 'color-mix(in srgb, var(--theme-primary) 42%, transparent) transparent' } : undefined}>
               <div className={popover ? "space-y-1.5" : "space-y-1"}>
-              {THEME_OPTIONS.map((item) => {
+              {(scope === 'admin' ? [
+                { id: 'light' as Theme, label: '☀️ الوضع الفاتح / Light', swatch: '#f5f7fc' },
+                { id: 'dark' as Theme, label: '🌙 الوضع الغامق / Dark', swatch: '#07111f' },
+              ] : THEME_OPTIONS).map((item) => {
                 const isActive = selectedTheme === item.id;
                 return (
                   <button

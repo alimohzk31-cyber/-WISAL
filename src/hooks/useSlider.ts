@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createRequestCache } from '../lib/requestCache';
 import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
-import { offlineStore, OFFLINE_KEYS } from '../lib/offlineStore';
+import { offlineStore } from '../lib/offlineStore';
 import { APP_ONLINE_EVENT } from '../lib/connectivity';
 import { optimizeImageFile } from '../lib/imageOptimization';
 import { SERVICE_MEDIA_BUCKET, uploadServiceMediaFile, validateServiceMediaFile } from '../lib/serviceMediaStorage';
+import { buildSliderLinksPayload, SLIDER_LINK_FIELDS, type SliderLinks } from '../lib/sliderLinks';
 
 export type AdPeriod = 'am' | 'pm';
 export type AdStatus = 'active' | 'upcoming' | 'expired' | 'disabled';
 
-export interface SliderAd {
+export interface SliderAd extends SliderLinks {
   id: number;
   url?: string;
   title: string; // اسم الشركة أو المنتج
@@ -32,8 +33,6 @@ export interface SliderAd {
   // حقول التصميم (اختيارية): تُحفظ في أعمدة Supabase عند توفرها، وإلا
   // في طبقة overlay محلية حتى تنفيذ ترقية SQL — دون أي كسر للبيانات القديمة.
   subtitle?: string; // العنوان الفرعي
-  button_text?: string; // نص الزر
-  button_link?: string; // رابط الزر
   duration_seconds?: number; // مدة عرض الشريحة بالثواني (2-60، الافتراضي 5)
   language?: string; // لغة الشريحة ('ar' | 'en')
   font_family?: string; // نوع الخط
@@ -49,7 +48,7 @@ export interface SliderAd {
 // Backward compatibility alias for any existing imports
 export type SliderImage = SliderAd;
 
-const storageKey = 'saleen_slider_ads_v2';
+const storageKey = 'wisal_slider_rows_v3'; // Only verified slider_images rows; excludes legacy demo cache.
 
 // ==============================
 // حقول تصميم الشريحة (مدة العرض/الألوان/الخط...)
@@ -78,7 +77,7 @@ export const DEFAULT_SLIDE_DESIGN = {
 } as const;
 
 export const DESIGN_FIELD_KEYS = [
-  'subtitle', 'button_text', 'button_link', 'duration_seconds',
+  'subtitle', 'duration_seconds',
   'language', 'font_family', 'font_size', 'text_color', 'button_color',
   'text_position', 'text_align'
 ] as const;
@@ -136,12 +135,19 @@ function clearDesignOverlayEntry(id: number) {
   writeDesignOverlay(overlay);
 }
 
+function clearLegacyLinkDrafts(id: number) {
+  const overlay = readDesignOverlay();
+  if (!overlay[String(id)]) return;
+  const draft = overlay[String(id)] as SlideDesign & SliderLinks;
+  delete draft.button_text;
+  delete draft.button_link;
+  writeDesignOverlay(overlay);
+}
+
 /** يبني جزء الحمولة الخاص بحقول التصميم (فقط الحقول المعرفة) */
 export function buildDesignPayload(ad: Partial<SliderAd>): SlideDesign {
   const p: SlideDesign = {};
   if (ad.subtitle !== undefined) p.subtitle = ad.subtitle;
-  if (ad.button_text !== undefined) p.button_text = ad.button_text;
-  if (ad.button_link !== undefined) p.button_link = ad.button_link;
   if (ad.duration_seconds !== undefined) p.duration_seconds = clampDuration(ad.duration_seconds);
   if (ad.language !== undefined) p.language = ad.language;
   if (ad.font_family !== undefined) p.font_family = ad.font_family;
@@ -186,56 +192,7 @@ let sessionAdsCache: SliderAd[] | null = null;
 let sessionAdsCacheAt = 0;
 const adsRead = createRequestCache<SliderAd[]>(SESSION_CACHE_TTL);
 
-export const defaultAds: SliderAd[] = [
-  {
-    id: 101,
-    title: 'خدمات الطوارئ على مدار الساعة',
-    display_date: new Date().toISOString().split('T')[0],
-    start_time: '00:00:00',
-    end_time: '00:00:00',
-    start_hour: 0,
-    start_minute: 0,
-    start_second: 0,
-    end_hour: 0,
-    end_minute: 0,
-    end_second: 0,
-    images: ['https://images.unsplash.com/photo-1587560699334-cc4ff634909a?auto=format&fit=crop&q=80&w=1200'],
-    url: 'https://images.unsplash.com/photo-1587560699334-cc4ff634909a?auto=format&fit=crop&q=80&w=1200',
-    is_active: true
-  },
-  {
-    id: 102,
-    title: 'صيانة السيارات بأيدي خبراء',
-    display_date: new Date().toISOString().split('T')[0],
-    start_time: '00:00:00',
-    end_time: '00:00:00',
-    start_hour: 0,
-    start_minute: 0,
-    start_second: 0,
-    end_hour: 0,
-    end_minute: 0,
-    end_second: 0,
-    images: ['https://images.unsplash.com/photo-1486006396113-ad73c5946ee9?auto=format&fit=crop&q=80&w=1200'],
-    url: 'https://images.unsplash.com/photo-1486006396113-ad73c5946ee9?auto=format&fit=crop&q=80&w=1200',
-    is_active: true
-  },
-  {
-    id: 103,
-    title: 'خدمات النظافة والتعقيم الشاملة',
-    display_date: new Date().toISOString().split('T')[0],
-    start_time: '00:00:00',
-    end_time: '00:00:00',
-    start_hour: 0,
-    start_minute: 0,
-    start_second: 0,
-    end_hour: 0,
-    end_minute: 0,
-    end_second: 0,
-    images: ['https://images.unsplash.com/photo-1581578731522-745d05ad9a2d?auto=format&fit=crop&q=80&w=1200'],
-    url: 'https://images.unsplash.com/photo-1581578731522-745d05ad9a2d?auto=format&fit=crop&q=80&w=1200',
-    is_active: true
-  }
-];
+const subscribers = new Set<(items: SliderAd[]) => void>();
 
 export function parse12hTo24h(hour: number, minute: number, period: AdPeriod): { hour24: number; minute: number } {
   let h = hour % 12;
@@ -285,7 +242,10 @@ export function getAdStatus(ad: Partial<SliderAd>, customNow?: Date): AdStatus {
   const endHour = ad.end_period ? parse12hTo24h(endHourRaw, endMin, ad.end_period).hour24 : endHourRaw;
 
   const startDateTime = new Date(year, month, day, startHour, startMin, startSec, 0);
-  const endDateTime = new Date(year, month, day, endHour, endMin, endSec, 999);
+  // The editor's default 00:00 → 00:00 means the whole selected day.
+  const wholeDay = startHour === 0 && startMin === 0 && startSec === 0
+    && endHour === 0 && endMin === 0 && endSec === 0;
+  const endDateTime = new Date(year, month, day, wholeDay ? 23 : endHour, wholeDay ? 59 : endMin, wholeDay ? 59 : endSec, 999);
 
   if (now.getTime() < startDateTime.getTime()) {
     return 'upcoming';
@@ -341,11 +301,9 @@ export async function compressImageFile(file: File, maxWidth = 1200, maxHeight =
 }
 
 function normalizeAd(row: any): SliderAd {
-  const images = Array.isArray(row.images) && row.images.length > 0
-    ? row.images
-    : (row.url ? [row.url] : []);
+  const storedImages = Array.isArray(row.images) ? row.images.filter((image: unknown) => typeof image === 'string' && image.trim()).map((image: string) => image.trim()) : [];
+  const images = storedImages.length ? storedImages : (typeof row.url === 'string' && row.url.trim() ? [row.url.trim()] : []);
 
-  const todayStr = new Date().toISOString().split('T')[0];
   // دمج حقول التصميم: عمود Supabase أولاً، ثم overlay المحلي (إن لم تكن الأعمدة موجودة)، ثم الافتراضي
   const overlay: SlideDesign = readDesignOverlay()[String(row.id)] || {};
   const dv = (rowVal: any, overlayVal: any, defaultVal: any) =>
@@ -371,7 +329,7 @@ function normalizeAd(row: any): SliderAd {
   return {
     id: Number(row.id),
     title: row.title || '',
-    display_date: row.display_date || todayStr,
+    display_date: row.display_date || '',
     start_time: formatTimeArabic(startHour24, startMinute, startSecond),
     end_time: formatTimeArabic(endHour24, endMinute, endSecond),
     start_hour: startHour24,
@@ -380,13 +338,12 @@ function normalizeAd(row: any): SliderAd {
     end_hour: endHour24,
     end_minute: endMinute,
     end_second: endSecond,
-    images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1587560699334-cc4ff634909a?auto=format&fit=crop&q=80&w=1200'],
+    images,
     url: images[0] || row.url || '',
     is_active: row.is_active !== false,
     sort_order: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : 0,
     subtitle: dv(row.subtitle, overlay.subtitle, DEFAULT_SLIDE_DESIGN.subtitle),
-    button_text: dv(row.button_text, overlay.button_text, DEFAULT_SLIDE_DESIGN.button_text),
-    button_link: dv(row.button_link, overlay.button_link, DEFAULT_SLIDE_DESIGN.button_link),
+    ...Object.fromEntries(SLIDER_LINK_FIELDS.map(field => [field, row[field] ?? null])),
     duration_seconds: clampDuration(dv(row.duration_seconds, overlay.duration_seconds, DEFAULT_SLIDE_DESIGN.duration_seconds)),
     language: dv(row.language, overlay.language, DEFAULT_SLIDE_DESIGN.language),
     font_family: dv(row.font_family, overlay.font_family, DEFAULT_SLIDE_DESIGN.font_family),
@@ -439,19 +396,20 @@ const readLocalAdsRaw = (): SliderAd[] | null => {
   return null;
 };
 
-const readLocalAds = (): SliderAd[] => readLocalAdsRaw() ?? defaultAds;
+const readLocalAds = (): SliderAd[] => readLocalAdsRaw() ?? [];
 
 const writeLocalAds = (items: SliderAd[]) => {
   sessionAdsCache = items;
   sessionAdsCacheAt = Date.now();
   adsRead.set(items);
+  queueMicrotask(() => subscribers.forEach(subscriber => subscriber(items)));
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(storageKey, JSON.stringify(items));
   } catch (error) {
     console.warn('Failed to save local slider ads cache:', error);
   }
-  void offlineStore.setItem(OFFLINE_KEYS.SLIDER, items)
+  void offlineStore.setItem(storageKey, items)
     .catch(error => console.warn('Failed to save slider ads to IndexedDB:', error));
 };
 
@@ -529,7 +487,7 @@ export async function uploadSliderImageWithProgress(
 export function useSlider() {
   const [initial] = useState(() => {
     const cached = sessionAdsCache ?? readLocalAdsRaw();
-    return { ads: cached ?? defaultAds, hasCache: cached !== null };
+    return { ads: cached ?? [], hasCache: cached !== null };
   });
   const [ads, setAds] = useState<SliderAd[]>(initial.ads);
   const [loading, setLoading] = useState(!initial.hasCache);
@@ -556,7 +514,7 @@ export function useSlider() {
       const normalized = await adsRead.get(async () => {
       const { data, error } = await supabase
         .from('slider_images')
-        .select('id,url,title,display_date,start_time,end_time,images,is_active,sort_order,created_at,updated_at')
+        .select('id,url,title,display_date,start_time,end_time,images,is_active,sort_order,created_at,updated_at,button_text,button_link,facebook_url,instagram_url,tiktok_url,twitter_url')
         // الترتيب المحفوظ في Supabase أولاً (sort_order تصاعدي)، ثم الأقدم أولاً
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true });
@@ -586,7 +544,7 @@ export function useSlider() {
     let active = true;
     const initialize = async () => {
       if (!initial.hasCache) {
-        const cached = await offlineStore.getItem<SliderAd[]>(OFFLINE_KEYS.SLIDER).catch(() => null);
+        const cached = await offlineStore.getItem<SliderAd[]>(storageKey).catch(() => null);
         if (!active) return;
         if (cached) {
           const normalized = cached.map(normalizeAd);
@@ -602,12 +560,23 @@ export function useSlider() {
     };
     void initialize();
     const refreshOnline = () => { void fetchAds(true); };
+    const receive = (items: SliderAd[]) => { setAds(items); setHasCachedData(true); setLoading(false); };
+    subscribers.add(receive);
+    const refreshVisible = () => { if (document.visibilityState === 'visible') void fetchAds(true); };
+    const refreshStorage = (event: StorageEvent) => { if (event.key === storageKey) { adsRead.invalidate(); sessionAdsCacheAt = 0; void fetchAds(true); } };
     window.addEventListener('online', refreshOnline);
     window.addEventListener(APP_ONLINE_EVENT, refreshOnline);
+    window.addEventListener('storage', refreshStorage);
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
     return () => {
       active = false;
+      subscribers.delete(receive);
       window.removeEventListener('online', refreshOnline);
       window.removeEventListener(APP_ONLINE_EVENT, refreshOnline);
+      window.removeEventListener('storage', refreshStorage);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
     };
   }, [fetchAds]);
 
@@ -626,6 +595,7 @@ export function useSlider() {
         is_active: adData.is_active ?? true,
         sort_order: adData.sort_order !== undefined ? adData.sort_order : maxOrder + 1,
         updated_at: new Date().toISOString(),
+        ...buildSliderLinksPayload(adData),
         // حقول التصميم (تُخفى تلقائياً إن لم تكن أعمدتها موجودة بعد)
         ...(designColumnsSupported !== false ? buildDesignPayload(adData) : {})
       };
@@ -651,7 +621,8 @@ export function useSlider() {
       if (designColumnsSupported === null) designColumnsSupported = true;
 
       const data = result.data;
-      const inserted = normalizeAd({ ...data, ...adData, sort_order: data?.sort_order ?? payload.sort_order });
+      clearLegacyLinkDrafts(Number(data.id));
+      const inserted = normalizeAd({ ...adData, ...data, sort_order: data?.sort_order ?? payload.sort_order });
       // الأعمدة غير متاحة بعد: نحفظ حقول التصميم في overlay المحلي
       if (designColumnsSupported === false) saveDesignOverlayEntry(inserted.id, buildDesignPayload(adData));
       setAds(prev => {
@@ -680,6 +651,7 @@ export function useSlider() {
         ...(adData.images !== undefined ? { images: adData.images } : {}),
         ...(adData.is_active !== undefined ? { is_active: adData.is_active } : {}),
         ...(adData.sort_order !== undefined ? { sort_order: adData.sort_order } : {}),
+        ...buildSliderLinksPayload(adData),
         ...(designColumnsSupported !== false ? buildDesignPayload(adData) : {}),
         updated_at: new Date().toISOString()
       };
@@ -706,6 +678,7 @@ export function useSlider() {
       if (!data) {
         throw new Error(`لم يتم العثور على السجل id=${safeId} في slider_images أو أن التحديث لم يشمل أي صف.`);
       }
+      if (adData.button_text !== undefined || adData.button_link !== undefined) clearLegacyLinkDrafts(safeId);
       if (designColumnsSupported === null) designColumnsSupported = true;
 
       if (designColumnsSupported === false) {
@@ -763,7 +736,7 @@ export function useSlider() {
       }
     } catch (error) {
       console.error('Error reordering slider ads in Supabase:', error);
-      await fetchAds(); // مصدر الحقيقة: Supabase
+      await fetchAds(true); // Roll back optimistic order from the actual source.
       throw error;
     }
   };

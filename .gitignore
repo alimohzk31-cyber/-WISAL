@@ -82,3 +82,17 @@ android/app/google-services.json
 
 # Uncompressed working copies of generated slider banners (JPEGs are shipped)
 /public/slider-banners/**/*.png
+
+# Local authentication diagnostics and review artifacts (keep on this device)
+/scripts/admin-login-diagnostic.jsonl
+/admin-*.png
+/admin-dashboard-visual-report.json
+/slider-*.png
+/slider-*-report.json
+/slider-*-report.md
+
+# Local agent/cloud credentials and Supabase CLI working state
+/.agents/
+/.codex/
+/.aws/
+/supabase/.temp/

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactEventHandler } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Link } from 'react-router-dom';
 import {
   BROWSE_SLIDER_BACKDROP_CLASS, BROWSE_SLIDER_CONTAIN_CLASS, BROWSE_SLIDER_FRAME_CLASS,
   BROWSE_SLIDER_IMAGE_CLASS, getSliderSwipeAction,
@@ -9,6 +8,7 @@ import { usePageVisible } from '../hooks/usePageVisible';
 import { useSlideImages } from '../hooks/useSlideImages';
 import { useImageFallback } from './SafeImage';
 import type { ContentSlide } from '../lib/contentSlides';
+import SliderLinkActions, { SliderDestination } from './SliderLinkActions';
 
 interface ContentSliderProps {
   slides: readonly ContentSlide[];
@@ -82,7 +82,7 @@ export default function ContentSlider({
   return <section dir="rtl" data-testid={testId} aria-label={label} aria-roledescription="سلايدر"
     className={`${BROWSE_SLIDER_FRAME_CLASS} group touch-pan-y bg-[var(--bg-secondary)] ${touchDrag && count > 1 ? 'cursor-grab active:cursor-grabbing' : ''}`}
     onPointerDown={event => {
-      if (!touchDrag || count <= 1 || (event.target as Element).closest('button') || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      if (!touchDrag || count <= 1 || (event.target as Element).closest('button,[data-slider-link-action]') || (event.pointerType === 'mouse' && event.button !== 0)) return;
       pointerStart.current = { id: event.pointerId, x: event.clientX };
     }}
     onPointerMove={event => {
@@ -105,7 +105,7 @@ export default function ContentSlider({
     }}>
     {slide ? <>
       <AnimatePresence mode="wait">
-        <motion.div key={slide.id} data-slide-id={slide.id}
+        <motion.div key={slide.id} data-slide-id={slide.id} data-slider-id={slide.sliderId} data-slider-image-url={slide.sliderId != null ? rawSrc : undefined}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}
           className="absolute inset-0">
           {imageFit === 'contain' ? <>
@@ -123,7 +123,8 @@ export default function ContentSlider({
       </AnimatePresence>
       {pendingImage ? <div data-slide-loading="true" className="pointer-events-none absolute inset-0 z-[1] animate-pulse bg-[var(--bg-secondary)]/60" aria-hidden="true" /> : null}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent" aria-hidden="true" />
-      <Link to={slide.href} draggable={false} className="absolute inset-0 z-10 rounded-3xl focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[var(--accent-primary)]" aria-label={`فتح ${slide.title}`} />
+      <SliderDestination href={slide.href} className="absolute inset-0 z-10 rounded-3xl focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[var(--accent-primary)]" label={`فتح ${slide.title}`} />
+      <SliderLinkActions links={slide} />
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end overflow-hidden px-4 pb-8 text-right text-white sm:px-6 md:pb-10">
         <motion.h1 key={`title-${slide.id}`} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-1 line-clamp-1 w-full text-lg font-semibold leading-snug [text-shadow:0_1px_2px_rgba(0,0,0,0.45)] md:mb-1.5 md:text-[24px]">{slide.title}</motion.h1>

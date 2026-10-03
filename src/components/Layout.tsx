@@ -1,5 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Heart } from 'lucide-react';
+import wisalHeaderLogo from '../assets/wisal-header-logo.png';
 import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
 import { useStats } from '../hooks/useStats';
@@ -82,10 +83,11 @@ export default function Layout() {
               <button
                 type="button"
                 onClick={handleAdminClick}
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl"
+                className="flex aspect-square h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl"
               >
                 <img
-                  src={`${(import.meta as any).env.BASE_URL}assets/wisal-header-brand-animated.png`}
+                  src={wisalHeaderLogo}
+                  width={36} height={36} style={{ aspectRatio: '1 / 1' }}
                   alt=""
                   className="h-full w-full rounded-xl object-contain"
                   draggable={false}
@@ -96,10 +98,11 @@ export default function Layout() {
               <button
                 type="button"
                 onClick={handleAdminClick}
-                className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+                className="flex aspect-square h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl"
               >
                 <img
-                src={`${(import.meta as any).env.BASE_URL}assets/wisal-header-brand-animated.png`}
+                src={wisalHeaderLogo}
+                width={36} height={36} style={{ aspectRatio: '1 / 1' }}
                 alt=""
                 className="h-full w-full rounded-xl object-contain"
                 draggable={false}

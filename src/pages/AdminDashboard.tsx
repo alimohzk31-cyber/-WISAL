@@ -66,6 +66,36 @@ export default function AdminDashboard() {
   const { adminTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'overview' | 'pending' | 'rejected' | 'slider' | 'services' | 'browse' | 'messages' | 'notifications' | 'jobs'>('overview');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobileSidebarOpen) return;
+    const mobile = window.matchMedia('(max-width: 700px)');
+    if (!mobile.matches) { setIsMobileSidebarOpen(false); return; }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const items = Array.from(document.querySelectorAll<HTMLElement>('#wisal-admin-sidebar button, #wisal-admin-sidebar a'));
+    items[0]?.focus();
+    const close = () => {
+      setIsMobileSidebarOpen(false);
+      document.getElementById('wisal-admin-menu-toggle')?.focus();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+      if (event.key !== 'Tab' || !items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    const onResize = () => { if (!mobile.matches) setIsMobileSidebarOpen(false); };
+    document.addEventListener('keydown', onKeyDown);
+    mobile.addEventListener('change', onResize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      mobile.removeEventListener('change', onResize);
+    };
+  }, [isMobileSidebarOpen]);
   // Toggle إظهار/إخفاء أيقونات القائمة (UI فقط — لا يمس أي وظيفة)
   const [showIcons, setShowIcons] = useState<boolean>(() => localStorage.getItem('admin_show_icons') !== '0');
   useEffect(() => {
@@ -405,14 +435,17 @@ export default function AdminDashboard() {
         notificationCount={notifications}
         jobCount={pendingJobs}
         showIcons={true}
-        onNavigate={(tab: AdminOverviewTab) => { goToTab(tab); setSelectedCategory(null); }}
-        onOpenCategories={() => setIsCategoryManagerOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        mobileOpen={isMobileSidebarOpen}
+        onNavigate={(tab: AdminOverviewTab) => { goToTab(tab); setSelectedCategory(null); setIsMobileSidebarOpen(false); }}
+        onOpenCategories={() => { setIsCategoryManagerOpen(true); setIsMobileSidebarOpen(false); }}
+        onOpenSettings={() => { setIsSettingsOpen(true); setIsMobileSidebarOpen(false); }}
       />
+      {isMobileSidebarOpen && <button type="button" className="wisal-mobile-sidebar-backdrop" aria-label="إغلاق قائمة الإدارة" onClick={() => { setIsMobileSidebarOpen(false); document.getElementById('wisal-admin-menu-toggle')?.focus(); }} />}
 
       {/* Main Content */}
       <div className={`wisal-overview__main relative min-w-0 flex-1 overflow-hidden rounded-3xl border bg-[var(--bg-secondary)] border-[var(--border)]`}>
         <header className="wisal-overview__topbar">
+          <button id="wisal-admin-menu-toggle" className="wisal-mobile-menu-toggle" type="button" aria-label="قائمة الإدارة" aria-controls="wisal-admin-sidebar" aria-expanded={isMobileSidebarOpen} onClick={() => setIsMobileSidebarOpen(open => !open)}><Equal size={25} /></button>
           <div className="wisal-admin-identity">
             <div className="wisal-admin-avatar"><UserRound size={26}/></div>
             <div><strong>مرحباً بك</strong><span>مدير النظام</span></div>

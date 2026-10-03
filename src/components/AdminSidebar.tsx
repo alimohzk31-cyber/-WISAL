@@ -23,6 +23,7 @@ interface AdminSidebarProps {
   notificationCount: number;
   jobCount: number | null;
   showIcons: boolean;
+  mobileOpen?: boolean;
   onNavigate: (tab: AdminOverviewTab) => void;
   onOpenCategories: () => void;
   onOpenSettings: () => void;
@@ -68,9 +69,10 @@ export default function AdminSidebar({
   onNavigate,
   onOpenCategories,
   onOpenSettings,
+  mobileOpen = false,
 }: AdminSidebarProps) {
   return (
-    <aside className="wisal-overview__sidebar" aria-label="تنقل الإدارة">
+    <aside id="wisal-admin-sidebar" className={`wisal-overview__sidebar${mobileOpen ? ' is-mobile-open' : ''}`} aria-label="تنقل الإدارة">
       <div className="wisal-brand">
         <div className="wisal-brand__wordmark">
           <WisalWMark size="sidebar" />

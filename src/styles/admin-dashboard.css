@@ -1,5 +1,6 @@
 ﻿/* WISAL admin: one reference-driven layout, independent of the public UI. */
 .wisal-admin-route { background: #07111f; color: #edf2ff; min-height: 100vh; }
+.wisal-mobile-menu-toggle, .wisal-mobile-sidebar-backdrop { display: none; }
 .wisal-admin-route > header, .wisal-admin-route > footer { display: none; }
 .wisal-admin-route > main { max-width: none; margin: 0; padding: 0; min-height: 100vh; }
 .wisal-admin-route > main > div { min-height: 100vh; }
@@ -205,6 +206,14 @@
 .wisal-admin-shell[data-theme='light'] .wisal-status-pill--rejected { color: #a3224c; }
 /* Retain the existing mobile stack while fitting the hero into its column. */
 @media (max-width: 700px) {
+ .wisal-admin-shell { grid-template-columns: minmax(0,1fr); }
+ .wisal-overview__sidebar { display: none; }
+ .wisal-overview__sidebar.is-mobile-open { display: flex; position: fixed; inset: 0 auto 0 0; width: min(270px,85vw); height: 100dvh; z-index: 60; }
+ .wisal-mobile-sidebar-backdrop { display: block; position: fixed; inset: 0; z-index: 59; border: 0; background: #0008; }
+ .wisal-overview__topbar { grid-template-columns: 40px minmax(0,1fr) 40px; }
+ .wisal-mobile-menu-toggle { display: grid; place-items: center; grid-column: 1; grid-row: 1; width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; }
+ .wisal-overview__topbar .wisal-admin-identity { grid-column: 2; }
+ .wisal-overview__topbar .wisal-notification-button { grid-column: 3; }
  .wisal-admin-hero { grid-template-columns: minmax(0,1fr); }
  .wisal-w-mark--hero { max-width: 100%; }
  .wisal-admin-hero__copy { min-width: 0; white-space: normal; padding-inline: 5px; }

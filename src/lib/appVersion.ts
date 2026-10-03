@@ -9,8 +9,8 @@
 /** الإصدار الحالي المثبَّت لدى المستخدم. */
 export const APP_VERSION = '1.5';
 /** تاريخ إصدار الواجهة الحالي (قيمة ثابتة مرتبطة بالإصدار، لا يتغير يوميًا). */
-export const APP_VERSION_DATE = '01/10/2026';
-export const APP_VERSION_DAY = 'الخميس';
+export const APP_VERSION_DATE = '03/10/2026';
+export const APP_VERSION_DAY = 'السبت';
 export const PREVIOUS_APP_VERSION = '1.4';
 
 /**
@@ -33,7 +33,7 @@ export const APP_RELEASES: readonly AppRelease[] = [
   { version: '1.2', day: 'الثلاثاء', date: '08/09/2026' },
   { version: '1.3', day: 'الثلاثاء', date: '15/09/2026' },
   { version: '1.4', day: 'الأربعاء', date: '23/09/2026' },
-  { version: '1.5', day: 'الخميس', date: '01/10/2026' },
+  { version: '1.5', day: 'السبت', date: '03/10/2026' },
 ] as const;
 
 /** وصف مصدر التحقق من التحديث (للعرض داخل نافذة الإصدار مستقبلًا). */

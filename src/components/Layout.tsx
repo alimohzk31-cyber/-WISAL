@@ -8,7 +8,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
 import HeaderClock from './HeaderClock';
 import MainMenuController from './MainMenuController';
-import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
@@ -128,24 +127,11 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="max-w-7xl px-3 py-8 sm:px-4 mx-auto min-h-[calc(100vh-200px)] w-full min-w-0 pb-24">
-        {/* انتقال فوري وسلس بين الصفحات:
-            - كان `mode="wait"` يؤخر تركيب الصفحة الجديدة حتى اكتمال حركة خروج
-              الصفحة القديمة كاملة (إحساس بأن التطبيق «معلّق» عند كل تنقّل).
-            - الآن تُركّب الصفحة الجديدة فوراً (الوضع الافتراضي sync)، وتتحرك
-              القديمة للخارج بجانبها، بمدة أقصر (0.18s بدل 0.3s).
-            - Suspense يظهر فقط عند أول جلب chunk فعلية، وليس عند كل تنقّل. */}
-        <AnimatePresence>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="w-full min-w-0 max-w-full"
-          >
-            <Outlet context={{ primaryColor, theme }} />
-          </motion.div>
-        </AnimatePresence>
+        {/* Keep one route outlet in document flow; exiting outlets must not
+            reserve space above the newly committed page. */}
+        <div key={location.pathname} className="w-full min-w-0 max-w-full">
+          <Outlet context={{ primaryColor, theme }} />
+        </div>
       </main>
 
       {/* Footer */}

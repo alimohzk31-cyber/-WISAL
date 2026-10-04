@@ -96,3 +96,7 @@ android/app/google-services.json
 /.codex/
 /.aws/
 /supabase/.temp/
+
+# Local section navigation verification artifacts
+/section-*.png
+/section-navigation-report.json

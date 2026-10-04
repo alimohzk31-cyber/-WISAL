@@ -556,16 +556,14 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
         </form>
         </>
         ) : (
-          <form onSubmit={handleComplaintSubmit} dir="rtl" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6">
+          <form onSubmit={handleComplaintSubmit} dir="rtl" className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
             <div className="sticky top-0 z-10 -mx-4 -mt-4 flex shrink-0 items-start justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6">
               <div className="min-w-0 flex-1">
                 <h3 className="text-lg font-black text-[var(--text-primary)]">إرسال شكوى</h3>
                 <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">ستصل الشكوى إلى الإدارة فقط ولن تظهر للمستخدمين.</p>
               </div>
-              <button type="submit" disabled={!complaintText.trim() || complaintSubmitting} className="app-btn-accent flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50">
-                {complaintSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                إرسال الشكوى
-              </button>
+
             </div>
             <textarea
               value={complaintText}
@@ -607,6 +605,13 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
             </div>
             {complaintError && <p role="alert" className="text-sm font-bold text-red-500">{complaintError}</p>}
             {complaintSuccess && <p role="status" className="text-sm font-bold text-emerald-600">{complaintSuccess}</p>}
+            </div>
+            <div className="flex shrink-0 justify-end border-t border-[var(--border)] bg-[var(--surface-elevated)] p-4">
+              <button type="submit" disabled={!complaintText.trim() || complaintSubmitting} className="app-btn-accent flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50">
+                {complaintSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                إرسال الشكوى
+              </button>
+            </div>
           </form>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useRef, useState, useEffect } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { useParams, useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Phone, XCircle, Hourglass, Plus, Search, Loader2 } from 'lucide-react';
 import { colorMap } from '../data/categories';
@@ -114,6 +114,12 @@ export default function CategoryPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+  // Run on the committed category, including a lazy route's first mount.
+  // HashRouter navigation can precede Suspense resolution; reset before paint.
+  useLayoutEffect(() => {
+    document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.key, id, location.search]);
+
   // ---------------- اختيار القسم الفرعي (الإصلاح الجذري) ----------------
   // احترام نية المستخدم الصريحة: sub=all أو غياب المعامل تماماً يعني عرض كل
   // خدمات القسم (بما فيها الخدمات التابعة للقسم الرئيسي دون تخصص فرعي).

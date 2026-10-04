@@ -1,3 +1,4 @@
+import './load-supabase-env.cjs';
 // ============================================================================
 // WISAL — Live join-category E2E verification (read + real pending inserts)
 // يحاكي المسار الفعلي: CategoryPage → pickJoinTarget → AddServiceModal →
@@ -9,7 +10,7 @@ process.env.NODE_ENV = 'development';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+const ANON = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
 
 const supabase = createClient(SUPABASE_URL, ANON, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },

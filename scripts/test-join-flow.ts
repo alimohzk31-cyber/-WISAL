@@ -1,3 +1,4 @@
+import './load-supabase-env.cjs';
 /**
  * Runtime test: real end-to-end add-service flow against the live Supabase
  * project, reusing the exact application code paths (no mocks):
@@ -44,7 +45,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://nnxrjpitjxtceydlcxzm.supabase.co';
 const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+  (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
 
 // Same client shape as src/lib/supabase.ts (public project, RLS is the gate).
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {

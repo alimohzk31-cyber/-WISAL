@@ -1,4 +1,5 @@
-import { Palette, Check, X } from 'lucide-react';
+import { menuPanelLayout } from './menuPanelLayout';
+import { Palette, Check, ArrowLeft } from 'lucide-react';
 import { useTheme, Theme, SELECTABLE_THEMES } from '../context/ThemeContext';
 import { useState, useRef, useEffect, useCallback, type MouseEvent as ReactMouseEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
@@ -85,13 +86,15 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
   useEffect(() => {
     if (!popover || !isOpen) return;
     const updateViewport = () => {
-      const next = { width: window.innerWidth, height: window.innerHeight };
+      const next = { width: window.visualViewport?.width ?? window.innerWidth, height: window.visualViewport?.height ?? window.innerHeight };
       setViewport(previous => previous.width === next.width && previous.height === next.height ? previous : next);
     };
     updateViewport();
     window.addEventListener('resize', updateViewport);
+    window.visualViewport?.addEventListener('resize', updateViewport);
     return () => {
       window.removeEventListener('resize', updateViewport);
+      window.visualViewport?.removeEventListener('resize', updateViewport);
     };
   }, [isOpen, popover]);
   useEffect(() => {
@@ -116,25 +119,7 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
     return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, popover, setIsOpen]);
 
-  const popoverWidth = Math.min(286, Math.max(220, viewport.width - 24));
-  const defaultLeft = (viewport.width - popoverWidth) / 2;
-  const preferredRight = anchorRect ? anchorRect.right + 10 : defaultLeft;
-  const preferredLeft = anchorRect ? anchorRect.left - popoverWidth - 10 : defaultLeft;
-  const canOpenRight = preferredRight + popoverWidth <= viewport.width - 12;
-  const canOpenLeft = preferredLeft >= 12;
-  const shouldStackBelow = Boolean(anchorRect && viewport.width < 1024 && !canOpenRight && !canOpenLeft);
-  const popoverLeft = anchorRect
-    ? shouldStackBelow
-      ? Math.max(12, Math.min((viewport.width - popoverWidth) / 2, viewport.width - popoverWidth - 12))
-      : canOpenRight
-        ? preferredRight
-        : canOpenLeft
-          ? preferredLeft
-          : Math.max(12, Math.min(preferredRight, viewport.width - popoverWidth - 12))
-    : Math.max(12, Math.min(defaultLeft, viewport.width - popoverWidth - 12));
-  const popoverTop = anchorRect
-    ? Math.max(12, Math.min(shouldStackBelow ? anchorRect.bottom + 10 : anchorRect.top, viewport.height - 282 - 12))
-    : Math.max(12, (viewport.height - 282) / 2);
+  const panelLayout = menuPanelLayout(viewport, anchorRect);
 
   return (
     <div className={popover ? "pointer-events-none fixed inset-0 z-[80]" : "relative w-full max-w-56"} ref={dropdownRef} dir="rtl">
@@ -152,12 +137,14 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            role={popover ? "dialog" : undefined}
+            aria-label={popover ? "ألوان وصال" : undefined}
             initial={{ opacity: 0, y: popover ? 0 : 8, x: popover ? -8 : 0, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
             exit={{ opacity: 0, y: popover ? 0 : 8, x: popover ? -6 : 0, scale: 0.96 }}
             className={
               popover
-                ? "pointer-events-auto fixed flex h-[282px] min-h-[282px] max-h-[282px] flex-col overflow-hidden rounded-[24px] border p-4 text-[var(--theme-text)]"
+                ? "pointer-events-auto fixed flex flex-col overflow-hidden rounded-[24px] border p-4 text-[var(--theme-text)]"
                 : hideTrigger
                   ? "z-50 w-full min-w-0 max-w-56 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)]"
                   : "absolute left-0 z-50 mt-2 w-56 min-w-0 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-lg)]"
@@ -166,9 +153,7 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
             onMouseDown={popover ? event => event.stopPropagation() : undefined}
             onClick={popover ? event => event.stopPropagation() : undefined}
             style={popover ? {
-              left: popoverLeft,
-              top: popoverTop,
-              width: popoverWidth,
+              ...panelLayout,
               background: 'linear-gradient(145deg, color-mix(in srgb, var(--theme-primary) 22%, var(--theme-surface)), color-mix(in srgb, var(--theme-background) 92%, var(--theme-primary-dark) 8%))',
               borderColor: 'color-mix(in srgb, var(--theme-primary) 42%, var(--theme-border))',
               boxShadow: '0 24px 70px -30px var(--theme-shadow), inset 0 1px 0 color-mix(in srgb, var(--theme-surface) 14%, transparent)',
@@ -183,11 +168,11 @@ export default function ThemeToggle({ open, onOpenChange, hideTrigger = false, s
                 <h2 className="text-base font-black text-[var(--theme-text)]">{'\u0623\u0644\u0648\u0627\u0646 \u0648\u0635\u0627\u0644'}</h2>
                 <button
                   type="button"
-                  aria-label={'\u0625\u063a\u0644\u0627\u0642'}
+                  aria-label="العودة إلى القائمة الرئيسية"
                   onClick={closePopover}
                   className="absolute left-0 top-0 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <ArrowLeft className="h-3.5 w-3.5" />
                 </button>
               </div>
             )}

@@ -41,12 +41,9 @@ export default function MainMenuController() {
       closeSubmenu();
       return;
     }
-    const menuRect = mainMenuPanelRef.current?.getBoundingClientRect() ?? mainMenuRef.current?.getBoundingClientRect();
-    const triggerRect = triggerRef.current?.getBoundingClientRect() ?? menuRect;
-    const rect = triggerRect ?? menuRect;
+    const rect = mainMenuRef.current?.getBoundingClientRect();
     if (rect) {
-      const horizontalRect = menuRect ?? rect;
-      setSubmenuAnchorRect({ top: rect.top, left: horizontalRect.left, right: horizontalRect.right, bottom: rect.bottom, width: horizontalRect.width, height: rect.height });
+      setSubmenuAnchorRect({ top: rect.bottom + 8, left: rect.left, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height });
     }
     setOpenSubmenu(submenu);
   }, [closeSubmenu, openSubmenu]);
@@ -89,13 +86,12 @@ export default function MainMenuController() {
             </button>
 
             <AnimatePresence>
-              {showMainMenu && (
+              {showMainMenu && !openSubmenu && (
                 <motion.div
                   ref={mainMenuPanelRef}
                   id="main-menu"
                   initial={{ opacity: 0, y: -8, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.96 }}
                   className="absolute left-0 z-50 mt-2 w-60 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
                 >
                   <button

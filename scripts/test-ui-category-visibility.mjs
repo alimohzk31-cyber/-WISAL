@@ -1,3 +1,4 @@
+import './load-supabase-env.cjs';
 // ---------------------------------------------------------------------------
 // اختبار واجهة فعلي (UI) لظهور الخدمات داخل أقسامها — تطبيق وصال الحقيقي.
 // المسار الكامل: Supabase -> mapRowToService -> useCategories -> buildCategoryDirectory
@@ -10,7 +11,7 @@ import { writeFile } from 'node:fs/promises';
 const BASE = process.env.WISAL_UI_BASE || 'http://localhost:3001';
 const HOME = `${BASE}/#/`;
 const SUPABASE_URL = 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+const SUPABASE_ANON = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

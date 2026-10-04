@@ -1,6 +1,7 @@
+import { menuPanelLayout } from './menuPanelLayout';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { CalendarDays, ChevronLeft, ChevronRight, List, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, List, ArrowLeft } from 'lucide-react';
 import { APP_RELEASES, APP_VERSION, APP_VERSION_DATE, APP_VERSION_DAY } from '../lib/appVersion';
 
 export interface AppVersionAnchorRect {
@@ -34,10 +35,6 @@ const releaseCardStyle = {
   boxShadow: 'inset 0 1px 0 color-mix(in srgb, var(--theme-surface) 12%, transparent)',
 } as const;
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), Math.max(min, max));
-}
-
 export default function AppVersionModal({ open, onClose, anchorRect }: AppVersionModalProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [viewport, setViewport] = useState({
@@ -54,13 +51,15 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
   useEffect(() => {
     if (!open) return;
     const updateViewport = () => {
-      const next = { width: window.innerWidth, height: window.innerHeight };
+      const next = { width: window.visualViewport?.width ?? window.innerWidth, height: window.visualViewport?.height ?? window.innerHeight };
       setViewport(previous => previous.width === next.width && previous.height === next.height ? previous : next);
     };
     updateViewport();
     window.addEventListener('resize', updateViewport);
+    window.visualViewport?.addEventListener('resize', updateViewport);
     return () => {
       window.removeEventListener('resize', updateViewport);
+      window.visualViewport?.removeEventListener('resize', updateViewport);
     };
   }, [open]);
 
@@ -99,26 +98,8 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
 
   const releases = useMemo(() => [...APP_RELEASES].reverse(), []);
   const isWide = viewport.width >= 1024;
-  const mainWidth = Math.min(286, Math.max(220, viewport.width - 24));
-  const containerWidth = mainWidth
-  const defaultLeft = (viewport.width - containerWidth) / 2;
-  const preferredRight = anchorRect ? anchorRect.right + 10 : defaultLeft;
-  const preferredLeft = anchorRect ? anchorRect.left - containerWidth - 10 : defaultLeft;
-  const canOpenRight = preferredRight + containerWidth <= viewport.width - 12;
-  const canOpenLeft = preferredLeft >= 12;
-  const shouldStackBelow = Boolean(anchorRect && !isWide && !canOpenRight && !canOpenLeft);
-  const left = anchorRect
-    ? shouldStackBelow
-      ? clamp((viewport.width - containerWidth) / 2, 12, viewport.width - containerWidth - 12)
-      : canOpenRight
-        ? preferredRight
-        : canOpenLeft
-          ? preferredLeft
-          : clamp(preferredRight, 12, viewport.width - containerWidth - 12)
-    : clamp(defaultLeft, 12, viewport.width - containerWidth - 12);
-  const reservedHeight = 282;
-  const preferredTop = shouldStackBelow ? (anchorRect?.bottom ?? 72) + 10 : (anchorRect?.top ?? 72);
-  const top = clamp(preferredTop, 12, viewport.height - reservedHeight - 12);
+  const panelLayout = menuPanelLayout(viewport, anchorRect);
+  const mainWidth = panelLayout.width;
   const motionDuration = shouldReduceMotion ? 0 : 0.28;
 
   return (
@@ -127,7 +108,7 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
         <div ref={popoverRef} className="pointer-events-none fixed inset-0 z-[80]" dir="rtl">
           <div
             className={`pointer-events-none absolute flex max-h-[calc(100dvh-1.5rem)] flex-col gap-2 ${showHistory && isWide ? 'lg:flex-row' : ''}`}
-            style={{ left, top, width: containerWidth }}
+            style={panelLayout}
             dir="ltr"
           >
             <motion.section
@@ -139,17 +120,17 @@ export default function AppVersionModal({ open, onClose, anchorRect }: AppVersio
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.97, x: -6 }}
               transition={{ duration: motionDuration, ease: 'easeOut' }}
-              className="pointer-events-auto relative flex h-[282px] min-h-[282px] max-h-[282px] w-full flex-col overflow-hidden rounded-[24px] border p-4 text-[var(--theme-text)]"
-              style={{ ...glassStyle, width: mainWidth, willChange: 'transform, opacity', contain: 'layout paint' }}
+              className="pointer-events-auto relative flex w-full flex-col overflow-hidden rounded-[24px] border p-4 text-[var(--theme-text)]"
+              style={{ ...glassStyle, width: mainWidth, height: panelLayout.height, willChange: 'transform, opacity', contain: 'layout paint' }}
               onMouseDown={(event) => event.stopPropagation()}
             >
               <button
                 type="button"
-                aria-label="إغلاق"
+                aria-label="العودة إلى القائمة الرئيسية"
                 onClick={handleCloseClick}
                 className="absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               >
-                <X className="h-3.5 w-3.5" />
+                <ArrowLeft className="h-3.5 w-3.5" />
               </button>
 
               <AnimatePresence initial={false} mode="wait">

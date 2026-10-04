@@ -85,6 +85,7 @@ export default function NotificationsPopup({
       ariaLabel="الإشعارات"
       dialogRef={dialogRef}
       closeButtonRef={closeRef}
+      size="large"
       scrollContent={false}
     >
       <div ref={listRef} tabIndex={0} aria-label="إشعارات الإدارة" className="min-h-0 flex-1 overflow-y-auto">

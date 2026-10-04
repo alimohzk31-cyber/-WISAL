@@ -1,3 +1,4 @@
+import './load-supabase-env.cjs';
 // ---------------------------------------------------------------------------
 // اختبار حقيقي لزر «المزيد» في واجهة التصفح — تطبيق وصال.
 // ---------------------------------------------------------------------------
@@ -21,7 +22,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 const BASE = process.argv[2] || process.env.WISAL_UI_BASE || 'http://127.0.0.1:3000';
 const SUPABASE_URL = 'https://nnxrjpitjxtceydlcxzm.supabase.co';
 const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+  (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const checks = [];

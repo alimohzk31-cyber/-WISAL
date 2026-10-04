@@ -9,9 +9,13 @@ import { adminTimedFetch, measureAdminOperation } from './adminPerformance';
 // --------------------------------------
 // Node-safe access (runtime tests import this module outside Vite; the browser
 // build always has import.meta.env defined by Vite itself).
-const env = ((import.meta as any).env ?? {}) as Record<string, string | undefined>;
+const env = ((import.meta as any).env ?? (typeof process !== 'undefined' ? process.env : {})) as Record<string, string | undefined>;
 export const supabaseUrl = env.VITE_SUPABASE_URL || 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-export const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+export const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
+
+if (!supabaseAnonKey) {
+  throw new Error('Missing VITE_SUPABASE_ANON_KEY. Configure it in .env.local or the build environment.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: { fetch: adminTimedFetch },
@@ -22,9 +26,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY) {
-  console.warn("WARNING: Using hardcoded Supabase credentials because environment variables are missing.");
-}
 
 // ---------------------------------------------------------------------------
 // Admin PIN login (Server-side verification via Edge Function).

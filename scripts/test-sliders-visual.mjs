@@ -1,3 +1,4 @@
+import './load-supabase-env.cjs';
 // ---------------------------------------------------------------------------
 // test-sliders-visual.mjs — إثبات بصري حقيقي لسلايدري التصفح والوظائف.
 // ---------------------------------------------------------------------------
@@ -24,7 +25,7 @@ const BASE = process.env.WISAL_UI_BASE || 'http://127.0.0.1:3100';
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const MAX_SLIDES = Number(process.env.WISAL_SLIDER_MAX_SLIDES || 120);
 const SUPABASE_URL = 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+const SUPABASE_ANON = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
 const API_HEADERS = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
 const nodeFetch = globalThis.fetch;
 

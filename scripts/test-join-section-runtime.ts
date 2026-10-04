@@ -1,3 +1,4 @@
+import './load-supabase-env.cjs';
 /**
  * Runtime E2E probe — «انضم إلى القسم» across multiple sections/sub-sections.
  *
@@ -25,7 +26,7 @@ import { directorySections } from '../src/data/categoryDirectory';
 import { ensureSectionCategoryRow } from '../src/lib/categoryProvisioning';
 
 const supabaseUrl = 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
 
 const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession: false, autoRefreshToken: false },

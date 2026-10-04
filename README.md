@@ -47,3 +47,10 @@
 - بعد النقل شغّل `npm ci` لاستعادة المكتبات من ملف القفل، ثم `npm run lint` و`npm run build`. للتشغيل المحلي استخدم `npm start`، ولتجهيز ملفات الموقع استخدم `npm run release`. التصدير القابل للفتح المباشر له أمر مستقل: `npm run release:standalone`.
 - لإعادة تجهيز Android شغّل `npm run android:sync` ثم `npm run android:aab` بعد تجهيز Java وAndroid SDK. احتفظ بملفات التوقيع المحلية في مكان آمن؛ تبقى مستثناة من الرفع ويجب توفيرها محلياً لبناء إصدار موقّع بنفس الهوية.
 - يحتوي `wisal-upload.zip`، عند توفره، على نسخة للنقل بدون المكتبات المثبتة والكاش والأسرار المحلية؛ يتضمن الإندكس الجاهز وصوره. أعد البناء بعد فك الضغط إذا أردت تشغيل الخادم أو تحديث Android.
+
+
+## Supabase environment configuration
+
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in an untracked `.env.local` before running the app or building it. Never commit key values. Node diagnostics also load `.env.local` and accept `SUPABASE_ANON_KEY`.
+
+For GitHub Pages builds, configure the repository variable `VITE_SUPABASE_URL` and repository Actions secret `VITE_SUPABASE_ANON_KEY`. Builds fail with a configuration error if the key is missing. Only use the public anon key for the frontend; never use a service-role key.

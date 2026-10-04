@@ -1,10 +1,11 @@
+import './load-supabase-env.cjs';
 // Leaves ONE real test service in Supabase from the furniture section
 // (قسم الأثاث والمفروشات ← أثاث منزلي) as pending, for admin review.
 // Run: node scripts/create-furniture-test-service.mjs
 import { createClient } from '@supabase/supabase-js';
 
 const url = 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+const key = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 
 const slug = `wisal-test-furniture-${Date.now()}`;

@@ -1,7 +1,8 @@
 import type { MouseEvent as ReactMouseEvent, ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { X } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { menuPanelLayout } from './menuPanelLayout';
 
 export interface MenuPopoverAnchorRect {
   top: number;
@@ -34,10 +35,6 @@ const glassStyle = {
   backdropFilter: 'blur(22px) saturate(135%)',
   WebkitBackdropFilter: 'blur(22px) saturate(135%)',
 } as const;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), Math.max(min, max));
-}
 
 export default function MenuSubmenuPopover({
   open,
@@ -104,29 +101,7 @@ export default function MenuSubmenuPopover({
     return () => document.removeEventListener('keydown', handleKey);
   }, [closePopover, open]);
 
-  const isLarge = size === 'large';
-  const mainWidth = isLarge ? Math.min(720, Math.max(280, viewport.width - 24)) : Math.min(286, Math.max(220, viewport.width - 24));
-  const popoverHeight = isLarge ? Math.max(220, Math.min(720, viewport.height - 24)) : 282;
-  const defaultLeft = (viewport.width - mainWidth) / 2;
-  const preferredRight = anchorRect ? anchorRect.right + 10 : defaultLeft;
-  const preferredLeft = anchorRect ? anchorRect.left - mainWidth - 10 : defaultLeft;
-  const canOpenRight = preferredRight + mainWidth <= viewport.width - 12;
-  const canOpenLeft = preferredLeft >= 12;
-  const shouldStackBelow = Boolean(anchorRect && viewport.width < 1024 && !canOpenRight && !canOpenLeft);
-  const left = anchorRect
-    ? shouldStackBelow
-      ? clamp((viewport.width - mainWidth) / 2, 12, viewport.width - mainWidth - 12)
-      : canOpenRight
-        ? preferredRight
-        : canOpenLeft
-          ? preferredLeft
-          : clamp(preferredRight, 12, viewport.width - mainWidth - 12)
-    : clamp(defaultLeft, 12, viewport.width - mainWidth - 12);
-  const top = clamp(
-    shouldStackBelow ? (anchorRect?.bottom ?? 72) + 10 : anchorRect?.top ?? 72,
-    12,
-    viewport.height - popoverHeight - 12,
-  );
+  const panelLayout = menuPanelLayout(viewport, anchorRect, size);
 
   return (
     <AnimatePresence>
@@ -141,18 +116,18 @@ export default function MenuSubmenuPopover({
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.97, x: -6 }}
             transition={{ duration: motionDuration, ease: 'easeOut' }}
-            className={isLarge ? "pointer-events-auto fixed flex w-full flex-col overflow-hidden rounded-[24px] border p-4 text-[var(--theme-text)]" : "pointer-events-auto fixed flex h-[282px] min-h-[282px] max-h-[282px] w-full flex-col overflow-hidden rounded-[24px] border p-4 text-[var(--theme-text)]"}
-            style={{ ...glassStyle, left, top, width: mainWidth, height: isLarge ? popoverHeight : undefined, willChange: 'transform, opacity', contain: 'layout paint' }}
+            className="pointer-events-auto fixed flex w-full flex-col overflow-hidden rounded-[24px] border p-4 text-[var(--theme-text)]"
+            style={{ ...glassStyle, ...panelLayout, willChange: 'transform, opacity', contain: 'layout paint' }}
             onMouseDown={event => event.stopPropagation()}
           >
             <button
               ref={closeButtonRef}
               type="button"
-              aria-label="إغلاق"
+              aria-label="العودة إلى القائمة الرئيسية"
               onClick={handleCloseClick}
               className="absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] transition hover:bg-[var(--theme-primary-soft)] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
             >
-              <X className="h-3.5 w-3.5" />
+              <ArrowLeft className="h-3.5 w-3.5" />
             </button>
 
             <div className="flex min-h-0 flex-1 flex-col">

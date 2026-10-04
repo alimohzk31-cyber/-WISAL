@@ -1,3 +1,4 @@
+import './load-supabase-env.cjs';
 /**
  * اختبار Runtime فعلي لمشكلة «الانضمام إلى القسم غير متاح حالياً».
  *
@@ -15,7 +16,7 @@ import { pickJoinTarget } from '../src/lib/serviceCategorySelection';
 import { directorySections } from '../src/data/categoryDirectory';
 
 const SUPABASE_URL = 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
+const ANON_KEY = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
 
 const headers: Record<string, string> = {
   apikey: ANON_KEY,

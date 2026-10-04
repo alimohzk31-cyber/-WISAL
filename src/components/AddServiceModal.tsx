@@ -1,3 +1,4 @@
+import { supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import React, { useState, useRef } from 'react';
 import { X, Upload, MapPin, Phone, Type, LayoutGrid, Briefcase, Clock, Navigation, Image as ImageIcon } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
@@ -225,10 +226,6 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
       }
     }
 
-    // Use env vars if available, otherwise fall back to hardcoded values
-    // (needed when opening index.html directly without a build server)
-    const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://nnxrjpitjxtceydlcxzm.supabase.co';
-    const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHJqcGl0anh0Y2V5ZGxjeHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDkyMjMsImV4cCI6MjA5MTIyNTIyM30.Ui1IQ4OOJ8wngBoNIBNe0nTCQgfm0q8P7AjrKhyAU4w';
 
     // Resolve the REAL categories.id of the currently selected section.
     // This is the value saved into services.category_id (FK) - never null

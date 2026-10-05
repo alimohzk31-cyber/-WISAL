@@ -8,7 +8,8 @@ import { usePageVisible } from '../hooks/usePageVisible';
 import { useSlideImages } from '../hooks/useSlideImages';
 import { useImageFallback } from './SafeImage';
 import type { ContentSlide } from '../lib/contentSlides';
-import SliderLinkActions, { SliderDestination } from './SliderLinkActions';
+import SliderLinkActions, { hasSliderLinks, SliderDestination } from './SliderLinkActions';
+import { normalizeSocialIconsPosition } from '../lib/sliderLinks';
 
 interface ContentSliderProps {
   slides: readonly ContentSlide[];
@@ -33,6 +34,9 @@ export default function ContentSlider({
   const count = slides.length;
   const currentIndex = index < count ? index : 0;
   const slide = slides[currentIndex];
+  const hasLinks = Boolean(slide && hasSliderLinks(slide));
+  const iconsPosition = normalizeSocialIconsPosition(slide?.social_icons_position);
+  const bottomLinks = hasLinks && iconsPosition === 'bottom';
   // مصدر الصورة الحقيقي: من البيانات إن وُجد، وإلا يُجلب بالمعرّف من طبقة الكاش
   // (قائمة الخدمات العامة لا تحمل image_url لأن صور الخدمات base64 ثقيل).
   const { imageFor, isLoading } = useSlideImages(slides, currentIndex);
@@ -74,7 +78,8 @@ export default function ContentSlider({
   const firstDot = Math.max(0, Math.min(currentIndex - 3, count - 7));
   const dots = Array.from({ length: Math.min(7, count) }, (_, offset) => firstDot + offset);
 
-  return <section dir="rtl" data-testid={testId} aria-label={label} aria-roledescription="سلايدر"
+  return <div className="w-full min-w-0">
+    <section dir="rtl" data-testid={testId} aria-label={label} aria-roledescription="سلايدر"
     className={`${BROWSE_SLIDER_FRAME_CLASS} group touch-pan-y bg-[var(--bg-secondary)] ${touchDrag && count > 1 ? 'cursor-grab active:cursor-grabbing' : ''}`}
     onPointerDown={event => {
       if (!touchDrag || count <= 1 || (event.target as Element).closest('button,[data-slider-link-action]') || (event.pointerType === 'mouse' && event.button !== 0)) return;
@@ -111,16 +116,18 @@ export default function ContentSlider({
       {pendingImage ? <div data-slide-loading="true" className="pointer-events-none absolute inset-0 z-[1] animate-pulse bg-[var(--bg-secondary)]/60" aria-hidden="true" /> : null}
       <SliderDestination href={slide.href} className="absolute inset-0 z-10 rounded-3xl focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[var(--accent-primary)]" label={`فتح ${slide.title}`} />
       <SliderLinkActions links={slide} />
-      <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end overflow-hidden px-4 pb-8 text-right text-white sm:px-6 md:pb-10">
+      <div style={hasLinks && iconsPosition === 'left' ? { paddingLeft: 56 } : hasLinks && iconsPosition === 'right' ? { paddingRight: 56 } : undefined}
+        className={`pointer-events-none absolute inset-0 z-10 flex flex-col justify-end overflow-hidden px-4 text-right text-white sm:px-6 ${bottomLinks ? 'pb-14 md:pb-16' : 'pb-8 md:pb-10'}`}>
         <motion.h1 key={`title-${slide.id}`} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-1 line-clamp-1 w-full text-lg font-semibold leading-snug [text-shadow:0_1px_2px_rgba(0,0,0,0.45)] md:mb-1.5 md:text-[24px]">{slide.title}</motion.h1>
       </div>
-      {count > 1 && <div className="absolute bottom-3 left-0 right-0 z-20 flex justify-center gap-1.5 px-4 md:bottom-4">
+      {count > 1 && <div data-slider-dots className={`absolute left-0 right-0 z-20 flex justify-center gap-1.5 px-4 ${bottomLinks ? 'bottom-1.5' : 'bottom-3 md:bottom-4'}`}>
         {dots.map(dot => <button key={slides[dot].id} type="button" onClick={() => setIndex(dot)} aria-label={`الشريحة ${dot + 1} من ${count}`} aria-current={dot === currentIndex ? 'true' : undefined}
           className={`h-1.5 rounded-full transition-all duration-500 ${dot === currentIndex ? 'w-6 bg-[var(--accent-primary)]' : 'w-1.5 bg-white/60 hover:bg-white/90'}`} />)}
       </div>}
     </> : <div className={`absolute inset-0 flex items-center justify-center p-6 text-center text-sm font-bold text-[var(--text-secondary)] ${loading ? 'animate-pulse' : ''}`} role="status">
       {loading ? 'جارٍ تحميل المحتوى…' : 'لا يوجد محتوى موافق عليه حالياً'}
     </div>}
-  </section>;
+    </section>
+  </div>;
 }

@@ -6,8 +6,15 @@ export const SLIDER_SOCIAL_FIELDS = [
   { field: 'tiktok_url', label: 'TikTok' },
   { field: 'twitter_url', label: 'X / Twitter' },
 ] as const;
-export const SLIDER_LINK_FIELDS = ['button_text', 'button_link', ...SLIDER_SOCIAL_FIELDS.map(item => item.field)] as const;
-export type SliderLinks = Partial<Record<(typeof SLIDER_LINK_FIELDS)[number], string | null>>;
+export const SOCIAL_ICON_POSITIONS = ['left', 'right', 'top', 'bottom'] as const;
+export type SocialIconsPosition = (typeof SOCIAL_ICON_POSITIONS)[number];
+export function normalizeSocialIconsPosition(value: unknown): SocialIconsPosition {
+  return SOCIAL_ICON_POSITIONS.includes(value as SocialIconsPosition) ? value as SocialIconsPosition : 'left';
+}
+export const SLIDER_LINK_FIELDS = ['button_text', 'button_link', ...SLIDER_SOCIAL_FIELDS.map(item => item.field), 'social_icons_position'] as const;
+export type SliderLinks = Partial<Record<Exclude<(typeof SLIDER_LINK_FIELDS)[number], 'social_icons_position'>, string | null>> & {
+  social_icons_position?: SocialIconsPosition | null;
+};
 
 /** Slider buttons also support the existing internal route links. */
 export function sanitizeSliderLink(value?: string | null): string | undefined {
@@ -25,5 +32,6 @@ export function buildSliderLinksPayload(links: SliderLinks): SliderLinks {
   for (const { field } of SLIDER_SOCIAL_FIELDS) {
     if (links[field] !== undefined) payload[field] = sanitizeExternalUrl(links[field]) || null;
   }
+  if (links.social_icons_position !== undefined) payload.social_icons_position = normalizeSocialIconsPosition(links.social_icons_position);
   return payload;
 }

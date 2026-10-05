@@ -110,6 +110,7 @@ export default function Home() {
         button_text: ad.button_text, button_link: ad.button_link,
         facebook_url: ad.facebook_url, instagram_url: ad.instagram_url,
         tiktok_url: ad.tiktok_url, twitter_url: ad.twitter_url,
+        social_icons_position: ad.social_icons_position,
       }));
   }, [ads, sliderNow]);
 

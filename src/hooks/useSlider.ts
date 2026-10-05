@@ -5,7 +5,7 @@ import { offlineStore } from '../lib/offlineStore';
 import { APP_ONLINE_EVENT } from '../lib/connectivity';
 import { optimizeImageFile } from '../lib/imageOptimization';
 import { SERVICE_MEDIA_BUCKET, uploadServiceMediaFile, validateServiceMediaFile } from '../lib/serviceMediaStorage';
-import { buildSliderLinksPayload, SLIDER_LINK_FIELDS, type SliderLinks } from '../lib/sliderLinks';
+import { buildSliderLinksPayload, normalizeSocialIconsPosition, SLIDER_LINK_FIELDS, type SliderLinks } from '../lib/sliderLinks';
 
 export type AdPeriod = 'am' | 'pm';
 export type AdStatus = 'active' | 'upcoming' | 'expired' | 'disabled';
@@ -344,6 +344,7 @@ function normalizeAd(row: any): SliderAd {
     sort_order: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : 0,
     subtitle: dv(row.subtitle, overlay.subtitle, DEFAULT_SLIDE_DESIGN.subtitle),
     ...Object.fromEntries(SLIDER_LINK_FIELDS.map(field => [field, row[field] ?? null])),
+    social_icons_position: normalizeSocialIconsPosition(row.social_icons_position),
     duration_seconds: clampDuration(dv(row.duration_seconds, overlay.duration_seconds, DEFAULT_SLIDE_DESIGN.duration_seconds)),
     language: dv(row.language, overlay.language, DEFAULT_SLIDE_DESIGN.language),
     font_family: dv(row.font_family, overlay.font_family, DEFAULT_SLIDE_DESIGN.font_family),
@@ -514,7 +515,7 @@ export function useSlider() {
       const normalized = await adsRead.get(async () => {
       const { data, error } = await supabase
         .from('slider_images')
-        .select('id,url,title,display_date,start_time,end_time,images,is_active,sort_order,created_at,updated_at,button_text,button_link,facebook_url,instagram_url,tiktok_url,twitter_url')
+        .select('id,url,title,display_date,start_time,end_time,images,is_active,sort_order,created_at,updated_at,button_text,button_link,facebook_url,instagram_url,tiktok_url,twitter_url,social_icons_position')
         // الترتيب المحفوظ في Supabase أولاً (sort_order تصاعدي)، ثم الأقدم أولاً
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true });

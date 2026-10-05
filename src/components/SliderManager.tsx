@@ -15,7 +15,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { SafeImage } from './SafeImage';
 import { useToast } from './ToastProvider';
-import { SLIDER_SOCIAL_FIELDS } from '../lib/sliderLinks';
+import { normalizeSocialIconsPosition, SLIDER_SOCIAL_FIELDS, type SocialIconsPosition } from '../lib/sliderLinks';
 import SliderLinkActions from './SliderLinkActions';
 import { compareSliderOrder, getSliderImageUrl } from '../lib/sliderPresentation';
 
@@ -32,6 +32,7 @@ interface SlideDraft {
   instagram_url: string;
   tiktok_url: string;
   twitter_url: string;
+  social_icons_position: SocialIconsPosition;
   duration_seconds: number;
   sort_order: number;
   language: string;
@@ -88,6 +89,7 @@ function draftFromAd(ad: SliderAd): SlideDraft {
     instagram_url: ad.instagram_url || '',
     tiktok_url: ad.tiktok_url || '',
     twitter_url: ad.twitter_url || '',
+    social_icons_position: normalizeSocialIconsPosition(ad.social_icons_position),
     duration_seconds: getSlideDuration(ad),
     sort_order: Number(ad.sort_order) || 1,
     language: ad.language || 'ar',
@@ -118,6 +120,7 @@ function emptyDraft(sortOrder: number): SlideDraft {
     button_text: '',
     button_link: '',
     facebook_url: '', instagram_url: '', tiktok_url: '', twitter_url: '',
+    social_icons_position: 'left',
     duration_seconds: DEFAULT_SLIDE_DURATION_SECONDS,
     sort_order: sortOrder,
     language: 'ar',
@@ -154,6 +157,7 @@ function draftToAd(draft: SlideDraft): SliderAd {
     button_link: draft.button_link,
     facebook_url: draft.facebook_url, instagram_url: draft.instagram_url,
     tiktok_url: draft.tiktok_url, twitter_url: draft.twitter_url,
+    social_icons_position: draft.social_icons_position,
     duration_seconds: draft.duration_seconds,
     sort_order: draft.sort_order,
     language: draft.language,
@@ -252,8 +256,8 @@ function SlideView({ ad }: { ad: SliderAd }) {
             {ad.subtitle}
           </p>
         ) : null}
-        <SliderLinkActions links={ad} inline />
       </div>
+      <SliderLinkActions links={ad} />
       <span className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-[11px] font-bold" dir="rtl">
         <Timer className="w-3.5 h-3.5" /> {getSlideDuration(ad)} ث
       </span>
@@ -465,6 +469,7 @@ export default function SliderManager() {
         button_link: draft.button_link.trim(),
         facebook_url: draft.facebook_url.trim(), instagram_url: draft.instagram_url.trim(),
         tiktok_url: draft.tiktok_url.trim(), twitter_url: draft.twitter_url.trim(),
+        social_icons_position: draft.social_icons_position,
         duration_seconds: draft.duration_seconds,
         language: draft.language,
         font_family: draft.font_family,
@@ -797,6 +802,16 @@ export default function SliderManager() {
 
 
                 <SectionHeader icon={<LinkIcon className="w-5 h-5" />} text="روابط التواصل (اختياري)" />
+                <label className="block space-y-1.5">
+                  <FieldLabel icon={<LinkIcon className="w-4 h-4" />} text="موضع أيقونات التواصل" />
+                  <select aria-label="موضع أيقونات التواصل" className={inputCls} value={draft.social_icons_position}
+                    onChange={event => setField('social_icons_position', normalizeSocialIconsPosition(event.target.value))}>
+                    <option value="left">يسار</option>
+                    <option value="right">يمين</option>
+                    <option value="top">أعلى</option>
+                    <option value="bottom">أسفل</option>
+                  </select>
+                </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {SLIDER_SOCIAL_FIELDS.map(({ field, label }) => <label key={field} className="space-y-1.5">
                     <FieldLabel icon={<LinkIcon className="w-4 h-4" />} text={label} />

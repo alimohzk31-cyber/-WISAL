@@ -15,7 +15,7 @@ function relativeTime(value: string): string {
   if (hours < 24) return `منذ ${hours} ${hours === 1 ? 'ساعة' : 'ساعات'}`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `منذ ${days} ${days === 1 ? 'يوم' : 'أيام'}`;
-  return new Intl.DateTimeFormat('ar-IQ', { day: 'numeric', month: 'short' }).format(date);
+  return new Intl.DateTimeFormat('ar-IQ', { numberingSystem: 'latn', day: 'numeric', month: 'short' }).format(date);
 }
 
 export default function JobCard({ job, saved, onToggleSaved }: {

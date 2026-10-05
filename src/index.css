@@ -667,3 +667,7 @@ html[data-theme] [class~="bg-white"] {
 html[data-theme] [class~="bg-white/95"] {
   background-color: color-mix(in srgb, var(--theme-surface) 95%, transparent) !important;
 }
+/* Leave room to scroll footer actions above the offline notice and system inset. */
+body:has([data-offline-notice]) footer {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}

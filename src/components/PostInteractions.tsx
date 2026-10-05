@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bookmark, Send, Loader2, Trash2, MessageCircle, ThumbsUp, LayoutGrid } from 'lucide-react';
+import { Bookmark, Send, Loader2, Trash2, MessageCircle, ThumbsUp, Layers3 } from 'lucide-react';
 import {
   REACTIONS,
   REACTION_META,
@@ -33,7 +33,7 @@ function formatCommentTime(value?: string | null): string {
   if (min < 60) return `قبل ${min} دقيقة`;
   const hours = Math.floor(min / 60);
   if (hours < 24) return `قبل ${hours} ساعة`;
-  return d.toLocaleDateString('ar', { day: 'numeric', month: 'long' });
+  return d.toLocaleDateString('ar', { day: 'numeric', month: 'long', numberingSystem: 'latn' });
 }
 
 function Avatar({ name, mine }: { name: string; mine: boolean }) {
@@ -246,7 +246,7 @@ export default function PostInteractions({
             title="القسم"
             className="flex shrink-0 items-center gap-1 rounded-xl px-1.5 py-2 text-xs font-bold text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent-soft)] sm:px-3 sm:text-sm"
           >
-            <LayoutGrid className="h-4 w-4" />
+            <Layers3 className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
             <span>القسم</span>
           </button>
         )}

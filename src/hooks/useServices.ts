@@ -620,6 +620,15 @@ export function useServices() {
     return request;
   }, [persistServices]);
 
+  const applyServiceViewCount = useCallback((id: string | number, views: number) => {
+    if (!Number.isSafeInteger(views) || views < 0) return;
+    servicesRevision.current++;
+    const apply = (list: Service[]) => list.map(service => String(service.id) === String(id)
+      ? { ...service, views: Math.max(service.views ?? 0, views) } : service);
+    setServices(apply);
+    void persistServices(apply);
+  }, [persistServices]);
+
   const applyServiceUpdate = useCallback((service: Service) => {
     servicesRevision.current++;
     const apply = (list: Service[]) => list.some(s => String(s.id) === String(service.id))
@@ -951,6 +960,7 @@ export function useServices() {
     addService,
     editService,
     applyServiceUpdate,
+      applyServiceViewCount,
     deleteService,
     refreshServices: fetchServices,
     syncPendingServices,

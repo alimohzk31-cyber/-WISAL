@@ -1,0 +1,662 @@
+[
+  {
+    "slug": "doctors",
+    "name": "الأطباء",
+    "file": "doctors.webp",
+    "source": "../category-photos/doctors.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 5672,
+    "sha256": "0a22525a49ecfb03ddd8c0de20e35c452e966fbb11500cc4dc79de287976aab5"
+  },
+  {
+    "slug": "hospitals",
+    "name": "المستشفيات",
+    "file": "hospitals.webp",
+    "source": "../category-photos/hospitals.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 4756,
+    "sha256": "f54a73209ed0bfeebfbf91d81468bea3cfdf3832db6b947b4aba9baa2cf07aee"
+  },
+  {
+    "slug": "pharmacies",
+    "name": "الصيدليات",
+    "file": "pharmacies.webp",
+    "source": "../category-photos/pharmacies.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7084,
+    "sha256": "d6dad41c6c9b47f6d0cc9f1adb0e8c5b1516d84678bb9cb0886ad0841fc84029"
+  },
+  {
+    "slug": "laboratories",
+    "name": "المختبرات والتحاليل",
+    "file": "laboratories.webp",
+    "source": "https://images.unsplash.com/photo-1721355007794-16b3591c8d8d",
+    "width": 192,
+    "height": 192,
+    "bytes": 6052,
+    "sha256": "a1d297d88b936609726f3f08e3d9bd02ba05feb01aae8015449355df4e0a8ad8"
+  },
+  {
+    "slug": "rehabilitation",
+    "name": "العلاج الطبيعي",
+    "file": "rehabilitation.webp",
+    "source": "https://www.physiotherapie-reinfeld.de/files/content/physiotherapie-01.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 5536,
+    "sha256": "835fef0582638c40c443d72964acd92daa8003a8a74bb52b83e54d5455054b19"
+  },
+  {
+    "slug": "pet-care",
+    "name": "رعاية الحيوانات",
+    "file": "pet-care.webp",
+    "source": "../category-photos/pet-care.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 6070,
+    "sha256": "896774431a33a88755f05c6a4b0365dcb059ad5180c4fdf7c38d5be9b5283336"
+  },
+  {
+    "slug": "education",
+    "name": "الجامعات والتعليم",
+    "file": "education.webp",
+    "source": "../category-photos/education.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7650,
+    "sha256": "620062c5f8ced5ac37e31381a6ee622531e35e28aff38865edcdd2ac5d46f8b1"
+  },
+  {
+    "slug": "employment",
+    "name": "التوظيف والخدمات المهنية",
+    "file": "employment.webp",
+    "source": "../category-photos/employment.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 8096,
+    "sha256": "ac981628261bbcd5c5e36f15c672aa19dee57e7a577d388d1475f2a417444d89"
+  },
+  {
+    "slug": "legal",
+    "name": "الخدمات القانونية",
+    "file": "legal.webp",
+    "source": "../category-photos/legal.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7578,
+    "sha256": "944b77a0230f6bd41d9407cbe511b22ec113c3e9f024019b317ada8764d578f4"
+  },
+  {
+    "slug": "accounting-finance",
+    "name": "المحاسبة والخدمات المالية",
+    "file": "accounting-finance.webp",
+    "source": "https://images.pexels.com/photos/5466785/pexels-photo-5466785.jpeg",
+    "width": 192,
+    "height": 192,
+    "bytes": 7972,
+    "sha256": "d5aa54c6293d5082d2643261fad667950c0c4406a96cdfa4fad89e040320d8a6"
+  },
+  {
+    "slug": "office-services",
+    "name": "المكاتب والخدمات الإدارية",
+    "file": "office-services.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/614b22474fa6a477023f6dac/1747995998427-EK4U4Z7H1BM7BSZHI74Z/unsplash-image-snNHKZ-mGfE.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 8890,
+    "sha256": "e99ad66ed18d183b186000428e760585dd135ed381fb89a2882cd07e99826513"
+  },
+  {
+    "slug": "cars",
+    "name": "السيارات",
+    "file": "cars.webp",
+    "source": "../category-photos/cars.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 5306,
+    "sha256": "4b68ca8aeb2d117f668625c55c79d5470d8ccda97daec9bb3fd3db9aedc10029"
+  },
+  {
+    "slug": "car-sales",
+    "name": "بيع وشراء السيارات",
+    "file": "car-sales.webp",
+    "source": "../category-photos/car-sales.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7622,
+    "sha256": "5140f4f9b8f6809f2ededeab6200ad74ac9ebb8270b0dc7cc8d2ad92c5dbc1c3"
+  },
+  {
+    "slug": "car-rentals",
+    "name": "تأجير سيارات",
+    "file": "car-rentals.webp",
+    "source": "../category-photos/car-rentals.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 5604,
+    "sha256": "784bc5ed9debb9dc7395d0b30d85b8141488863d1afc2f4c06554d65a6745894"
+  },
+  {
+    "slug": "bike-sales",
+    "name": "بيع وشراء الدراجات",
+    "file": "bike-sales.webp",
+    "source": "../category-photos/bike-sales.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 9340,
+    "sha256": "37e01963662dcafa7f01a40b31bb2b694207671f6fc50ff9e976cb842568d0d3"
+  },
+  {
+    "slug": "transport",
+    "name": "النقل والمواصلات",
+    "file": "transport.webp",
+    "source": "../category-photos/transport.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7746,
+    "sha256": "12913779154de5d2fe2a2fed8d0443de165e0bb41dad3f8d4d20d617507763d3"
+  },
+  {
+    "slug": "shipping-delivery",
+    "name": "الشحن والتوصيل",
+    "file": "shipping-delivery.webp",
+    "source": "https://images.unsplash.com/photo-1620455800201-7f00aeef12ed",
+    "width": 192,
+    "height": 192,
+    "bytes": 7912,
+    "sha256": "886b601b4bbabcce23cb2e7210fe0ac308f1f27167cd800a64327902907fca37"
+  },
+  {
+    "slug": "travel-tourism",
+    "name": "السفر والسياحة",
+    "file": "travel-tourism.webp",
+    "source": "../category-photos/travel-tourism.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 10012,
+    "sha256": "f2fce27c226e9e142dc2b825ca2f8e3682972caeb72851d3c7ac8939511fea66"
+  },
+  {
+    "slug": "real-estate",
+    "name": "العقارات",
+    "file": "real-estate.webp",
+    "source": "../category-photos/real-estate.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 5060,
+    "sha256": "9fa13ac11a1323cf2d641d8b49958d615f800bb10fb9f70e4d1539cc5d75de27"
+  },
+  {
+    "slug": "construction",
+    "name": "البناء والإنشاءات",
+    "file": "construction.webp",
+    "source": "../category-photos/construction.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 13376,
+    "sha256": "918f5818cbd61236a85f7340e5dabc1897626a402ebd5210d272f1d1194d070b"
+  },
+  {
+    "slug": "building-materials",
+    "name": "مواد البناء",
+    "file": "building-materials.webp",
+    "source": "https://blog.rootsofprogress.org/img/cement.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 9708,
+    "sha256": "df8d5015ee26bbe541fa47e9809d4bc638e67db510fb2b1ece1000b0b185a2b6"
+  },
+  {
+    "slug": "steel",
+    "name": "الحديد والصلب",
+    "file": "steel.webp",
+    "source": "https://images.unsplash.com/photo-1550041462-7e8602a4c4bc",
+    "width": 192,
+    "height": 192,
+    "bytes": 15480,
+    "sha256": "48fc9df3e5669b25aeaf411465268e481fe0bff7e4b38a60a46e72b71338ecd9"
+  },
+  {
+    "slug": "plumbing",
+    "name": "السباكة والصحيات",
+    "file": "plumbing.webp",
+    "source": "https://pixnio.com/free-images/2017/06/08/2017-06-08-15-00-04.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 8496,
+    "sha256": "2d777ac3d02377dac574776e34b8080b11bfa992789c67f0b4b8d564fd75409c"
+  },
+  {
+    "slug": "electrical",
+    "name": "الكهرباء",
+    "file": "electrical.webp",
+    "source": "../category-photos/electrical.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 6998,
+    "sha256": "f7d220b272d88a3bfe86a5b725ca7a8bb3cdfe3ed9dc1171149b7c356d2a8f04"
+  },
+  {
+    "slug": "cooling",
+    "name": "التبريد والتكييف",
+    "file": "cooling.webp",
+    "source": "https://images.unsplash.com/photo-1653197894814-519398735a13",
+    "width": 192,
+    "height": 192,
+    "bytes": 3828,
+    "sha256": "d24de47d1a506831af2170587d12d77cf1d2a284d6e3806e9e4c0b8364f0c0bf"
+  },
+  {
+    "slug": "solar-energy",
+    "name": "الطاقة الشمسية",
+    "file": "solar-energy.webp",
+    "source": "../category-photos/solar-energy.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7714,
+    "sha256": "3c36b6453d28489ea371749a30ae0d2a180eacb609ec7c6784a1f9b73dc3e60c"
+  },
+  {
+    "slug": "home-services",
+    "name": "الخدمات المنزلية",
+    "file": "home-services.webp",
+    "source": "../category-photos/home-services.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 4954,
+    "sha256": "d561962bfac3a4e0717ea05368052cd9b0b5d7f99a9695d58b6f3b3369088d8a"
+  },
+  {
+    "slug": "home-appliances",
+    "name": "الأجهزة المنزلية",
+    "file": "home-appliances.webp",
+    "source": "../category-photos/home-appliances.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 5306,
+    "sha256": "08d3e58a77606e2945e22f03de575c2c0100378a614a266702b7545bc0613fbc"
+  },
+  {
+    "slug": "furniture",
+    "name": "الأثاث والمفروشات",
+    "file": "furniture.webp",
+    "source": "../category-photos/furniture.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 3180,
+    "sha256": "8605b1be6298761672f11873cde82c2b2f5d3a7f08eb384db01181b4dce3af54"
+  },
+  {
+    "slug": "doors-windows",
+    "name": "الأبواب والشبابيك",
+    "file": "doors-windows.webp",
+    "source": "https://images.unsplash.com/photo-1537366226591-6cea790209d5",
+    "width": 192,
+    "height": 192,
+    "bytes": 6264,
+    "sha256": "9a04a5c4566652613bf85e2bdf61ed58d4b1188687089d0d1178374b7a2079f7"
+  },
+  {
+    "slug": "pvc",
+    "name": "PVC",
+    "file": "pvc.webp",
+    "source": "https://ecohouse-eg.com/pictures/818865/remont.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 7572,
+    "sha256": "7751d6f069a92897a8a6f8d41b2969fc52652a8032312d583f8d4149c00a0ce1"
+  },
+  {
+    "slug": "aluminum-glass",
+    "name": "الألمنيوم والزجاج",
+    "file": "aluminum-glass.webp",
+    "source": "https://edenaluminium.co.za/wp-content/uploads/Workshop8-640x480.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 9988,
+    "sha256": "9116715c7ff712a44923df888711a6d3bc60e0d51dfaf1a665aaa6bfa5e7204d"
+  },
+  {
+    "slug": "painting-decor",
+    "name": "الصبغ والديكور",
+    "file": "painting-decor.webp",
+    "source": "https://www.ambientecolore.com/public/blog/original/attrezzi-per-imbiancare-quali-sono-come-sceglierli-it-000.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 9570,
+    "sha256": "00d900147c59df6cae7c3f3a77ac2d733b363d2de84c89591dee81d51f985ca5"
+  },
+  {
+    "slug": "marble-ceramics",
+    "name": "الرخام والسيراميك",
+    "file": "marble-ceramics.webp",
+    "source": "https://images.unsplash.com/photo-1584354273341-3eb96574e5be",
+    "width": 192,
+    "height": 192,
+    "bytes": 5682,
+    "sha256": "a74c6f7723d94c24e3bb5f21bd62e9d81734a97f3550978a3140e89e3f18da3b"
+  },
+  {
+    "slug": "elevators",
+    "name": "المصاعد",
+    "file": "elevators.webp",
+    "source": "https://blalifts.com.au/Images/Products/passenger-lift.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 4674,
+    "sha256": "d27fa5b5301c5d4d09928d7a334dd05175fdd826ca6d5bfd1858427a552b15d2"
+  },
+  {
+    "slug": "water-treatment",
+    "name": "تنقية ومعالجة المياه",
+    "file": "water-treatment.webp",
+    "source": "https://res-2.cloudinary.com/dypnqejxw/image/upload/q_auto/v1/blog-images/Entkalkungsanlage-Kosten.jpg",
+    "width": 192,
+    "height": 192,
+    "bytes": 4506,
+    "sha256": "83a218db97354ddc7a6162f76776b78647aae64a8121b93736eb865317d9ba12"
+  },
+  {
+    "slug": "gardening",
+    "name": "الحدائق والتشجير",
+    "file": "gardening.webp",
+    "source": "https://images.unsplash.com/photo-1594886551831-610f739902e9",
+    "width": 192,
+    "height": 192,
+    "bytes": 12218,
+    "sha256": "315c77adfcc60e6054c23cceec5dc746a9e898eccb6f770cdc25260a81214497"
+  },
+  {
+    "slug": "equipment-rental",
+    "name": "تأجير المعدات",
+    "file": "equipment-rental.webp",
+    "source": "https://images.unsplash.com/photo-1752342625685-bc342beb248e",
+    "width": 192,
+    "height": 192,
+    "bytes": 8940,
+    "sha256": "d571658d98606f9c290e340318b7d53b0f7b6365fc731d3465f9cce8d4ffd987"
+  },
+  {
+    "slug": "crane-rentals",
+    "name": "تأجير كرينات",
+    "file": "crane-rentals.webp",
+    "source": "https://images.unsplash.com/photo-1723969841586-77e09f0a7aa5",
+    "width": 192,
+    "height": 192,
+    "bytes": 6676,
+    "sha256": "ded7259ed478986980bbf8eb223aadeb86d0304b1bec9a8d49e1f4af947ae3d7"
+  },
+  {
+    "slug": "industrial-services",
+    "name": "الخدمات الصناعية",
+    "file": "industrial-services.webp",
+    "source": "https://images.unsplash.com/photo-1716643863806-989dd76ae093",
+    "width": 192,
+    "height": 192,
+    "bytes": 10186,
+    "sha256": "72c848d4ee7e48a052599815bdacf1fc1e72aeffd55a84826217a80c5f19c627"
+  },
+  {
+    "slug": "computers",
+    "name": "الحاسبات والكمبيوتر",
+    "file": "computers.webp",
+    "source": "../category-photos/computers.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7134,
+    "sha256": "ac829c75ca1b7deeedc416f74a2f2d5e06ef9f005b091e97471ac54e4470694d"
+  },
+  {
+    "slug": "mobile-electronics",
+    "name": "الموبايلات والإلكترونيات",
+    "file": "mobile-electronics.webp",
+    "source": "../category-photos/mobile-electronics.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 9044,
+    "sha256": "740d9a19bb86422050db74c418d60f7674581d768da761620fdb61e74ae8c958"
+  },
+  {
+    "slug": "communications",
+    "name": "الاتصالات والإنترنت",
+    "file": "communications.webp",
+    "source": "https://images.unsplash.com/photo-1768699504864-7c8e99cb3c33",
+    "width": 192,
+    "height": 192,
+    "bytes": 5376,
+    "sha256": "97a38ae754e3d3ea611d61a2456279db5d8cfe7dd49a43837a280761430cd6a8"
+  },
+  {
+    "slug": "network-services",
+    "name": "خدمات الإنترنت التقنية",
+    "file": "network-services.webp",
+    "source": "https://images.unsplash.com/photo-1698668975271-2ba9a323be6b",
+    "width": 192,
+    "height": 192,
+    "bytes": 18216,
+    "sha256": "530bd6acde1c0e447e2187b6f0a191c4ce2dfb2ab23fc9a48b0e7be09ec62869"
+  },
+  {
+    "slug": "digital-services",
+    "name": "البرامج والأنظمة",
+    "file": "digital-services.webp",
+    "source": "https://images.unsplash.com/photo-1760670399462-f5e479452c27",
+    "width": 192,
+    "height": 192,
+    "bytes": 4622,
+    "sha256": "51e6338eb98c6fc725dcc1de455efe5e63ebe557cb1542ec7e408ec6cf8d02d3"
+  },
+  {
+    "slug": "surveillance",
+    "name": "الكاميرات وأنظمة المراقبة",
+    "file": "surveillance.webp",
+    "source": "https://images.unsplash.com/photo-1685380458979-f8208307aab0",
+    "width": 192,
+    "height": 192,
+    "bytes": 5458,
+    "sha256": "dcd4ecd616efaeadbb006efc475bc37f3b19c57e8d948b7b93953a2a9c8aea30"
+  },
+  {
+    "slug": "security-safety",
+    "name": "الأمن والسلامة",
+    "file": "security-safety.webp",
+    "source": "https://images.unsplash.com/photo-1569436078135-61753b84e3e8",
+    "width": 192,
+    "height": 192,
+    "bytes": 4426,
+    "sha256": "98832e2f8ab3937499f0a46712b1b48e2388b684afd3c74c2225551c3f1296ef"
+  },
+  {
+    "slug": "food",
+    "name": "المطاعم والأغذية",
+    "file": "food.webp",
+    "source": "https://images.unsplash.com/photo-1547478267-54ce493dd7d6",
+    "width": 192,
+    "height": 192,
+    "bytes": 5414,
+    "sha256": "bb01830965447c59e41093a80374fdfa7dd83e1b696f2d9afc4b71b7cfa7c8c8"
+  },
+  {
+    "slug": "shopping",
+    "name": "التسوق والملابس",
+    "file": "shopping.webp",
+    "source": "../category-photos/shopping.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 10040,
+    "sha256": "4f1d0b25af07f0f16aa1426c40d37977e92ac7d40e4e504d55a04c05cdbcbe46"
+  },
+  {
+    "slug": "clothes",
+    "name": "محلات الملابس",
+    "file": "clothes.webp",
+    "source": "../category-photos/clothes.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7146,
+    "sha256": "12ceac21e8d6205fa316583c9cafb50e76f4631bae3b4cab23003815ed2a475c"
+  },
+  {
+    "slug": "jewelry",
+    "name": "الذهب والمجوهرات",
+    "file": "jewelry.webp",
+    "source": "../category-photos/jewelry.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 5146,
+    "sha256": "f8721f07ff50a6b546580d12f5d47c395121433ae3e0e7a78448b518455bec16"
+  },
+  {
+    "slug": "shoes-bags",
+    "name": "الأحذية والحقائب",
+    "file": "shoes-bags.webp",
+    "source": "../category-photos/shoes-bags.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 6678,
+    "sha256": "bc9be0006964d850069154e678bcce843ae783e4d5a15524caf6883115557aa3"
+  },
+  {
+    "slug": "tailoring",
+    "name": "الخياطة والتفصيل",
+    "file": "tailoring.webp",
+    "source": "https://images.unsplash.com/photo-1564848534648-558dc1ef55c7",
+    "width": 192,
+    "height": 192,
+    "bytes": 6460,
+    "sha256": "ee26aba9025b923d0cbd03101cfef4831630da24ced9f994cc7d11f5b323ab00"
+  },
+  {
+    "slug": "beauty-care",
+    "name": "التجميل والعناية",
+    "file": "beauty-care.webp",
+    "source": "https://images.unsplash.com/photo-1695527081848-1e46c06e6458",
+    "width": 192,
+    "height": 192,
+    "bytes": 8128,
+    "sha256": "912cb1dfb195cd3810715f45e287107c18801eb4de77360acd8f52617ac8c0d8"
+  },
+  {
+    "slug": "perfumes-cosmetics",
+    "name": "العطور ومستحضرات التجميل",
+    "file": "perfumes-cosmetics.webp",
+    "source": "../category-photos/perfumes-cosmetics.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 5452,
+    "sha256": "abe827dfdc911bdc5aab6cf18766ed14b2e324fa7bd2a34e646138ee4d1144a6"
+  },
+  {
+    "slug": "books-stationery",
+    "name": "المكتبات والقرطاسية",
+    "file": "books-stationery.webp",
+    "source": "../category-photos/books-stationery.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 9780,
+    "sha256": "cb5d35106cf82ed122836681a66757774c23299c8f583279521d74e14da4137a"
+  },
+  {
+    "slug": "printing-services",
+    "name": "خدمات الطباعة",
+    "file": "printing-services.webp",
+    "source": "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6",
+    "width": 192,
+    "height": 192,
+    "bytes": 4412,
+    "sha256": "ead8bef54e83d771869e6980e918843fa7bc2393e000e7c7bf2f05982adec2f7"
+  },
+  {
+    "slug": "marketing",
+    "name": "التسويق والإعلانات",
+    "file": "marketing.webp",
+    "source": "https://images.unsplash.com/photo-1546565260-43b7a3f3a7ed",
+    "width": 192,
+    "height": 192,
+    "bytes": 10072,
+    "sha256": "83195c2791d4cdfe3edf9b4d85cbf191d7c72937fe85c872d36c2fb23c805834"
+  },
+  {
+    "slug": "media-production",
+    "name": "التصوير والإنتاج الإعلامي",
+    "file": "media-production.webp",
+    "source": "../category-photos/media-production.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 8160,
+    "sha256": "adf5a7c81825bd4ad8f2873937f94b7c9bee6f12267f5444e848d47f675d1dc0"
+  },
+  {
+    "slug": "events",
+    "name": "خدمات المناسبات",
+    "file": "events.webp",
+    "source": "../category-photos/events.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 15282,
+    "sha256": "1f4877cdfee76da41a3bea32a7dec4b56dc10853b8726d274984e0c140a2a329"
+  },
+  {
+    "slug": "flowers-gifts",
+    "name": "الزهور والهدايا",
+    "file": "flowers-gifts.webp",
+    "source": "https://images.unsplash.com/photo-1523693916903-027d144a2b7d",
+    "width": 192,
+    "height": 192,
+    "bytes": 9708,
+    "sha256": "b9a6cfdde639c024b750d2250f7911277f68edbbcf3c299b1c121b1cef696aaf"
+  },
+  {
+    "slug": "sports",
+    "name": "الرياضة والترفيه",
+    "file": "sports.webp",
+    "source": "../category-photos/sports.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 7824,
+    "sha256": "e16f9e5479a062c0926e1a7ce01b70fe1b6aceaa97f0320c1bf848a348945051"
+  },
+  {
+    "slug": "games-hobbies",
+    "name": "الألعاب والهوايات",
+    "file": "games-hobbies.webp",
+    "source": "../category-photos/games-hobbies.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 9148,
+    "sha256": "2a09a0a39101c34faf23ac819b8e26dbcdc19156a1307f3124bb958c0a1657b2"
+  },
+  {
+    "slug": "public",
+    "name": "الخدمات العامة",
+    "file": "public.webp",
+    "source": "https://images.unsplash.com/photo-1732723416426-8c3d5a826cb7",
+    "width": 192,
+    "height": 192,
+    "bytes": 6490,
+    "sha256": "03d8f847241eb3c09ff527a9b1def2ae95058b8a52e391cbbcd38e78a3c570f9"
+  },
+  {
+    "slug": "bakeries-ovens-sweets",
+    "name": "الأفران، المخابز والحلويات",
+    "file": "bakeries-ovens-sweets.webp",
+    "source": "../category-photos/food--bakery.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 16366,
+    "sha256": "6a965e5a501962bb4c480e49a06f1f27ac90f85417c312cf6a0905785f6c30dd"
+  },
+  {
+    "slug": "construction-plumbing",
+    "name": "الإنشائيات والصحيات",
+    "file": "construction-plumbing.webp",
+    "source": "../category-photos/plumbing.webp",
+    "width": 192,
+    "height": 192,
+    "bytes": 10590,
+    "sha256": "4fb9935a82894e185f03313f7fbd1210f98a573b94b4fb9c3db157f154403902"
+  }
+]

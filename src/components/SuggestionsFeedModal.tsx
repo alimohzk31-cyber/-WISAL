@@ -58,7 +58,7 @@ function formatRelativeTime(value?: string | null): string {
   if (hours < 24) return `قبل ${hours} ساعة`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `قبل ${days} يوم`;
-  return d.toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric', numberingSystem: 'latn' });
 }
 
 function authorName(ownerId?: string | null): string {

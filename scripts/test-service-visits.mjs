@@ -8,7 +8,7 @@ import { test } from 'node:test';
 
 const source = fs.readFileSync(new URL('../src/hooks/useServiceVisits.ts', import.meta.url), 'utf8');
 let entrySequence = 0;
-function mount({ service, routeId = String(service.id), entryKey = `entry-${++entrySequence}`, rpc, enabled = true }) {
+function mount({ service, routeId = String(service.id), entryKey = `entry-${++entrySequence}`, rpc, enabled = true, online = true }) {
   let effect, cleanup, state, ref;
   const code = ts.transpileModule(source.replace('(import.meta as any).env.VITE_SERVICE_VIEWS_RPC_ENABLED', JSON.stringify(String(enabled))), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -17,6 +17,7 @@ function mount({ service, routeId = String(service.id), entryKey = `entry-${++en
   vm.runInNewContext(code, {
     setTimeout,
     clearTimeout,
+    navigator: { onLine: online },
     exports, console: { warn() {} },
     require(name) {
       if (name === 'react') return {
@@ -29,6 +30,7 @@ function mount({ service, routeId = String(service.id), entryKey = `entry-${++en
         useMatch: () => routeId === null ? null : { params: { serviceId: routeId } },
       };
       if (name === '../lib/supabase') return { supabase: { rpc } };
+      if (name === '../context/ServicesContext') return { useServices: () => ({ applyServiceViewCount() {} }) };
       throw new Error(`Unexpected import: ${name}`);
     },
   });
@@ -91,6 +93,7 @@ test('non-approved services, cards, wrong routes, invalid IDs and disabled RPC n
   for (const options of [
     ...['pending', 'rejected', 'archived', 'deleted'].map(status => ({ service: { ...service, status } })),
     { service, routeId: null }, { service, routeId: '42' }, { service, enabled: false },
+    { service, online: false },
     { service: { ...service, id: undefined } }, { service: { ...service, id: 'slug' } },
   ]) {
     const detail = mount({ ...options, rpc: db.rpc });

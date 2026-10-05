@@ -1,3 +1,4 @@
+import CategoryCardVisual from './CategoryCardVisual';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -124,7 +125,6 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
             {/* النتائج */}
             <div className="max-h-[45vh] overflow-y-auto px-3 pb-4 space-y-1.5">
               {results.map(result => {
-                const CategoryIcon = result.section.icon;
                 return (
                   <button
                     key={result.url}
@@ -132,9 +132,7 @@ export default function SmartSearchModal({ open, onClose }: SmartSearchModalProp
                     onClick={() => go(result.url)}
                     className="group flex w-full items-center gap-3 rounded-2xl border border-transparent bg-[var(--input-bg)] px-4 py-3 text-right hover:border-[var(--accent-primary)]/40 hover:bg-[var(--accent-soft)] transition-all"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent-primary)]">
-                      <CategoryIcon className="h-5 w-5" />
-                    </span>
+                    <CategoryCardVisual slug={result.section.slug} name={result.section.name} size="search" />
                     <span className="min-w-0 flex-1 break-words text-sm font-bold text-[var(--text-primary)]">{result.label}</span>
                     <ArrowLeft className="h-4 w-4 shrink-0 text-[var(--text-secondary)] group-hover:text-[var(--accent-primary)] transition-colors" />
                   </button>

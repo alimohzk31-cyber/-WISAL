@@ -126,7 +126,7 @@ export default function Layout() {
 
 
       {/* Main Content */}
-      <main className="max-w-7xl px-3 py-8 sm:px-4 mx-auto min-h-[calc(100vh-200px)] w-full min-w-0 pb-24">
+      <main className={`max-w-7xl px-3 sm:px-4 mx-auto min-h-[calc(100vh-200px)] w-full min-w-0 pb-24 ${location.pathname === '/' || location.pathname === '/jobs' ? 'pt-[5px]' : 'pt-8'}`}>
         {/* Keep one route outlet in document flow; exiting outlets must not
             reserve space above the newly committed page. */}
         <div key={location.pathname} className="w-full min-w-0 max-w-full">

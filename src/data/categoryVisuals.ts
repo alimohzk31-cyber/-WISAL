@@ -47,7 +47,7 @@ const CHILD_PHOTOS: Record<string, Record<string, string>> = {
 
 const FALLBACK_ICON: LucideIcon = Briefcase;
 const FALLBACK_VISUAL: CategoryVisual = {
-  photoUrl: photoAsset('office-services'),
+  photoUrl: '',
   icon: FALLBACK_ICON,
 };
 
@@ -65,7 +65,10 @@ export const CATEGORY_VISUALS: Record<string, CategoryVisual> = Object.fromEntri
 
 export function getCategoryVisual(sectionSlug: string, childSlug?: string): CategoryVisual {
   const section = CATEGORY_VISUALS[sectionSlug];
-  if (!section) return FALLBACK_VISUAL;
+  if (!section) {
+    const existingPhoto = ({ 'bakeries-ovens-sweets': 'food--bakery', 'construction-plumbing': 'plumbing' } as Record<string, string>)[sectionSlug];
+    return existingPhoto ? { ...FALLBACK_VISUAL, photoUrl: photoAsset(existingPhoto) } : FALLBACK_VISUAL;
+  }
   const childPhoto = childSlug ? CHILD_PHOTOS[sectionSlug]?.[childSlug] : undefined;
   return childPhoto ? { ...section, photoUrl: childPhoto } : section;
 }

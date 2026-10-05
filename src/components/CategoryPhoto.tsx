@@ -9,7 +9,7 @@ interface CategoryPhotoProps {
   eager?: boolean;
 }
 
-/** Loads the category's real photo and falls back to its small category icon on failure. */
+/** Missing or failed photographs stay neutral; category icons are never a fallback. */
 export default function CategoryPhoto({
   visual,
   alt,
@@ -17,14 +17,11 @@ export default function CategoryPhoto({
   objectPosition = 'center 38%',
   eager = false,
 }: CategoryPhotoProps) {
-  const [failed, setFailed] = useState(false);
-  const FallbackIcon = visual.icon;
+  const [failedSource, setFailedSource] = useState<string>();
 
-  if (failed) {
+  if (!visual.photoUrl || failedSource === visual.photoUrl) {
     return (
-      <div role="img" aria-label={alt} className={`flex items-center justify-center bg-[var(--theme-primary-soft)] text-[var(--theme-primary)] ${className}`}>
-        <FallbackIcon className="h-16 w-16" aria-hidden="true" />
-      </div>
+      <div role="img" aria-label={alt} className={`bg-[var(--surface)] ${className}`} />
     );
   }
 
@@ -36,7 +33,7 @@ export default function CategoryPhoto({
       decoding="async"
       fetchPriority={eager ? 'high' : 'auto'}
       referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
+      onError={() => setFailedSource(visual.photoUrl)}
       style={{ objectPosition }}
       className={className}
     />

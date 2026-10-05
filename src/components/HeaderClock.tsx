@@ -38,7 +38,7 @@ function HeaderClock() {
   const hour = now.getHours() % 12 || 12;
   const period = now.getHours() >= 12 ? 'م' : 'ص';
   const date = useMemo(() => new Intl.DateTimeFormat('ar-IQ', {
-    weekday: 'long', day: 'numeric', month: 'long',
+    weekday: 'long', day: 'numeric', month: 'long', numberingSystem: 'latn',
   }).format(now), [now.getDate(), now.getMonth(), now.getFullYear()]);
 
   return (

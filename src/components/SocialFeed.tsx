@@ -1,10 +1,11 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
+import { recordServiceVisit } from '../hooks/useServiceVisits';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Briefcase, Eye, MapPin, MessageCircle, Plus, Phone, ExternalLink, Video, Navigation } from 'lucide-react';
 import { useServices } from '../context/ServicesContext';
 import { useCategories } from '../hooks/useCategories';
 import { useFeedInteractions } from '../hooks/useFeedInteractions';
-import { getServiceIcon } from '../data/serviceIcons';
+import CategoryCardVisual from './CategoryCardVisual';
 import PostInteractions from './PostInteractions';
 import { openServiceCategory } from '../lib/directoryNavigation';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
@@ -35,7 +36,7 @@ function SocialFeed({
 }: SocialFeedProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { publicServices } = useServices();
+  const { publicServices, applyServiceViewCount } = useServices();
   const { categories } = useCategories();
   const { sections, locateService } = useCategoryDirectory(categories, publicServices);
   const { savedIds, toggleSaved } = useSavedServices();
@@ -54,15 +55,22 @@ function SocialFeed({
   // يتحكّم في توسيع بطاقة المنشور في مكانها (المزيد → إخفاء التفاصيل) دون أي انتقال
   // إلى صفحة أخرى ودون إعادة جلب للخدمات.
   const [detailsExpanded, setDetailsExpanded] = useState<Set<string>>(() => new Set());
+  const expandedKeys = useRef(new Set<string>());
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const visibleItems = useMemo(() => feedItems.slice(0, visibleCount), [feedItems, visibleCount]);
 
   const toggleDetailsExpanded = (serviceKey: string) => {
-    setDetailsExpanded(current => {
-      const next = new Set(current);
-      if (next.has(serviceKey)) next.delete(serviceKey);
-      else next.add(serviceKey);
-      return next;
-    });
+    if (expandedKeys.current.has(serviceKey)) expandedKeys.current.delete(serviceKey);
+    else {
+      expandedKeys.current.add(serviceKey);
+      const service = sourceServices.find(item => String(item.id ?? item.slug) === serviceKey);
+      if (service) void recordServiceVisit(service).then(value => {
+        if (value === undefined) return;
+        applyServiceViewCount(serviceKey, value);
+        setViewCounts(current => ({ ...current, [serviceKey]: Math.max(current[serviceKey] ?? 0, value) }));
+      });
+    }
+    setDetailsExpanded(new Set(expandedKeys.current));
   };
 
   const isDetailsExpanded = (serviceKey: string) => detailsExpanded.has(serviceKey);
@@ -87,7 +95,6 @@ function SocialFeed({
         </div>
       ) : (
         visibleItems.map((service) => {
-          const Icon = getServiceIcon(service.categorySlug);
           const placement = locateService(service);
           const section = sections.find(item => item.slug === placement?.sectionSlug);
           const childName = section?.children.find(item => item.slug === placement?.childSlug)?.name;
@@ -100,6 +107,8 @@ function SocialFeed({
           const videoUrl = sanitizeExternalUrl(service.video);
           const phoneUrl = sanitizeTelUrl(service.phone);
           const serviceKey = String(service.id ?? service.slug);
+          const views = viewCounts[serviceKey] === undefined ? service.views
+            : Math.max(service.views ?? 0, viewCounts[serviceKey]);
           const detailsOpen = isDetailsExpanded(serviceKey);
           const description = getBrowseDescriptionPreview(service.experience);
           const coordinates = getServiceCoordinates(service);
@@ -111,12 +120,12 @@ function SocialFeed({
           return (
             <article key={serviceKey} className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)]">
               <div className="flex min-w-0 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-3.5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--theme-primary)] bg-white">
-                  <Icon className="h-5 w-5 text-[var(--theme-primary)]" />
-                </div>
+                <button type="button" className="shrink-0 rounded-full" onClick={() => openServiceCategory(navigate, location, service, placement)} aria-label={categoryName}>
+                  <CategoryCardVisual slug={placement?.sectionSlug ?? service.categorySlug} childSlug={placement?.childSlug} name={categoryName} size="compact" />
+                </button>
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-2">
-                    <p className="truncate text-xs font-bold text-[var(--text-secondary)]">{categoryName}</p>
+                    <button type="button" onClick={() => openServiceCategory(navigate, location, service, placement)} className="truncate text-xs font-bold text-[var(--text-secondary)]">{categoryName}</button>
                     {service.status === 'pending' && (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
                         قيد المراجعة
@@ -127,10 +136,10 @@ function SocialFeed({
                 <span className="flex shrink-0 items-center gap-2">
                   <span
                     className="flex items-center gap-1 text-xs font-bold text-[var(--text-muted)]"
-                    aria-label={service.views === undefined ? 'عدد الزيارات غير متاح' : `${service.views} زيارة`}
+                    aria-label={views === undefined ? 'عدد الزيارات غير متاح' : `${views} زيارة`}
                   >
                     <Eye className="h-3.5 w-3.5" />
-                    {service.views === undefined ? '—' : service.views.toLocaleString('ar-IQ')}
+                    {views === undefined ? '—' : <bdi>{views.toLocaleString('en-US')}</bdi>}
                   </span>
                   <ServicePublicationTime service={service} className="text-xs text-[var(--text-muted)]" />
                 </span>

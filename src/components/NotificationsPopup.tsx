@@ -105,7 +105,7 @@ export default function NotificationsPopup({
               <p className="mt-2 break-words whitespace-pre-wrap text-sm text-[var(--theme-muted)]">{notification.message}</p>
               <time dateTime={notification.published_at!} className="mt-3 flex items-center gap-1 text-xs text-[var(--theme-muted)]">
                 <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
-                {new Date(notification.published_at!).toLocaleString('ar-IQ')}
+                {new Date(notification.published_at!).toLocaleString('ar-IQ', { numberingSystem: 'latn' })}
               </time>
             </article>
           ))}

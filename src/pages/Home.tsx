@@ -1,8 +1,8 @@
 import { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
-import { Search, Mic, MicOff, Loader2 } from 'lucide-react';
+import { Search, Mic, MicOff, Loader2, Layers3, BriefcaseBusiness } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { colorMapRedWhite } from '../data/categories';
+import CategoryCardVisual from '../components/CategoryCardVisual';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryDirectory } from '../hooks/useCategoryDirectory';
 import { useServices } from '../context/ServicesContext';
@@ -237,11 +237,13 @@ export default function Home() {
           </button>
         </form>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
-          <p aria-live="polite" aria-atomic="true" className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 font-bold">
-            الأقسام: {sections.length.toLocaleString('ar-IQ')} <span className="mx-2" aria-hidden="true">|</span>
+          <p aria-live="polite" aria-atomic="true" className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-bold tabular-nums">
+            <span className="inline-flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent-primary)]"><Layers3 className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" /></span>الأقسام: <bdi>{sections.length.toLocaleString('en-US')}</bdi></span>
+            <span className="inline-flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent-primary)]"><BriefcaseBusiness className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" /></span>
             {servicesLoading && publicServices.length === 0 && !servicesError
               ? <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ تحميل الخدمات…</span>
-              : <>الخدمات: {publicServices.length.toLocaleString('ar-IQ')}</>}
+              : <>الخدمات: <bdi>{publicServices.length.toLocaleString('en-US')}</bdi></>}
+            </span>
           </p>
         </div>
         {servicesError && publicServices.length === 0 && <ErrorState onRetry={() => { void refreshServices(); }} />}
@@ -279,7 +281,7 @@ export default function Home() {
       </div>
 
       <div className="mx-auto w-full min-w-0 max-w-2xl">
-        <ContentSlider slides={contentSlides} loading={sliderLoading} label="الخدمات المعتمدة" testId="services-slider" imageFit="contain" />
+        <ContentSlider slides={contentSlides} loading={sliderLoading} label="الخدمات المعتمدة" testId="services-slider" />
       </div>
 
       {/* Primary navigation: three destinations below the slider — التصفح | الخدمات | البحث عن وظيفة */}
@@ -299,9 +301,6 @@ export default function Home() {
       {/* Categories Grid */}
       <div className="grid min-w-0 grid-cols-2 gap-3 pt-4 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {filteredCategories.map((cat) => {
-          // Each main field uses its directory icon, including React forward refs.
-          const Icon = cat.icon;
-          const colors = colorMapRedWhite[cat.color] || colorMapRedWhite['green'];
           const categoryServices = bySection.get(cat.slug) ?? [];
           
           return (
@@ -311,10 +310,7 @@ export default function Home() {
               state={directoryEntryState(location)}
               className={`group relative z-10 flex min-w-0 flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] sm:gap-4 sm:p-6`}
             >
-              {/* Icon frame: white background + red border + red icon (no neon / no glow) */}
-              <div className="w-14 h-14 rounded-full bg-[var(--theme-surface)] border-2 border-[var(--theme-primary)] shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                {Icon && typeof Icon !== 'string' && <Icon className={`w-7 h-7 ${colors.text}`} />}
-              </div>
+              <CategoryCardVisual slug={cat.slug} name={cat.name} />
               <div className="text-center">
                 <span className="block break-words font-bold text-[var(--text-primary)]">{cat.name}</span>
                 {cat.children.length > 0 && <span className="text-xs mt-1 block text-[var(--text-muted)]">{cat.children.length} أقسام فرعية</span>}

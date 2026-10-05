@@ -41,7 +41,7 @@ export default function JobsPage() {
   const visibleJobs = showAll || debouncedQuery || employmentType ? filtered : filtered.slice(0, 6);
   const hasFilter = Boolean(debouncedQuery || employmentType);
 
-  return <main className="-mx-3 -my-8 min-h-screen min-w-0 max-w-none bg-[var(--theme-background)] px-3 pb-16 pt-3 text-[var(--theme-text)] sm:-mx-4 sm:px-6 sm:pt-6 lg:px-8" dir="rtl">
+  return <main className="-mx-3 -mb-8 min-h-screen min-w-0 max-w-none bg-[var(--theme-background)] px-3 pb-16 text-[var(--theme-text)] sm:-mx-4 sm:px-6 lg:px-8" dir="rtl">
     <div className="mx-auto w-full min-w-0 max-w-6xl space-y-5 sm:space-y-7">
     <JobsSlider settings={presentation.settings} jobs={jobs} loading={loading} />
     <DirectoryNav activeView="jobs" />

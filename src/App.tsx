@@ -6,6 +6,7 @@
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Network } from '@capacitor/network';
+import { WifiOff } from 'lucide-react';
 import Layout from './components/Layout';
 import ToastProvider from './components/ToastProvider';
 import AdminRoute from './components/AdminRoute';
@@ -86,8 +87,11 @@ function ConnectivityNotice() {
 
   if (status !== 'offline') return null;
   return (
-    <div role="status" aria-live="polite" className="fixed inset-x-0 top-0 z-[400] bg-red-600 px-4 py-2 text-center text-sm font-bold text-white shadow-md">
-      أنت غير متصل بالإنترنت
+      <div role="status" aria-live="polite" data-offline-notice className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] z-[45] flex justify-center px-4">
+        <div className="flex max-w-full items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-center text-xs font-bold text-red-700 shadow-lg sm:text-sm" dir="rtl">
+          <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
+          أنت غير متصل بالإنترنت
+        </div>
     </div>
   );
 }

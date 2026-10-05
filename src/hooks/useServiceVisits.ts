@@ -2,9 +2,25 @@ import { useEffect, useState } from 'react';
 import { useLocation, useMatch } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Service } from './useServices';
+import { useServices } from '../context/ServicesContext';
 
-// Enable only after the proposed RPC has been reviewed and installed manually.
 const rpcEnabled = (import.meta as any).env.VITE_SERVICE_VIEWS_RPC_ENABLED === 'true';
+
+export async function recordServiceVisit(service: Service): Promise<number | undefined> {
+  const id = Number(service.id);
+  if (!rpcEnabled || service.status !== 'approved' || !Number.isSafeInteger(id) || id <= 0
+    || (typeof navigator !== 'undefined' && navigator.onLine === false)) return undefined;
+  try {
+    const { data, error } = await supabase.rpc('increment_service_views', { p_service_id: id });
+    if (error) throw error;
+    const value = data == null ? NaN : Number(data);
+    return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+  } catch (error) {
+    // Never retry an ambiguous write: the server may have committed it already.
+    console.warn('[service visits] Could not record visit:', error);
+    return undefined;
+  }
+}
 
 interface VisitRequest {
   promise: Promise<number | undefined>;
@@ -17,6 +33,7 @@ interface VisitRequest {
 const activeVisitRequests = new Map<string, VisitRequest>();
 
 export function useServiceVisits(service: Service) {
+  const { applyServiceViewCount } = useServices();
   const id = String(service.id ?? '');
   const location = useLocation();
   const detailRoute = useMatch('/service/:serviceId');
@@ -28,18 +45,10 @@ export function useServiceVisits(service: Service) {
     const visitKey = `${location.key}:${id}`;
     let shared = activeVisitRequests.get(visitKey);
     if (!shared) {
-      shared = { consumers: 0, promise: (async () => {
-        try {
-          const { data, error } = await supabase.rpc('increment_service_views', { p_service_id: Number(id) });
-          if (error) throw error;
-          const value = data == null ? NaN : Number(data);
-          return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
-        } catch (error) {
-          // Do not retry: a lost response may still have committed the visit.
-          console.warn('[service visits] Could not record visit:', error);
-          return undefined;
-        }
-      })() };
+      shared = { consumers: 0, promise: recordServiceVisit(service).then(value => {
+        if (value !== undefined) applyServiceViewCount(id, value);
+        return value;
+      }) };
       activeVisitRequests.set(visitKey, shared);
     }
     if (shared.disposeTimer) clearTimeout(shared.disposeTimer);
@@ -58,7 +67,7 @@ export function useServiceVisits(service: Service) {
         }, 0);
       }
     };
-  }, [id, service.status, isServicePage, location.key]);
+  }, [id, service.status, isServicePage, location.key, applyServiceViewCount]);
 
   const value = count?.id === id ? count.value : service.views;
   return value != null && Number.isSafeInteger(value) && value >= 0 ? value : undefined;

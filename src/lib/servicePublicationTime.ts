@@ -40,7 +40,7 @@ export function formatServiceRelativeTime(timestamp: number, now = Date.now()): 
   if (days <= 10) return `منذ ${days} أيام`;
   if (days < 30) return `منذ ${days} يومًا`;
 
-  return new Intl.DateTimeFormat('ar-IQ', {
+  return new Intl.DateTimeFormat('ar-IQ', { numberingSystem: 'latn',
     day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Baghdad',
   }).format(new Date(timestamp));
 }

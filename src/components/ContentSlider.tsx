@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactEventHandler } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  BROWSE_SLIDER_BACKDROP_CLASS, BROWSE_SLIDER_CONTAIN_CLASS, BROWSE_SLIDER_FRAME_CLASS,
+  BROWSE_SLIDER_FRAME_CLASS,
   BROWSE_SLIDER_IMAGE_CLASS, getSliderSwipeAction,
 } from '../data/slideStyles';
 import { usePageVisible } from '../hooks/usePageVisible';
@@ -19,17 +19,12 @@ interface ContentSliderProps {
   durationSeconds?: number;
   loop?: boolean;
   touchDrag?: boolean;
-  /**
-   * 'cover'   = تعبئة الإطار كاملاً (السلوك الحالي لسلايدر التصفح).
-   * 'contain' = الصورة كاملة بدون قص، فوق طبقة خلفية مموّهة تملأ الفراغات.
-   */
-  imageFit?: 'cover' | 'contain';
 }
 
 // Shared presentation and gestures only. Each page supplies its own approved content.
 export default function ContentSlider({
   slides, label, testId, loading = false, autoplay = true, durationSeconds = 5,
-  loop = true, touchDrag = true, imageFit = 'cover',
+  loop = true, touchDrag = true,
 }: ContentSliderProps) {
   const visible = usePageVisible();
   const [index, setIndex] = useState(0);
@@ -108,21 +103,12 @@ export default function ContentSlider({
         <motion.div key={slide.id} data-slide-id={slide.id} data-slider-id={slide.sliderId} data-slider-image-url={slide.sliderId != null ? rawSrc : undefined}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}
           className="absolute inset-0">
-          {imageFit === 'contain' ? <>
-            {/* طبقة خلفية: نفس الصورة بـ cover + blur خفيف لملء الفراغات فقط. */}
-            <img src={src} alt="" aria-hidden="true" draggable={false} decoding="async"
-              data-slide-layer="backdrop" className={BROWSE_SLIDER_BACKDROP_CLASS} />
-            {/* الصورة الأصلية كاملة بدون قص — أكبر مساحة ممكنة داخل السلايدر. */}
-            <img src={src} alt={slide.title} onError={handleImageError} draggable={false} decoding="async"
-              loading="eager" fetchPriority={currentIndex === 0 ? 'high' : 'auto'}
-              data-slide-layer="foreground" className={BROWSE_SLIDER_CONTAIN_CLASS} />
-          </> : <img src={src} alt={slide.title} onError={handleImageError} draggable={false} decoding="async"
+          <img src={src} alt={slide.title} onError={handleImageError} draggable={false} decoding="async"
             loading="eager" fetchPriority={currentIndex === 0 ? 'high' : 'auto'}
-            data-slide-layer="foreground" className={BROWSE_SLIDER_IMAGE_CLASS} />}
+            data-slide-layer="foreground" className={BROWSE_SLIDER_IMAGE_CLASS} />
         </motion.div>
       </AnimatePresence>
       {pendingImage ? <div data-slide-loading="true" className="pointer-events-none absolute inset-0 z-[1] animate-pulse bg-[var(--bg-secondary)]/60" aria-hidden="true" /> : null}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent" aria-hidden="true" />
       <SliderDestination href={slide.href} className="absolute inset-0 z-10 rounded-3xl focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[var(--accent-primary)]" label={`فتح ${slide.title}`} />
       <SliderLinkActions links={slide} />
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-end overflow-hidden px-4 pb-8 text-right text-white sm:px-6 md:pb-10">

@@ -10,6 +10,7 @@ interface ServicesContextType {
   addService: (serviceData: Omit<Service, 'createdAt'>) => Promise<Service | undefined>;
   editService: (identifier: string | number, updatedData: Partial<Service>) => Promise<void>;
   applyServiceUpdate: (service: Service) => void;
+  applyServiceViewCount: (id: string | number, views: number) => void;
   deleteService: (identifier: string | number) => Promise<void>;
   refreshServices: () => Promise<void>;
   fetchAllPendingServices: () => Promise<Service[]>;

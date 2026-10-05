@@ -22,7 +22,7 @@ export default function ServicePublicationTime({
   return (
     <time
       dateTime={new Date(timestamp).toISOString()}
-      title={new Intl.DateTimeFormat('ar-IQ', {
+      title={new Intl.DateTimeFormat('ar-IQ', { numberingSystem: 'latn',
         dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Baghdad',
       }).format(new Date(timestamp))}
       className={`flex items-center gap-1 ${className}`}

@@ -25,7 +25,7 @@ const meta: Record<SocialPlatform, { label: string; field: keyof SocialContactVa
   tiktok: { label: 'TikTok', field: 'tiktokUrl', color: 'bg-black text-white', glyph: '♪', placeholder: 'https://tiktok.com/@account', type: 'url' },
 };
 
-export function SocialContactFields({ values, onChange }: { values: SocialContactValues; onChange: (field: keyof SocialContactValues, value: string) => void }) {
+export function SocialContactFields({ values, onChange, compact = false }: { values: SocialContactValues; onChange: (field: keyof SocialContactValues, value: string) => void; compact?: boolean }) {
   const [open, setOpen] = useState<SocialPlatform[]>(() => SOCIAL_PLATFORMS.filter(platform => Boolean(values[meta[platform].field])));
   return (
     <div className="space-y-2">
@@ -33,7 +33,7 @@ export function SocialContactFields({ values, onChange }: { values: SocialContac
         {SOCIAL_PLATFORMS.map(platform => {
           const item = meta[platform];
           const active = open.includes(platform);
-          return <button key={platform} type="button" title={item.label} aria-label={`إضافة ${item.label}`} aria-pressed={active} onClick={() => setOpen(current => active ? current.filter(value => value !== platform) : [...current, platform])} className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black shadow-sm transition-transform hover:scale-105 ${item.color} ${active ? 'ring-2 ring-[var(--accent-primary)] ring-offset-2 ring-offset-[var(--surface-elevated)]' : 'opacity-80'}`}>{item.glyph}</button>;
+          return <button key={platform} type="button" title={item.label} aria-label={`إضافة ${item.label}`} aria-pressed={active} onClick={() => setOpen(current => active ? current.filter(value => value !== platform) : [...current, platform])} className={`flex shrink-0 items-center justify-center rounded-full font-black shadow-sm transition-transform hover:scale-105 ${compact ? 'h-8 w-8 text-xs' : 'h-9 w-9 text-sm'} ${item.color} ${active ? 'ring-2 ring-[var(--accent-primary)] ring-offset-2 ring-offset-[var(--surface-elevated)]' : 'opacity-80'}`}>{item.glyph}</button>;
         })}
         <span className="min-w-0 flex-1 break-words text-xs font-bold text-[var(--text-muted)]">اختياري — اضغط لإظهار الحقل</span>
       </div>

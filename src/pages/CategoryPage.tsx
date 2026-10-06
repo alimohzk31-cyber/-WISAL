@@ -385,7 +385,7 @@ export default function CategoryPage() {
 
       {isAddingService && (
         <Suspense fallback={(
-          <ServiceModalShell title="إضافة خدمة" icon={<Plus className="h-5 w-5" />} onClose={() => setIsAddingService(false)}>
+          <ServiceModalShell title="أضف خدمتك وكن مع وصال" centerTitle icon={null} onClose={() => setIsAddingService(false)}>
             <div role="status" className="flex min-h-48 items-center justify-center gap-3 text-sm font-bold text-[var(--text-muted)]">
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
               جاري فتح واجهة الإضافة…

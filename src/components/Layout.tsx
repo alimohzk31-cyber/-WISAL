@@ -1,19 +1,15 @@
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import wisalHeaderLogo from '../assets/wisal-header-logo.png';
-import { lazy, Suspense, useState, useEffect, useRef } from 'react';
-const AdminLoginModal = lazy(() => import('./AdminLoginModal'));
+import { useState, useEffect, useRef } from 'react';
 import { useStats } from '../hooks/useStats';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme, getPrimaryColor } from '../context/ThemeContext';
 import HeaderClock from './HeaderClock';
 import MainMenuController from './MainMenuController';
-import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
   const { theme } = useTheme();
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminClickCount, setAdminClickCount] = useState(0);
   const [isDesktop, setIsDesktop] = useState<boolean>(
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
   );
@@ -25,40 +21,9 @@ export default function Layout() {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
-  // فحص توفر تحديث مرة واحدة عند تحميل التطبيق (يُربط لاحقًا بمصدر خارجي
-  const { beginAdminPinAttempt } = useAuth();
-  const adminClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  const handleAdminClick = () => {
-    if (adminClickTimerRef.current) {
-      clearTimeout(adminClickTimerRef.current);
-    }
-
-    const newCount = adminClickCount + 1;
-    if (newCount === 5) {
-      beginAdminPinAttempt();
-      setShowAdminLogin(true);
-      setAdminClickCount(0);
-    } else {
-      setAdminClickCount(newCount);
-      // Five taps must be consecutive; a pause starts a fresh sequence.
-      adminClickTimerRef.current = setTimeout(() => {
-        setAdminClickCount(0);
-        adminClickTimerRef.current = null;
-      }, 2000);
-    }
-  };
-
-  useEffect(() => () => {
-    if (adminClickTimerRef.current) {
-      clearTimeout(adminClickTimerRef.current);
-    }
-  }, []);
-
   const { t, isRTL } = useLanguage();
   const primaryColor = getPrimaryColor(theme);
   
-  const navigate = useNavigate();
   const location = useLocation();
   const { incrementVisits } = useStats(false);
   const lastVisitPath = useRef<string | null>(null);
@@ -75,13 +40,11 @@ export default function Layout() {
       <header className="sticky top-0 z-40 w-full min-w-0 max-w-full backdrop-blur-md border-b bg-[var(--header-bg)] border-[var(--border-color)]">
         <div className="relative mx-auto flex h-20 w-full min-w-0 max-w-7xl items-center justify-between px-3 sm:px-4">
           
-          {/* Right: desktop-only admin access */}
+          {/* Original WISAL image: its appearance and position remain unchanged. */}
           <div className="flex min-w-0 items-center gap-2">
             {isDesktop ? (
-              // سطح المكتب: صورة وصال — 5 ضغطات متتالية تفتح AdminLoginModal (نفس المنطق الحالي)
               <button
                 type="button"
-                onClick={handleAdminClick}
                 className="flex aspect-square h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl"
               >
                 <img
@@ -96,7 +59,6 @@ export default function Layout() {
               /* الهاتف والأجهزة الصغيرة: شعار شفاف نظيف منفصل عن أي خلفية — بلا أي حدث أو منطق إدارة */
               <button
                 type="button"
-                onClick={handleAdminClick}
                 className="flex aspect-square h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl"
               >
                 <img
@@ -168,17 +130,6 @@ export default function Layout() {
         </div>
       </footer>
 
-      <Suspense fallback={null}>
-        {showAdminLogin && (
-          <AdminLoginModal
-            onClose={() => setShowAdminLogin(false)}
-            onSuccess={() => {
-              setShowAdminLogin(false);
-              navigate('/admin');
-            }}
-          />
-        )}
-      </Suspense>
     </div>
   );
 }

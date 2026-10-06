@@ -7,9 +7,10 @@ interface Props {
   onClose: () => void;
   children: React.ReactNode;
   wrapTitle?: boolean;
+  centerTitle?: boolean;
 }
 
-export default function ServiceModalShell({ title, icon, onClose, children, wrapTitle = false }: Props) {
+export default function ServiceModalShell({ title, icon, onClose, children, wrapTitle = false, centerTitle = false }: Props) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -36,15 +37,15 @@ export default function ServiceModalShell({ title, icon, onClose, children, wrap
       }}
     >
       <div className="flex w-full min-w-0 max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[min(760px,calc(100dvh-2rem))]">
-        <div className="z-10 flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 sm:px-4">
-          <h2 id="service-modal-title" className="flex min-w-0 items-center gap-2 text-base font-bold text-[var(--text-primary)] sm:text-lg">
+        <div className="relative z-10 flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 sm:px-4">
+          <h2 id="service-modal-title" className={centerTitle ? 'flex min-h-11 w-full min-w-0 items-center justify-center px-11 text-center text-sm font-bold text-[var(--text-primary)] sm:text-base' : 'flex min-w-0 items-center gap-2 text-base font-bold text-[var(--text-primary)] sm:text-lg'}>
             {icon}
             <span className={wrapTitle ? 'min-w-0 whitespace-normal break-words leading-relaxed' : 'truncate'}>{title}</span>
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition-all hover:bg-red-500/10 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition-all hover:bg-red-500/10 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] ${centerTitle ? 'absolute left-3 top-1/2 -translate-y-1/2 sm:left-4' : ''}`}
             aria-label="إغلاق بدون حفظ"
             title="إغلاق بدون حفظ"
           >

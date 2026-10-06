@@ -91,12 +91,18 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
   const [registrationDetails, setRegistrationDetails] = useState<Record<string, string>>({});
   const [registrationImages, setRegistrationImages] = useState<string[]>([]);
   const [registrationAttachment, setRegistrationAttachment] = useState<ServiceRegistrationAttachment>();
-  const [registrationError, setRegistrationError] = useState('');
+  const [validationAttempted, setValidationAttempted] = useState(false);
   const [imagesBusy, setImagesBusy] = useState(false);
   const [attachmentBusy, setAttachmentBusy] = useState(false);
   const missingRequiredFields = getMissingServiceFields({ registration, registrationDetails, registrationImages, name: formData.name, phone: formData.phone, categorySelected: Boolean(selectedCategory), profession: formData.profession, experience: formData.experience, location: formData.location });
-  const missingFieldsMessage = missingRequiredFields.length ? '\u0623\u0643\u0645\u0644 \u0627\u0644\u062d\u0642\u0648\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629: ' + missingRequiredFields.join('\u060c ') : '';
-  React.useEffect(() => { if (!missingRequiredFields.length) setRegistrationError(''); }, [missingRequiredFields.join('|')]);
+  const hasFieldError = (label: string) => validationAttempted && missingRequiredFields.includes(label);
+  const fieldFeedback = (label: string, id: string) => ({
+    'aria-invalid': hasFieldError(label),
+    'aria-describedby': hasFieldError(label) ? id : undefined,
+    style: hasFieldError(label) ? { borderColor: 'rgb(248 113 113 / 0.65)' } : undefined,
+  });
+  const requiredError = (label: string, id: string) => hasFieldError(label)
+    ? <p id={id} className="text-[11px] font-medium text-red-500">هذا الحقل مطلوب</p> : null;
 
     // Sync categorySlug if categories load after modal opens
   React.useEffect(() => {
@@ -165,6 +171,13 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationAttempted(true);
+    if (missingRequiredFields.length) return;
+    // Keep native format/minimum validation; required-field feedback is rendered inline.
+    if (!(e.currentTarget as HTMLFormElement).checkValidity()) {
+      (e.currentTarget as HTMLFormElement).reportValidity();
+      return;
+    }
 
     const invalidSocial = invalidSocialContact(formData);
     if (invalidSocial) {
@@ -174,8 +187,6 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
 
     if (registrationPreview) {
       if (!registration || imagesBusy || attachmentBusy) return;
-      if (missingRequiredFields.length) { setRegistrationError(missingFieldsMessage); return; }
-      setRegistrationError('');
       registrationPreview.onSubmit({
         name: formData.name.trim(), phone: formData.phone.trim(),
         whatsappPhone: formData.whatsappPhone.trim() || undefined,
@@ -190,7 +201,6 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
       return;
     }
 
-    if (missingRequiredFields.length) { setRegistrationError(missingFieldsMessage); return; }
 
     if (!selectedCategory) {
       alert(joinSection ? 'تعذر تجهيز الانضمام إلى هذا القسم حاليًا. أغلق النافذة وحاول مجددًا بعد تحميل الأقسام.' : 'يرجى اختيار قسم صالح قبل إرسال الخدمة.');
@@ -280,12 +290,12 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
 
   return (
     <ServiceModalShell
-      title={joinSection ? `انضم إلى قسم ${joinSection.name} وكن واحدًا من مقدمي خدماته في وصال` : t('add_new_service')}
-      wrapTitle={Boolean(joinSection)}
-      icon={<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-primary)]"><Upload className="h-4 w-4" /></div>}
+      title="أضف خدمتك وكن مع وصال"
+      centerTitle
+      icon={null}
       onClose={onClose}
     >
-        <form onSubmit={handleSubmit} className="min-h-0 min-w-0 space-y-4 overflow-y-auto overscroll-contain p-4 sm:space-y-5 sm:p-5">
+        <form noValidate onSubmit={handleSubmit} className="min-h-0 min-w-0 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4 [&_label]:gap-1.5 [&_label]:text-xs [&_label_svg]:h-3.5 [&_label_svg]:w-3.5 [&_label_svg]:opacity-65 [&_input:not([type=file])]:py-2.5 [&_input]:text-sm [&_select]:py-2.5 [&_select]:text-sm [&_textarea]:py-2.5 [&_textarea]:text-sm">
           {registration && <p className="rounded-xl bg-[var(--accent-soft)] p-3 text-xs leading-6 text-[var(--text-primary)]">معاينة النموذج الجديد — الإرسال الفعلي ينتظر اعتماد التخزين. الحقول المعلّمة بـ * مطلوبة.</p>}
           {/* Category */}
           {!joinSection && <div className="space-y-1.5">
@@ -294,6 +304,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
             </label>
             <select
               id="service-category"
+              {...fieldFeedback('القسم', 'service-category-error')}
               value={formData.categorySlug}
               onChange={(e) => setFormData({ ...formData, categorySlug: e.target.value })}
               className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--focus-ring)] transition-all appearance-none font-bold bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)]`}
@@ -303,6 +314,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                 <option key={cat.slug} value={cat.slug}>{cat.name}</option>
               ))}
             </select>
+            {requiredError('القسم', 'service-category-error')}
           </div>}
 
           {joinSection && !selectedCategory && !registration && (
@@ -318,6 +330,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
             </label>
             <input
               id="service-name"
+              {...fieldFeedback(registration ? 'اسم الجهة' : 'اسم الخدمة', 'service-name-error')}
               required
               type="text"
               value={formData.name}
@@ -325,9 +338,10 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
               className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--focus-ring)] transition-all font-bold bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)]`}
               placeholder={fieldConfig.namePlaceholder || t('service_name_placeholder')}
             />
+            {requiredError(registration ? 'اسم الجهة' : 'اسم الخدمة', 'service-name-error')}
           </div>
 
-          {registration && <ServiceRegistrationFields config={registration} values={registrationDetails} onChange={setRegistrationDetails} attachment={registrationAttachment} onAttachment={setRegistrationAttachment} onBusy={setAttachmentBusy} />}
+          {registration && <ServiceRegistrationFields config={registration} values={registrationDetails} onChange={setRegistrationDetails} attachment={registrationAttachment} onAttachment={setRegistrationAttachment} onBusy={setAttachmentBusy} missingFields={validationAttempted ? missingRequiredFields : []} />}
 
           {!registration && <>
                     {/* Profession / التخصص — يصبح ديناميكياً حسب القسم */}
@@ -339,6 +353,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
               // إذا كان للقسم تخصصات محددة: قائمة اختيار مع خيار "أخرى" يفتح حقل نص
               <>
                 <select
+                  {...fieldFeedback('التخصص أو نوع الخدمة', 'service-profession-error')}
                   required
                   aria-label={fieldConfig.professionLabel || 'التخصص / نوع الخدمة'}
                   value={professionSelectMode === 'custom' ? '__custom__' : formData.profession}
@@ -362,6 +377,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                 </select>
                 {allowCustomSpecialty && professionSelectMode === 'custom' && (
                   <input
+                    {...fieldFeedback('التخصص أو نوع الخدمة', 'service-profession-error')}
                     required
                     aria-label="تخصص آخر"
                     type="text"
@@ -375,6 +391,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
             ) : (
               // بدون تخصصات محددة: حقل نص حر (سلوك النظام القديم)
               <input
+                {...fieldFeedback('التخصص أو نوع الخدمة', 'service-profession-error')}
                 required
                 type="text"
                 value={formData.profession}
@@ -383,6 +400,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                 placeholder={t('profession_placeholder')}
               />
             )}
+            {requiredError('التخصص أو نوع الخدمة', 'service-profession-error')}
           </div>
 
 
@@ -392,12 +410,14 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
               <Clock className="w-4 h-4" /> {fieldConfig.experienceLabel || 'نبذة عن الخدمة والخبرات'}
             </label>
             <textarea
+              {...fieldFeedback('الخبرة أو الوصف', 'service-experience-error')}
               required
               value={formData.experience}
               onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
               className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--focus-ring)] transition-all min-h-[80px] resize-y font-bold bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)]`}
               placeholder={fieldConfig.experiencePlaceholder || 'عرّف بخدماتك وخبراتك وأبرز التفاصيل التي يحتاجها المستفيد.'}
             />
+            {requiredError('الخبرة أو الوصف', 'service-experience-error')}
           </div>
 
           {/* Area Name */}
@@ -406,6 +426,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
               <MapPin className="w-4 h-4" /> {fieldConfig.locationLabel || t('location_label')}
             </label>
             <input
+              {...fieldFeedback('العنوان أو المنطقة', 'service-location-error')}
               required
               type="text"
               value={formData.location}
@@ -413,6 +434,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
               className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--focus-ring)] transition-all font-bold bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)]`}
               placeholder={fieldConfig.locationPlaceholder || t('location_placeholder')}
             />
+            {requiredError('العنوان أو المنطقة', 'service-location-error')}
           </div>
 
           {/* Coordinates */}
@@ -452,6 +474,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
             </label>
             <input
               id="service-phone"
+              {...fieldFeedback('رقم الهاتف', 'service-phone-error')}
               required={registration?.phoneRequired}
               minLength={registration ? 7 : undefined}
               type="tel"
@@ -461,19 +484,23 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
               placeholder="07X XXXX XXXX"
               dir="ltr"
             />
+            {requiredError('رقم الهاتف', 'service-phone-error')}
           </div>
 
-          <SocialContactFields values={formData} onChange={(field, value) => setFormData(current => ({ ...current, [field]: value }))} />
+          <SocialContactFields compact values={formData} onChange={(field, value) => setFormData(current => ({ ...current, [field]: value }))} />
 
           {/* Image Upload */}
-          {registration ? <ServiceImagePicker images={registrationImages} onChange={setRegistrationImages} onBusy={setImagesBusy} /> : <div className="space-y-1.5">
+          {registration ? <div {...fieldFeedback('صورة واحدة', 'service-image-error')} className="rounded-xl border border-transparent">
+            <ServiceImagePicker images={registrationImages} onChange={setRegistrationImages} onBusy={setImagesBusy} />
+            {requiredError('صورة واحدة', 'service-image-error')}
+          </div> : <div className="space-y-1.5">
             <label className={`text-sm flex items-center gap-2 font-bold text-[var(--text-secondary)]`}>
               <ImageIcon className="w-4 h-4" /> {t('service_image_label')}
             </label>
             <div className="flex flex-col gap-3">
               {formData.image ? (
-                <div className={`relative flex min-h-48 max-h-[32rem] w-full items-center justify-center overflow-hidden rounded-xl border bg-[var(--bg-secondary)] group border-[var(--border)]`}>
-                  <img src={formData.image} alt="Preview" className="block h-auto max-h-[32rem] w-full object-contain object-center" />
+                <div className={`relative flex min-h-28 max-h-48 w-full items-center justify-center overflow-hidden rounded-xl border bg-[var(--bg-secondary)] group border-[var(--border)] sm:max-h-56`}>
+                  <img src={formData.image} alt="Preview" className="block h-auto max-h-48 w-full object-contain object-center sm:max-h-56" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                     <button
                       type="button"
@@ -497,10 +524,10 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className={`w-full h-40 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 transition-all group bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)]`}
+                  className={`w-full h-28 border border-dashed rounded-xl flex flex-col items-center justify-center gap-2 transition-all group bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)] sm:h-32`}
                 >
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all bg-[var(--surface-elevated)] group-hover:bg-[var(--accent-soft)] group-hover:scale-110`}>
-                    <ImageIcon className={`w-7 h-7 transition-colors text-[var(--text-muted)] group-hover:text-[var(--text-primary)]`} />
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all bg-[var(--surface-elevated)] group-hover:bg-[var(--accent-soft)]`}>
+                    <ImageIcon className={`w-4 h-4 transition-colors text-[var(--text-muted)] group-hover:text-[var(--text-primary)]`} />
                   </div>
                   <div className="text-center">
                     <p className={`text-sm font-bold text-[var(--text-primary)]`}>{t('add_image_help')}</p>
@@ -520,8 +547,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
 
           }
           {/* Action Buttons */}
-          {(registrationError || missingFieldsMessage) && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{registrationError || missingFieldsMessage}</p>}
-          <div className={`sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex shrink-0 flex-col gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-3 min-[360px]:flex-row sm:-mx-5 sm:-mb-5 sm:gap-3 sm:p-4`}>
+          <div className="flex shrink-0 flex-col gap-2 border-t border-[var(--border)] pt-3 min-[360px]:flex-row">
             <button
               type="button"
               onClick={onClose}
@@ -531,7 +557,7 @@ export default function AddServiceModal({ onClose, initialCategorySlug, initialP
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || imagesBusy || attachmentBusy || missingRequiredFields.length > 0}
+              disabled={isSubmitting || imagesBusy || attachmentBusy}
                             className="app-btn-accent flex w-full min-w-0 flex-1 items-center justify-center gap-2 rounded-xl py-3.5 font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (

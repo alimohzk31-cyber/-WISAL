@@ -8,6 +8,7 @@ import { APP_VERSION, checkForUpdate } from '../lib/appVersion';
 import { useNotifications } from '../hooks/useNotifications';
 import ThemeToggle from './ThemeToggle';
 import { AnimatePresence, motion } from 'motion/react';
+import MenuWisalAccess from './MenuWisalAccess';
 
 export default function MainMenuController() {
   type MenuSubmenu = 'notifications' | 'suggestions' | 'colors' | 'version';
@@ -72,7 +73,7 @@ export default function MainMenuController() {
 
   return (
     <>
-          {/* Left: ☰ Main Menu — 5 items, Admin outside */}
+          {/* Main menu: keep the existing entries and add the matching WISAL image. */}
           <div className="relative" ref={mainMenuRef}>
             <button
               type="button"
@@ -94,6 +95,7 @@ export default function MainMenuController() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   className="absolute left-0 z-50 mt-2 w-60 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
                 >
+                  <MenuWisalAccess />
                   <button
                     type="button"
                     ref={notificationsTriggerRef}

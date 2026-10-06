@@ -9,11 +9,12 @@ interface Props {
   attachment?: ServiceRegistrationAttachment;
   onAttachment: (attachment?: ServiceRegistrationAttachment) => void;
   onBusy: (busy: boolean) => void;
+  missingFields?: string[];
 }
 
 const inputClass = 'w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--focus-ring)]';
 
-export default function ServiceRegistrationFields({ config, values, onChange, attachment, onAttachment, onBusy }: Props) {
+export default function ServiceRegistrationFields({ config, values, onChange, attachment, onAttachment, onBusy, missingFields = [] }: Props) {
   const [error, setError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   const readAttachment = async (file?: File) => {
@@ -42,16 +43,21 @@ export default function ServiceRegistrationFields({ config, values, onChange, at
         {field.label} {field.required && <span aria-hidden="true" className="text-[var(--accent-primary)]">*</span>}
       </label>
       {field.type === 'textarea' ? <textarea
+        aria-invalid={missingFields.includes(field.label)} aria-describedby={missingFields.includes(field.label) ? `registration-${field.key}-error` : undefined}
+        style={missingFields.includes(field.label) ? { borderColor: 'rgb(248 113 113 / 0.65)' } : undefined}
         id={`registration-${field.key}`} required={field.required} value={values[field.key] ?? ''}
         onChange={event => onChange({ ...values, [field.key]: event.target.value })}
         placeholder={field.placeholder} className={`${inputClass} min-h-28 resize-y`} rows={4}
       /> : <input
+        aria-invalid={missingFields.includes(field.label)} aria-describedby={missingFields.includes(field.label) ? `registration-${field.key}-error` : undefined}
+        style={missingFields.includes(field.label) ? { borderColor: 'rgb(248 113 113 / 0.65)' } : undefined}
         id={`registration-${field.key}`} type={field.type} required={field.required}
         min={field.min} step={field.type === 'number' ? 1 : undefined}
         inputMode={field.type === 'number' ? 'numeric' : undefined}
         value={values[field.key] ?? ''} onChange={event => onChange({ ...values, [field.key]: event.target.value })}
         placeholder={field.placeholder} className={inputClass}
       />}
+      {missingFields.includes(field.label) && <p id={`registration-${field.key}-error`} className="text-[11px] font-medium text-red-500">هذا الحقل مطلوب</p>}
       {field.attachment && <div className="rounded-xl border border-dashed border-[var(--border)] p-3">
         {attachment ? <div className="flex min-w-0 items-center gap-3">
           {attachment.type.startsWith('image/') ? <img src={attachment.dataUrl} alt="معاينة مستند الممارسة" className="h-14 w-14 shrink-0 rounded-lg object-cover" /> : <FileText className="h-8 w-8 shrink-0 text-[var(--accent-primary)]" />}

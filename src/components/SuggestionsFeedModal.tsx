@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Send, Image as ImageIcon, Loader2, X, RefreshCw,
-  MessageSquareText, Users, AlertTriangle, ChevronDown, ChevronUp,
+  MessageSquareText, Users, AlertTriangle, ChevronDown, ChevronUp, Clock,
 } from 'lucide-react';
 import {
   Comment, fetchComments, addComment, uploadCommentImage,
@@ -15,6 +15,7 @@ import {
 } from '../hooks/useSuggestionInteractions';
 import { sanitizeExternalUrl } from '../lib/externalUrl';
 import MenuSubmenuPopover from './MenuSubmenuPopover';
+import SuggestionsRequestForm, { type RequestType } from './SuggestionsRequestForm';
 import type { MenuPopoverAnchorRect } from './MenuSubmenuPopover';
 
 const SUGGESTION_MIN_LENGTH = 3;
@@ -125,7 +126,9 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
   const [commentTexts, setCommentTexts] = useState<Record<number, string>>({});
   const [commentSending, setCommentSending] = useState<Set<number>>(new Set());
   const [commentErrors, setCommentErrors] = useState<Record<number, string>>({});
-  const [activeTab, setActiveTab] = useState<'suggestions' | 'complaints'>('suggestions');
+  const [activeTab, setActiveTab] = useState<'new' | 'previous'>('new');
+  const [requestType, setRequestType] = useState<RequestType>('suggestion');
+  const [messageTitle, setMessageTitle] = useState('');
   const [complaintText, setComplaintText] = useState('');
   const [complaintImageFile, setComplaintImageFile] = useState<File | null>(null);
   const [complaintImagePreview, setComplaintImagePreview] = useState('');
@@ -163,7 +166,9 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
     };
   }, [complaintImagePreview]);
 
-  const canSend = text.trim().length >= SUGGESTION_MIN_LENGTH && !submitting;
+  const suggestionContent = [messageTitle.trim(), text.trim()].join('\n\n');
+  const complaintContent = [messageTitle.trim(), complaintText.trim()].join('\n\n');
+  const canSend = !!messageTitle.trim() && text.trim().length >= SUGGESTION_MIN_LENGTH && suggestionContent.length <= SUGGESTION_MAX_LENGTH && !submitting;
 
   const pickComplaintImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -224,9 +229,11 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
         imageUrl = await uploadCommentImage(imageFile);
         if (!imageUrl) throw new Error('فشل رفع الصورة.');
       }
-      await addComment({ content: text.trim(), image_url: imageUrl });
+      await addComment({ content: suggestionContent, image_url: imageUrl });
       setText('');
+      setMessageTitle('');
       clearImage();
+      setActiveTab('previous');
       await load(true);
       setTimeout(() => feedEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (e: any) {
@@ -239,8 +246,8 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
 
   const handleComplaintSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const message = complaintText.trim();
-    if (!message || complaintSubmitting) return;
+    const message = complaintContent;
+    if (!messageTitle.trim() || !complaintText.trim() || message.length > COMPLAINT_MAX_LENGTH || complaintSubmitting) return;
     setComplaintSubmitting(true);
     setComplaintError('');
     setComplaintSuccess('');
@@ -249,10 +256,11 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
       if (complaintImageFile) {
         imagePath = await uploadContactMessageImage(complaintImageFile);
       }
-      await sendContactMessage({ message_type: 'complaint', message, image_url: imagePath });
+      await sendContactMessage({ message_type: requestType, message, image_url: imagePath });
       setComplaintText('');
+      setMessageTitle('');
       clearComplaintImage();
-      setComplaintSuccess('تم إرسال شكواك إلى الإدارة بنجاح');
+      setComplaintSuccess('تم إرسال رسالتك إلى الإدارة بنجاح');
     } catch (e: any) {
       console.error('[Complaints] submit error:', e?.message);
       if (imagePath) await removeContactMessageImage(imagePath);
@@ -431,7 +439,9 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
       anchorRect={anchorRect}
       title="الاقتراحات والشكاوى"
       ariaLabel="الاقتراحات والشكاوى"
-      headerAction={activeTab === 'suggestions' ? (
+      appearance="clean"
+      headerIcon={<MessageSquareText className="h-6 w-6 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />}
+      headerAction={activeTab === 'previous' ? (
         <button
           type="button"
           onClick={() => load(true)}
@@ -447,27 +457,15 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <p className="mb-2 px-1 text-center text-[10px] font-bold text-[var(--theme-muted)]">
-          {activeTab === 'suggestions' ? 'شارك اقتراحك مع الجميع' : 'أرسل شكواك إلى الإدارة بشكل خاص'}
+          نستمع لآرائكم لنجعل وصال أفضل دائماً
         </p>
-        <div className="flex shrink-0 border-b border-[var(--border)] bg-[var(--surface-elevated)] p-2">
-          <button
-            type="button"
-            onClick={() => { setActiveTab('suggestions'); setComplaintError(''); setComplaintSuccess(''); }}
-            className={`flex-1 rounded-xl px-3 py-2 text-sm font-black transition-colors ${activeTab === 'suggestions' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'}`}
-          >
-            ساحة الاقتراحات
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab('complaints'); setSubmitError(''); }}
-            className={`flex-1 rounded-xl px-3 py-2 text-sm font-black transition-colors ${activeTab === 'complaints' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'}`}
-          >
-            الشكاوى
-          </button>
+        <div role="tablist" aria-label="الرسائل" className="mb-4 grid shrink-0 grid-cols-2 gap-2 rounded-xl bg-[var(--theme-primary-soft)] p-1">
+          {[{value:'new',label:'إرسال جديد',Icon:Send},{value:'previous',label:'السابقة',Icon:Clock}].map(({value,label,Icon}) => <button key={value} type="button" role="tab" aria-selected={activeTab === value}
+            onClick={() => setActiveTab(value as 'new' | 'previous')} className={`flex min-h-11 items-center justify-center gap-2 rounded-xl text-sm font-bold transition ${activeTab === value ? 'app-btn-accent shadow-sm' : 'text-[var(--theme-muted)]'}`}><Icon className="h-4 w-4" />{label}</button>)}
         </div>
-
-        {activeTab === 'suggestions' ? (
+        {activeTab === 'previous' ? (
         <>
+        <p className="mb-2 text-center text-xs text-[var(--theme-muted)]">ساحة الاقتراحات الحالية — الرسائل الخاصة لا تظهر هنا</p>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {error && (
             <div className="p-4 m-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
@@ -522,97 +520,22 @@ export default function SuggestionsFeedModal({ open = true, onClose, anchorRect 
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="shrink-0 border-t border-[var(--border)] bg-[var(--surface-elevated)] p-4 space-y-3">
-          <label htmlFor="suggestion-text" className="block text-sm font-bold text-[var(--text-primary)]">اكتب اقتراحك</label>
-          <textarea
-            id="suggestion-text"
-            value={text}
-            onChange={e => setText(e.target.value.slice(0, SUGGESTION_MAX_LENGTH))}
-            minLength={SUGGESTION_MIN_LENGTH}
-            maxLength={SUGGESTION_MAX_LENGTH}
-            required
-            disabled={submitting}
-            rows={2}
-            placeholder="اكتب اقتراحك في جملة..."
-            className="w-full resize-none rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm text-[var(--text-primary)]"
-          />
-          {imagePreview && (
-            <div className="relative w-fit">
-              <img src={imagePreview} alt="معاينة الصورة المرفقة" className="max-h-28 max-w-full rounded-xl object-contain" />
-              <button type="button" onClick={clearImage} disabled={submitting} aria-label="إزالة الصورة" className="absolute left-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-4 w-4" /></button>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs text-[var(--text-muted)]" dir="ltr">{text.length}/{SUGGESTION_MAX_LENGTH}</span>
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={pickImage} disabled={submitting} className="hidden" />
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={submitting} className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm text-[var(--text-secondary)]"><ImageIcon className="h-4 w-4" />إضافة صورة</button>
-              <button type="submit" disabled={!canSend} className="app-btn-accent flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-50">
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} نشر الاقتراح
-              </button>
-            </div>
-          </div>
-          {submitError && <p role="alert" className="text-sm text-red-500">{submitError}</p>}
-        </form>
         </>
         ) : (
-          <form onSubmit={handleComplaintSubmit} dir="rtl" className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-            <div className="sticky top-0 z-10 -mx-4 -mt-4 flex shrink-0 items-start justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6">
-              <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-black text-[var(--text-primary)]">إرسال شكوى</h3>
-                <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">ستصل الشكوى إلى الإدارة فقط ولن تظهر للمستخدمين.</p>
-              </div>
-
-            </div>
-            <textarea
-              value={complaintText}
-              onChange={e => { setComplaintText(e.target.value.slice(0, 2000)); setComplaintError(''); setComplaintSuccess(''); }}
-              placeholder="اكتب شكواك هنا..."
-              maxLength={COMPLAINT_MAX_LENGTH}
-              required
-              disabled={complaintSubmitting}
-              className="min-h-48 w-full flex-1 resize-none rounded-2xl border border-[var(--input-border)] bg-[var(--input-bg)] p-4 text-sm leading-7 text-[var(--text-primary)] outline-none transition-all focus:border-[var(--accent-primary)]"
-            />
-            {complaintImagePreview && (
-              <div className="relative w-fit">
-                <img src={complaintImagePreview} alt="معاينة صورة الشكوى" className="max-h-40 max-w-full rounded-xl border border-[var(--border)] object-contain" />
-                <button
-                  type="button"
-                  onClick={clearComplaintImage}
-                  disabled={complaintSubmitting}
-                  aria-label="حذف صورة الشكوى"
-                  className="absolute left-1 top-1 rounded-full bg-red-600 p-1 text-white"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-[var(--text-muted)]" dir="ltr">{complaintText.length}/{COMPLAINT_MAX_LENGTH}</span>
-                <input ref={complaintFileInputRef} type="file" accept="image/*" onChange={pickComplaintImage} disabled={complaintSubmitting} className="hidden" />
-                <button
-                  type="button"
-                  onClick={() => complaintFileInputRef.current?.click()}
-                  disabled={complaintSubmitting}
-                  className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                  {complaintImagePreview ? 'تغيير الصورة' : 'إضافة صورة'}
-                </button>
-              </div>
-            </div>
-            {complaintError && <p role="alert" className="text-sm font-bold text-red-500">{complaintError}</p>}
-            {complaintSuccess && <p role="status" className="text-sm font-bold text-emerald-600">{complaintSuccess}</p>}
-            </div>
-            <div className="flex shrink-0 justify-end border-t border-[var(--border)] bg-[var(--surface-elevated)] p-4">
-              <button type="submit" disabled={!complaintText.trim() || complaintSubmitting} className="app-btn-accent flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50">
-                {complaintSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                إرسال الشكوى
-              </button>
-            </div>
-          </form>
+          <SuggestionsRequestForm requestType={requestType} onTypeChange={type => { setRequestType(type); setSubmitError(''); setComplaintError(''); setComplaintSuccess(''); }}
+            title={messageTitle} onTitleChange={setMessageTitle}
+            text={requestType === 'suggestion' ? text : complaintText}
+            onTextChange={requestType === 'suggestion' ? setText : value => { setComplaintText(value); setComplaintError(''); setComplaintSuccess(''); }}
+            maxLength={Math.max(0, (requestType === 'suggestion' ? SUGGESTION_MAX_LENGTH : COMPLAINT_MAX_LENGTH) - messageTitle.trim().length - 2)}
+            minLength={requestType === 'suggestion' ? SUGGESTION_MIN_LENGTH : 1}
+            preview={requestType === 'suggestion' ? imagePreview : complaintImagePreview}
+            fileInputRef={requestType === 'suggestion' ? fileInputRef : complaintFileInputRef}
+            onPickImage={requestType === 'suggestion' ? pickImage : pickComplaintImage}
+            onClearImage={requestType === 'suggestion' ? clearImage : clearComplaintImage}
+            busy={submitting || complaintSubmitting}
+            canSend={requestType === 'suggestion' ? canSend : !!messageTitle.trim() && !!complaintText.trim() && complaintContent.length <= COMPLAINT_MAX_LENGTH}
+            error={requestType === 'suggestion' ? submitError : complaintError} success={requestType === 'suggestion' ? '' : complaintSuccess}
+            onSubmit={requestType === 'suggestion' ? handleSubmit : handleComplaintSubmit} />
         )}
       </div>
     </MenuSubmenuPopover>

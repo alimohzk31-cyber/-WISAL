@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import wisalMenuBanner from '../assets/wisal-admin-banner.png';
 
-/** This component lives only in the open main menu. PIN characters never enter the DOM. */
+/** Only the open menu receives input; the keyboard receiver is cleared immediately. */
 export default function MenuWisalAccess() {
   const { beginAdminPinAttempt, loginWithPin } = useAuth();
   const navigate = useNavigate();
@@ -15,11 +15,16 @@ export default function MenuWisalAccess() {
   const deadline = useRef(0);
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keyboardReceiver = useRef<HTMLInputElement>(null);
 
   const clearTemporaryInput = useCallback(() => {
     attempt.current++;
     clicks.current = 0;
     pin.current = '';
+    if (keyboardReceiver.current) {
+      keyboardReceiver.current.value = '';
+      keyboardReceiver.current.blur();
+    }
     deadline.current = 0;
     if (clickTimer.current) clearTimeout(clickTimer.current);
     if (inputTimer.current) clearTimeout(inputTimer.current);
@@ -43,15 +48,22 @@ export default function MenuWisalAccess() {
       deadline.current = Date.now() + 10_000;
       setArmed(true);
       inputTimer.current = setTimeout(cancel, 10_000);
+      // Focus synchronously inside the fifth user tap: iOS will not reliably
+      // open its keyboard when focus is deferred to an effect or timer.
+      if (window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0) {
+        const receiver = keyboardReceiver.current;
+        if (receiver) {
+          receiver.disabled = false;
+          receiver.focus({ preventScroll: true });
+        }
+      }
     } else {
       clickTimer.current = setTimeout(() => { clicks.current = 0; }, 2000);
     }
   };
 
-  useEffect(() => {
-    if (!armed) return;
-    const submit = async () => {
-      if (busy.current || pin.current.length !== 6) return;
+  const submit = useCallback(async () => {
+      if (busy.current || Array.from(pin.current).length !== 6) return;
       busy.current = true;
       const currentAttempt = attempt.current;
       const submittedPin = pin.current;
@@ -72,21 +84,32 @@ export default function MenuWisalAccess() {
       } finally {
         busy.current = false;
       }
-    };
+  }, [beginAdminPinAttempt, cancel, loginWithPin, navigate]);
+
+  const receiveText = useCallback((text: string) => {
+    if (!armed || busy.current) return;
+    if (Date.now() >= deadline.current) { cancel(); return; }
+    pin.current = Array.from(pin.current + text).slice(0, 6).join('');
+    if (Array.from(pin.current).length === 6) void submit();
+  }, [armed, cancel, submit]);
+
+  useEffect(() => {
+    if (!armed) return;
     const keydown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
-      if (!/^[0-9]$/.test(event.key) && !['Backspace', 'Delete', 'Escape', 'Enter'].includes(event.key)) return;
+      const printable = Array.from(event.key).length === 1;
+      if (!printable && !['Backspace', 'Delete', 'Escape', 'Enter'].includes(event.key)) return;
+      // Mobile keyboards/IME may emit only an input event (keydown can be
+      // "Unidentified" or keyCode 229). Let the receiver handle printable text.
+      if (printable && event.target === keyboardReceiver.current) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       if (event.key === 'Escape') { cancel(); return; }
       if (busy.current || event.repeat) return;
       if (Date.now() >= deadline.current) { cancel(); return; }
-      if (event.key === 'Backspace') pin.current = pin.current.slice(0, -1);
+      if (event.key === 'Backspace') pin.current = Array.from(pin.current).slice(0, -1).join('');
       else if (event.key === 'Delete') pin.current = '';
-      else if (/^[0-9]$/.test(event.key)) {
-        pin.current += event.key;
-        if (pin.current.length === 6) void submit();
-      }
+      else if (printable) receiveText(event.key);
     };
     const visibility = () => { if (document.hidden) cancel(); };
     window.addEventListener('keydown', keydown, true);
@@ -97,14 +120,31 @@ export default function MenuWisalAccess() {
       window.removeEventListener('blur', cancel);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, [armed, beginAdminPinAttempt, cancel, loginWithPin, navigate]);
+  }, [armed, cancel, receiveText]);
 
-  return <div className="flex w-full flex-col items-center gap-2 pb-2">
+  return <div className="relative flex w-full flex-col items-center gap-1 pb-1">
     <button type="button" aria-label="WISAL" onClick={handleClick}
-      className="block w-full overflow-hidden rounded-xl">
+      className="flex w-full items-center justify-center overflow-hidden rounded-lg border-0 bg-transparent p-0 shadow-none">
       <img src={wisalMenuBanner} width={1672} height={941}
-        alt="" className="block h-auto w-full rounded-xl object-contain" draggable={false} />
+        alt="" className="block h-auto w-[92%] rounded-lg border-0 object-contain shadow-none" draggable={false} />
     </button>
     {armed && <p className="text-center text-[11px] font-bold text-[var(--text-primary)]">وصال | كل الخدمات في مكان واحد</p>}
+    <input ref={keyboardReceiver} data-keyboard-receiver type="text" inputMode="text"
+      disabled={!armed} tabIndex={-1} aria-hidden="true" autoComplete="off"
+      autoCapitalize="none" autoCorrect="off" spellCheck={false}
+      style={{ position: 'absolute', left: 0, bottom: 0, width: 1, height: 1, opacity: 0,
+        pointerEvents: 'none', caretColor: 'transparent', color: 'transparent',
+        fontSize: 16, border: 0, padding: 0, outline: 'none' }}
+      onInput={event => {
+        const text = event.currentTarget.value;
+        event.currentTarget.value = '';
+        receiveText(text);
+      }}
+      onBeforeInput={event => {
+        if ((event.nativeEvent as InputEvent).inputType === 'deleteContentBackward') {
+          event.preventDefault();
+          pin.current = Array.from(pin.current).slice(0, -1).join('');
+        }
+      }} />
   </div>;
 }

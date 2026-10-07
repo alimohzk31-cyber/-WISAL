@@ -7,6 +7,7 @@ export interface AdminNotification {
   message: string;
   created_at: string;
   published_at: string | null;
+  notification_type?: 'offer' | 'news' | 'update' | 'general' | null;
 }
 
 export const NOTIFICATIONS_CHANGED = 'saleen:notifications-changed';
@@ -34,7 +35,9 @@ async function loadNotifications(includeDrafts: boolean): Promise<AdminNotificat
   // Paginate so unread counts aren't silently capped by the API row limit.
   for (let offset = 0; ; offset += 500) {
     let query = supabase.from('admin_notifications')
-      .select('id,title,message,created_at,published_at')
+      // Read optional metadata when available without requiring a new column.
+      // Older rows without a type remain visible only in the All tab.
+      .select('*')
       .order('published_at', { ascending: false, nullsFirst: true })
       .order('id', { ascending: false })
       .range(offset, offset + 499);

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Clock } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bell, BellOff, Clock } from 'lucide-react';
 import type { AdminNotification } from '../lib/notifications';
 import MenuSubmenuPopover from './MenuSubmenuPopover';
 import type { MenuPopoverAnchorRect } from './MenuSubmenuPopover';
@@ -28,6 +28,9 @@ export default function NotificationsPopup({
   const dialogRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'offer' | 'news' | 'update'>('all');
+  const visibleNotifications = activeTab === 'all' ? notifications : notifications.filter(item => item.notification_type === activeTab);
+  const tabs = [{ value: 'all', label: 'الكل' }, { value: 'offer', label: 'العروض' }, { value: 'news', label: 'الأخبار' }, { value: 'update', label: 'التحديثات' }] as const;
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
@@ -74,7 +77,7 @@ export default function NotificationsPopup({
       observer.disconnect();
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [notifications, loading, error, markRead]);
+  }, [notifications, activeTab, loading, error, markRead]);
 
   return (
     <MenuSubmenuPopover
@@ -86,18 +89,31 @@ export default function NotificationsPopup({
       dialogRef={dialogRef}
       closeButtonRef={closeRef}
       size="large"
+      appearance="clean"
+      headerIcon={<Bell className="h-6 w-6 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />}
       scrollContent={false}
     >
+      <p className="mb-5 text-center text-xs leading-6 text-[var(--theme-muted)] sm:text-sm">جديد وصال من العروض والتنبيهات</p>
+      <div role="tablist" aria-label="أنواع الإشعارات" className="mb-4 grid shrink-0 grid-cols-4 gap-1.5 sm:gap-2">
+        {tabs.map(({ label, value }) => (
+          <button key={value} type="button" role="tab" aria-selected={activeTab === value} data-notification-tab={value}
+            onClick={() => { setActiveTab(value); if (listRef.current) listRef.current.scrollTop = 0; }}
+            className={`flex min-h-11 items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-bold sm:text-sm ${activeTab === value ? 'app-btn-accent shadow-sm' : 'bg-[var(--theme-primary-soft)] text-[var(--theme-muted)] disabled:cursor-default'}`}>
+            {label}
+            {value === 'all' && !loading && !error && notifications.length > 0 && <span dir="ltr" className="rounded-full bg-[var(--theme-surface)] px-1.5 text-[10px] text-[var(--accent-primary)]">{notifications.length}</span>}
+          </button>
+        ))}
+      </div>
       <div ref={listRef} tabIndex={0} aria-label="إشعارات الإدارة" className="min-h-0 flex-1 overflow-y-auto">
         {loading ? <p role="status" className="p-6 text-center text-[var(--theme-muted)]">جاري تحميل الإشعارات...</p>
           : error ? <div role="alert" className="p-6 text-center text-[var(--theme-muted)]">
             <p>{error}</p>
             <button type="button" onClick={refresh} className="mt-3 font-bold text-[var(--accent-primary)]">إعادة المحاولة</button>
           </div>
-          : notifications.length === 0 ? <p className="p-8 text-center text-[var(--theme-muted)]">لا توجد إشعارات جديدة</p>
-          : notifications.map(notification => (
+          : visibleNotifications.length === 0 ? <div className="flex min-h-52 flex-col items-center justify-center gap-3 p-8 text-center text-[var(--theme-muted)]"><BellOff className="h-10 w-10 opacity-40" aria-hidden="true" /><p className="text-sm font-bold">{activeTab === 'all' ? 'لا توجد إشعارات حالياً' : 'لا توجد إشعارات من هذا النوع حالياً'}</p></div>
+          : visibleNotifications.map(notification => (
             <article key={notification.id} data-notification-id={notification.id}
-              className="border-b border-[var(--theme-border)] p-3 text-right last:border-0">
+              className="mb-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 text-right shadow-sm">
               <div className="flex items-start gap-2">
                 <h3 className="min-w-0 flex-1 break-words font-bold text-[var(--theme-text)]">{notification.title}</h3>
                 {!readIds.has(notification.id) && <span className="shrink-0 text-xs text-[var(--accent-primary)]">جديد</span>}

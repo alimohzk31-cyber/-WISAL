@@ -26,6 +26,8 @@ interface Props {
   closeButtonRef?: RefObject<HTMLButtonElement | null>;
   scrollContent?: boolean;
   size?: 'compact' | 'large';
+  appearance?: 'glass' | 'clean';
+  headerIcon?: ReactNode;
 }
 
 const glassStyle = {
@@ -49,6 +51,8 @@ export default function MenuSubmenuPopover({
   closeButtonRef,
   scrollContent = true,
   size = 'compact',
+  appearance = 'glass',
+  headerIcon,
 }: Props) {
   const readViewport = () => ({
     width: typeof window === 'undefined' ? 1024 : window.visualViewport?.width ?? window.innerWidth,
@@ -117,7 +121,7 @@ export default function MenuSubmenuPopover({
             exit={{ opacity: 0, scale: 0.97, x: -6 }}
             transition={{ duration: motionDuration, ease: 'easeOut' }}
             className="pointer-events-auto fixed flex w-full flex-col overflow-hidden rounded-[24px] border p-4 text-[var(--theme-text)]"
-            style={{ ...glassStyle, ...panelLayout, willChange: 'transform, opacity', contain: 'layout paint' }}
+            style={{ ...(appearance === 'clean' ? { background: 'var(--theme-surface)', borderColor: 'var(--theme-border)', boxShadow: '0 24px 70px -30px var(--theme-shadow)' } : glassStyle), ...panelLayout, willChange: 'transform, opacity', contain: 'layout paint' }}
             onMouseDown={event => event.stopPropagation()}
           >
             <button
@@ -132,7 +136,7 @@ export default function MenuSubmenuPopover({
 
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="relative flex shrink-0 items-center justify-center pb-2 pt-1">
-                <h2 className="text-base font-black text-[var(--theme-text)]">{title}</h2>
+                <h2 className={appearance === 'clean' ? 'flex items-center justify-center gap-2 px-7 text-center text-lg font-black text-[var(--theme-text)] sm:text-xl' : 'text-base font-black text-[var(--theme-text)]'}>{headerIcon}{title}</h2>
                 {headerAction}
               </div>
               <div
